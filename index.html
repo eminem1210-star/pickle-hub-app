@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PICKLE HUB - Pop Style</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg: #171D19;
+  --sf: #202923;
+  --sf2: #29352D;
+  --ink: #E5EAE5;
+  --mu: #9AA79C;
+  --ln: #39473D;
+  --ac: #83B394;
+  --ac-glow: rgba(131, 179, 148, 0.18);
+  --ac2: #8BC6A0;
+  --on: #18221B;
+  --dg: #E1847D;
+  --warn: #C7A76A;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Zen Maru Gothic", sans-serif;
+  font-size:15px;
+  line-height:1.6;
+  padding-bottom:90px;
+}
+main{max-width:680px;margin:0 auto;padding:20px 16px}
+h1{
+  font-size:26px;
+  font-weight:900;
+  margin:4px 0 2px;
+  color: var(--ac);
+  letter-spacing:.02em;
+}
+h2{
+  font-size:16px;
+  margin:28px 0 10px;
+  font-weight:700;
+  color: var(--ink);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+h2::before{
+  content:"";
+  width:8px;
+  height:16px;
+  background:var(--ac);
+  border-radius:4px;
+}
+.sub{color:var(--mu);margin:0 0 14px;font-size:13px}
+.badge{
+  display:inline-block;
+  padding:4px 12px;
+  font-size:11px;
+  font-weight:900;
+  background:var(--ac);
+  color:var(--on);
+  border-radius:99px;
+  box-shadow: 0 4px 10px var(--ac-glow);
+}
+.box{
+  background:var(--sf);
+  border:2px solid var(--ln);
+  border-radius:20px;
+  padding:18px;
+  margin:12px 0;
+  box-shadow: 0 8px 20px rgba(255, 107, 107, 0.08);
+}
+.court{
+  border:2px solid var(--ln);
+  border-radius:16px;
+  margin:12px 0;
+  background:var(--sf);
+  overflow:hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+}
+.court .t{
+  background:var(--ac);
+  color:var(--on);
+  font-size:12px;
+  padding:6px 14px;
+  font-weight:900;
+  letter-spacing:.05em;
+}
+.court .m{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  padding:16px;
+}
+.court .m>div:first-child,.court .m>div:last-child{font-weight:700;font-size:15px}
+.court .m>div:last-child{text-align:right}
+.court .m>div:nth-child(2){
+  grid-column:1/-1;
+  order:3;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  background: var(--sf2);
+  padding: 8px;
+  border-radius: 12px;
+}
+input,select,textarea{
+  font:inherit;
+  color:var(--ink);
+  background:var(--sf);
+  border:2px solid var(--ln);
+  border-radius:12px;
+  padding:10px 14px;
+  min-width:0;
+  transition: all 0.2s;
+}
+input:focus-visible,select:focus-visible,textarea:focus-visible{
+  border-color:var(--ac);
+  outline:none;
+  box-shadow:0 0 0 4px var(--ac-glow);
+}
+input.sc{
+  width:56px;
+  text-align:center;
+  padding:6px 2px;
+  font-weight:900;
+  font-size:20px;
+  color:var(--ac);
+}
+button{
+  font:inherit;
+  font-weight:700;
+  border:0;
+  border-radius:14px;
+  padding:12px 20px;
+  background:var(--ac);
+  color:var(--on);
+  cursor:pointer;
+  box-shadow:0 4px 15px var(--ac-glow);
+  transition: transform 0.1s, filter 0.2s;
+}
+button:hover{filter:brightness(1.05);transform:translateY(-2px)}
+button:active{transform:translateY(0)}
+button.g{
+  background:transparent;
+  color:var(--ink);
+  border:2px solid var(--ln);
+  box-shadow:none;
+}
+button.g:hover{background:var(--sf2);border-color:var(--ac)}
+button.x{
+  background:transparent;
+  color:var(--dg);
+  padding:6px 10px;
+  box-shadow:none;
+}
+button.pm{
+  width:40px;
+  height:40px;
+  padding:0;
+  font-size:22px;
+  line-height:1;
+  background: var(--sf);
+  color: var(--ac);
+  border: 2px solid var(--ln);
+  box-shadow: none;
+}
+button.line-btn{
+  background:#168A52;
+  color:#F2FFF6;
+  box-shadow:0 4px 15px rgba(22,138,82,0.2);
+}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.row>input{flex:1}
+.chip{
+  display:inline-flex;
+  align-items:center;
+  background:var(--sf2);
+  border:2px solid var(--ln);
+  border-radius:99px;
+  padding:6px 10px 6px 14px;
+  margin:4px 4px 0 0;
+  font-size:13px;
+  font-weight:700;
+}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:12px 8px;border-bottom:2px solid var(--ln);text-align:left}
+th{color:var(--mu);font-weight:700;font-size:12px}
+.big{font-size:44px;font-weight:900;color:var(--ac);font-variant-numeric:tabular-nums}
+nav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(32,41,35,0.94);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-top:2px solid var(--ln);
+  display:flex;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  z-index:5;
+}
+nav button{
+  flex:1;
+  background:transparent;
+  color:var(--mu);
+  border-radius:0;
+  padding:14px 2px;
+  font-size:13px;
+  font-weight:700;
+  border-top:4px solid transparent;
+  box-shadow:none;
+}
+nav button[aria-selected=true]{
+  color:var(--ac);
+  border-top-color:var(--ac);
+  background:var(--sf2);
+}
+.win{color:var(--ac2);font-weight:900}
+.bye{color:var(--mu);font-size:13px;margin-top:6px}
+.ok{color:var(--ac2);font-weight:700}
+label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-top:12px}
+#bg{position:fixed;inset:0;z-index:20;background:var(--bg);overflow:auto;padding:20px}
+#ts{
+  position:fixed;
+  left:16px;
+  right:16px;
+  bottom:calc(80px + env(safe-area-inset-bottom,0px));
+  background:var(--ink);
+  color:#FFF;
+  padding:14px 18px;
+  border-radius:16px;
+  z-index:30;
+  display:none;
+  font-weight:700;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+#dg{position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
+#dg .box{width:100%;max-width:380px;background:var(--sf);border-radius:24px;border:1px solid var(--ln);box-shadow:0 20px 40px rgba(0,0,0,0.35)}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:55vh;overflow:auto;padding:4px 2px;margin:10px 0}
+.msg{max-width:86%}.msg.me{align-self:flex-end;text-align:right}.msg.ot{align-self:flex-start}
+.bub{display:inline-block;text-align:left;white-space:pre-wrap;word-break:break-word;padding:10px 14px;border-radius:18px;background:var(--sf2);border:2px solid var(--ln)}
+.msg.me .bub{background:var(--ac);color:var(--on);border-color:var(--ac)}
+.meta{font-size:11px;color:var(--mu);margin-top:3px}.meta a{color:inherit;text-decoration:underline}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav id="nav" role="tablist"></nav>
+<script>
+// --- Supabase 接続設定 ---
+const SUPABASE_URL = 'https://slhfhxwddtxhqarkyldk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6ai48uMR372DwW-K6Looxw_MIWT91mp';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TABS=[["ev","大会"],["events","イベント"],["bd","掲示板"],["cl","メンバー"],["mo","その他"]];
+const MORE=[["pf","プロフィール"],["pr","練習"],["eq","貸出"],["rules","ルール"],["lv","レベル一覧"]];
+let tab="pf",S={players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[],feedbacks:[]};
+
+// データの保存（Supabaseに書き込み ＆ localStorageにも一時保存）
+const save = async () => {
+  try {
+    localStorage.setItem("ph_pop", JSON.stringify(S));
+    await supabaseClient.from('app_state').upsert({ id: 'main_data', data: S });
+  } catch(e) {
+    console.error("保存エラー:", e);
+  }
+};
+
+// 起動時にSupabaseからデータを読み込む ＆ リアルタイム購読のセットアップ
+async function initApp() {
+  try {
+    const { data, error } = await supabaseClient.from('app_state').select('data').eq('id', 'main_data').single();
+    if (data && data.data) {
+      S = Object.assign(S, data.data);
+    }
+  } catch(e) {
+    const r = localStorage.getItem("ph_pop");
+    if(r) S = Object.assign(S, JSON.parse(r));
+  }
+  
+  if(S.adminSetupCode){delete S.adminSetupCode; save();}
+  syncClubPlayers();
+  draw();
+  setTimeout(()=>{if(tab=="bz")calcB()},0);
+
+  // リアルタイム同期（他の人が変更したら自動で画面を更新）
+  supabaseClient.channel('public:app_state')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state', filter: 'id=eq.main_data' }, payload => {
+      if (payload.new && payload.new.data) {
+        S = payload.new.data;
+        draw();
+      }
+    })
+    .subscribe();
+}
+
+const $ = id => document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const P=i=>`<span style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle">${memberIcon(S.players[i]||"?",24)}<span>${esc(S.players[i]||"?")}</span></span>`;
+let lastTab="",profileUnlockedName="",profileSessionName="",profilePhotoDraft="",levelDraft=null,profileAnswersEditedName="",profileBaseline=null,adminSetupCodeDisplay=null;
+function localDateKey(date=new Date()){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`}
+function checkTournamentDay(){
+const today=localDateKey();
+if(!S.tournamentDate){S.tournamentDate=today;save();return false}
+if(S.tournamentDate===today)return false;
+S.tournamentDate=today;S.players=[];S.rounds=[];S.clubPlayerNames=[];S.tournamentTeams=[];
+syncClubPlayers();save();toast("日付が変わったため大会参加者とラウンドをリセットしました");
+return true
+}
+function scheduleTournamentDayCheck(){
+const now=new Date(),next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,1);
+setTimeout(()=>{checkTournamentDay();draw();scheduleTournamentDayCheck()},next-now)
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&checkTournamentDay())draw()});
+function toast(m){let t=$("ts");if(!t){t=document.createElement("div");t.id="ts";t.setAttribute("role","status");document.body.appendChild(t)}t.textContent=m;t.style.display="block";clearTimeout(toast.i);toast.i=setTimeout(()=>t.style.display="none",2500)}
+window.alert=toast;
+function ask(m,f){const d=document.createElement("div");d.id="dg";d.innerHTML='<div class="box"><p style="font-weight:700;font-size:16px;margin-bottom:16px;">'+esc(m)+'</p><div class="row"><button id="y">はい</button><button class="g" id="n">やめる</button></div></div>';document.body.appendChild(d);d.querySelector("#y").onclick=()=>{d.remove();f()};d.querySelector("#n").onclick=()=>d.remove()}
+function showCopy(t){const d=document.createElement("div");d.id="dg";d.innerHTML='<div class="box"><p style="font-weight:700;">下の文章をコピーしてください</p><textarea rows="6" style="width:100%"></textarea><div class="row" style="margin-top:12px;"><button>閉じる</button></div></div>';const a=d.querySelector("textarea");a.value=t;d.querySelector("button").onclick=()=>d.remove();document.body.appendChild(d);a.select()}
+function go(t){if(!["bz","bd"].includes(t))adminSession=false;if(tab==="bz"&&t!=="bz")adminSetupCodeDisplay=null;if(t!=="pf"){profileUnlockedName="";profilePhotoDraft=""}tab=t;draw()}
+function draw(){
+$("nav").innerHTML=TABS.map(([k,n])=>`<button role="tab" aria-selected="${k==tab||(k==='mo'&&MORE.some(m=>m[0]===tab))}" onclick="go('${k}')">${n}</button>`).join("")+`<button role="tab" onclick="checkAdmin()" style="font-size:11px;color:var(--mu);">🔒管理者</button>`;
+  checkTournamentDay();
+$("app").innerHTML = ({ev, events, pr, eq, lv, pf, rules, co, cl, bz, bd, mo})[tab]();
+if(tab=="pr")showT();
+if(tab=="bz")calcB();
+if(lastTab!=tab){window.scrollTo(0,0);lastTab=tab}}
+
+// 管理者画面（裏画面）へのアクセス関数
+function checkAdmin(){
+  const now=Date.now();
+  if((S.adminLockUntil||0)>now){
+    const unlockAt=new Date(S.adminLockUntil).toLocaleString("ja-JP");
+    alert(`ログインを停止中です。${unlockAt}以降に再試行してください。`);
+    return;
+  }
+  if(S.adminLockUntil){S.adminLockUntil=0;S.adminLoginFailures=0;save()}
+  const d=document.createElement("div");
+  d.id="dg";
+  d.innerHTML=`<div class="box">
+    <p style="font-weight:900;font-size:18px;color:var(--ac);margin-bottom:8px;">🔒 管理者ログイン</p>
+    <p class="sub">パスワードを入力してください (初期値: 1234)</p>
+    <input type="password" id="admin_pw" placeholder="パスワード" style="width:100%;margin-bottom:16px;" autofocus>
+    <div class="row"><button id="login_btn" style="flex:1;">ログイン</button><button class="g" id="cancel_btn">閉じる</button></div>
+  </div>`;
+  document.body.appendChild(d);
+  const input = d.querySelector("#admin_pw");
+  input.focus();
+  input.onkeydown = e => { if(e.key=='Enter') d.querySelector("#login_btn").click(); };
+  d.querySelector("#login_btn").onclick=()=>{
+    if(input.value==="1234" || input.value===(S.adminPw||"1234")){
+      S.adminLoginFailures=0;
+      S.adminLockUntil=0;
+      save();
+      d.remove();
+      tab="bz";
+      draw();
+      adminSession=true;toast("管理者モードでログインしました");
+    } else {
+      S.adminLoginFailures=(S.adminLoginFailures||0)+1;
+      if(S.adminLoginFailures>=3){
+        S.adminLoginFailures=0;
+        S.adminLockUntil=Date.now()+365*24*60*60*1000;
+        save();
+        d.remove();
+        alert("3回間違えたため、ログインを1年間停止しました。アプリと保存データは削除されません。");
+        return;
+      }
+      save();
+      alert(`パスワードが違います（${3-S.adminLoginFailures}回間違えると1年間ロックされます）`);
+      input.value="";
+      input.focus();
+    }
+  };
+  d.querySelector("#cancel_btn").onclick=()=>d.remove();
+}
+
+function shareTxt(t){if(navigator.share){navigator.share({text:t}).catch(e=>{if(e&&e.name!=="AbortError")showCopy(t)})}else{const w=window.open("https://line.me/R/share?text="+encodeURIComponent(t),"_blank");if(!w)showCopy(t)}}
+function modSc(ri,mi,k,d){const m=S.rounds[ri].m[mi],c=m[k]===""?0:m[k];m[k]=Math.max(0,c+d);save();draw()}
+function addRental(){const item=$("ri").value.trim(),member=$("rh").value;if(!item||!member){alert("用具名とメンバーを選択してください");return}S.rentals=S.rentals||[];S.rentals.push({item,holder:member});save();draw()}
+
+/* ---------- 大会 ---------- */
+function ev(){
+return `<span class="badge">TOURNAMENT</span><h1>PICKLE HUB</h1><p class="sub">楽しくスマートに大会・練習を管理しよう！</p>
+<div class="row"><label style="margin:0">大会形式 <select id="tournament_format" onchange="setTournamentFormat(this.value)"><option value="doubles" ${(S.tournamentFormat||"doubles")==="doubles"?"selected":""}>ダブルス</option><option value="singles" ${S.tournamentFormat==="singles"?"selected":""}>シングルス</option></select></label></div>
+<h2>参加者 (${S.players.length}人)</h2>
+<div class="row"><input id="pn" placeholder="名前 (例: 田中 3.5, 佐藤)" onkeydown="if(event.key=='Enter')addP()"><button onclick="addP()">追加</button></div>
+<div>${S.players.map((p,i)=>`<span class="chip">${P(i)}${S.rt&&S.rt[p]!=null?' <small style="color:var(--ac)">'+Number(S.rt[p]).toFixed(1)+'</small>':''}<button class="x" aria-label="削除" onclick="delP(${i})">×</button></span>`).join("")||'<p class="sub">名前を入力して追加。「田中 3.5」のようにレベル指定も可能。</p><button class="g" onclick="demo()">✨ サンプル8人で試す</button>'}</div>
+<div class="row"><label style="margin:0">コート数
+<select id="cn" onchange="S.courts=+this.value;save()">${[1,2,3,4,5,6].map(n=>`<option ${n==S.courts?"selected":""}>${n}</option>`).join("")}</select></label>
+<button onclick="nextRound()">次のラウンドを組む</button><button class="g" onclick="undoR()">直前取消</button><button class="g" onclick="resetEv()">全消去</button></div>
+<div class="row"><button class="line-btn" onclick="shareR()">LINEで結果共有</button><button class="g" onclick="big()">大画面</button><button class="g" onclick="saveH()">履歴保存</button></div><textarea id="sh" rows="7" style="display:none;width:100%" aria-label="結果テキスト"></textarea>
+${S.rounds.slice().reverse().map((r,ri)=>round(r,S.rounds.length-1-ri)).join("")}
+${S.rounds.length?`<h2>順位表</h2>${stand()}`:""}
+${(S.hist||[]).length?`<h2>過去の履歴</h2>${S.hist.map((h,i)=>`<div class="box"><b>${esc(h.d)}</b> (${h.p.length}人・${h.r.length}R)<div class="row"><button class="g" onclick="loadH(${i})">読み込む</button><button class="x" onclick="deleteH(${i})">履歴削除</button></div></div>`).join("")}`:""}`}
+function addP(){const raw=$("pn").value.trim();if(!raw)return;S.rt=S.rt||{};raw.split(/[,、\n]+/).map(s=>s.trim()).filter(Boolean).forEach(s=>{const m=s.match(/^(.+?)\s+(\d(?:\.\d+)?)$/),n=m?m[1]:s;if(m)S.rt[n]=+m[2];if(!S.players.includes(n))S.players.push(n)});save();draw();$("pn").focus()}
+function delP(i){const f=()=>{S.players.splice(i,1);S.rounds=[];S.tournamentTeams=[];save();draw()};S.rounds.length?ask("ラウンド記録が消えます。削除しますか？",f):f()}
+function setTournamentFormat(format){
+if(format===S.tournamentFormat)return;
+const apply=()=>{S.tournamentFormat=format;S.rounds=[];S.tournamentTeams=[];save();draw()};
+if(S.rounds.length){ask("大会形式を変更すると進行中のラウンドとスコアが消えます。変更しますか？",apply);const dialog=$("dg"),cancel=dialog&&dialog.querySelector("#n");if(cancel)cancel.onclick=()=>{dialog.remove();draw()}}
+else{S.tournamentFormat=format;S.tournamentTeams=[];save();draw()}
+}
+function tournamentPlayers(){return S.players.map((_,index)=>index)}
+function resetEv(){ask("ラウンドを全て消しますか？",()=>{S.rounds=[];S.tournamentTeams=[];syncClubPlayers();save();draw()})}
+function syncClubPlayers(){
+S.clubPlayerNames=Array.isArray(S.clubPlayerNames)?S.clubPlayerNames:[];
+const attended=[...new Set(S.members.filter(member=>member.at).map(member=>member.n))];
+if(S.rounds.length){
+attended.forEach(name=>{if(!S.players.includes(name)){S.players.push(name);S.clubPlayerNames.push(name)}});
+}else{
+const remove=S.clubPlayerNames.filter(name=>!attended.includes(name));
+S.players=S.players.filter(name=>!remove.includes(name));
+S.clubPlayerNames=S.clubPlayerNames.filter(name=>attended.includes(name));
+attended.forEach(name=>{if(!S.players.includes(name)){S.players.push(name);S.clubPlayerNames.push(name)}})
+}
+save()
+}
+function setAttendance(i){S.members[i].at=!S.members[i].at;syncClubPlayers();draw()}
+function stats(){
+const g=S.players.map(()=>0),pc={},oc={};
+S.rounds.forEach(r=>r.m.forEach(m=>{[...m.a,...m.b].forEach(i=>g[i]++);
+[m.a,m.b].forEach(t=>{const k=t.slice().sort()+"";pc[k]=(pc[k]||0)+1});
+m.a.forEach(x=>m.b.forEach(y=>{const k=[x,y].sort()+"";oc[k]=(oc[k]||0)+1}))}));
+return{g,pc,oc}}
+function makeTournamentTeams(roster=tournamentPlayers()){
+const ranked=roster.slice().sort((a,b)=>((S.rt&&S.rt[S.players[b]])||3)-((S.rt&&S.rt[S.players[a]])||3));
+const teams=[];
+while(ranked.length>=2)teams.push([ranked.shift(),ranked.pop()]);
+if(ranked.length)teams.push([ranked[0]]);
+S.tournamentTeams=teams;
+return teams
+}
+function nextRound(force){
+const roster=tournamentPlayers(),n=roster.length,singles=S.tournamentFormat==="singles";if(n<(singles?2:4)){alert(singles?"選択したレベル帯にシングルス参加者が2人以上必要です":"選択したレベル帯にダブルス参加者が4人以上必要です");return}
+const lr=S.rounds[S.rounds.length-1];if(!force&&lr&&lr.m.some(m=>m.sa===""||m.sb==="")){ask("前のラウンドにスコア未入力の試合があります。このまま進みますか？",()=>nextRound(true));return}
+const R=i=>(S.rt&&S.rt[S.players[i]])||3;
+const{g,pc,oc}=stats(),byeCount=S.players.map(()=>0);
+S.rounds.forEach(round=>round.bye.forEach(i=>{if(byeCount[i]!=null)byeCount[i]++}));
+let matches=[],bye=[];
+if(singles){
+const matchCount=Math.min(Math.max(1,S.courts),Math.floor(n/2)),playingCount=matchCount*2;
+const ordered=roster.map(i=>({i,g:g[i],rest:byeCount[i],tie:Math.random()})).sort((a,b)=>a.g-b.g||b.rest-a.rest||a.tie-b.tie);
+const active=ordered.slice(0,playingCount).map(item=>item.i),activeSet=new Set(active);
+bye=roster.filter(i=>!activeSet.has(i));
+let best=null,bestScore=Infinity;
+for(let attempt=0;attempt<500;attempt++){
+const shuffled=active.slice().sort(()=>Math.random()-.5);let score=0,roundMatches=[];
+for(let i=0;i<shuffled.length;i+=2){const a=shuffled[i],b=shuffled[i+1],key=[a,b].sort((x,y)=>x-y).join(":");score+=(oc[key]||0)**2*25+Math.abs(R(a)-R(b))*4;roundMatches.push({a:[a],b:[b],sa:"",sb:""})}
+if(score<bestScore){bestScore=score;best=roundMatches}
+}
+matches=best||[];
+}else{
+const rosterSet=new Set(roster);
+const validTeams=Array.isArray(S.tournamentTeams)&&S.tournamentTeams.length&&S.tournamentTeams.flat().length===n&&new Set(S.tournamentTeams.flat()).size===n&&S.tournamentTeams.flat().every(i=>rosterSet.has(i))&&S.tournamentTeams.every(team=>team.length===2&&team.every(i=>i>=0&&i<S.players.length));
+if(n%2===0){
+const teams=validTeams?S.tournamentTeams:makeTournamentTeams(roster);
+const activeCount=Math.min(Math.max(1,S.courts),Math.floor(teams.length/2))*2;
+const ordered=teams.map((team,index)=>({team,index,games:team.reduce((sum,i)=>sum+g[i],0),rest:team.reduce((sum,i)=>sum+byeCount[i],0),tie:Math.random()})).sort((a,b)=>a.games-b.games||b.rest-a.rest||a.tie-b.tie);
+const active=ordered.slice(0,activeCount).map(item=>item.team),activeIds=new Set(active.flat());
+bye=roster.filter(i=>!activeIds.has(i));
+let best=null,bestScore=Infinity;
+for(let attempt=0;attempt<500;attempt++){
+const shuffled=active.slice().sort(()=>Math.random()-.5);let score=0,roundMatches=[];
+for(let i=0;i<shuffled.length;i+=2){
+const a=shuffled[i],b=shuffled[i+1];
+const matchupKey=[a.join(":"),b.join(":")].sort().join("|");
+let repeats=0;
+S.rounds.forEach(round=>round.m.forEach(match=>{const key=[match.a.slice().sort((x,y)=>x-y).join(":"),match.b.slice().sort((x,y)=>x-y).join(":")].sort().join("|");if(key===matchupKey)repeats++}));
+score+=repeats*30;
+for(const x of a)for(const y of b){const key=[x,y].sort((u,v)=>u-v).join(":");score+=(oc[key]||0)**2*5}
+score+=Math.abs(R(a[0])+R(a[1])-R(b[0])-R(b[1]))*4;
+roundMatches.push({a:a.slice(),b:b.slice(),sa:"",sb:""})
+}
+if(score<bestScore){bestScore=score;best=roundMatches}
+}
+matches=best||[]
+}else{
+S.tournamentTeams=[];
+const cap=Math.min(Math.max(1,S.courts),Math.floor(n/4))*4;
+const play=roster.slice().sort((a,b)=>g[a]-g[b]||byeCount[b]-byeCount[a]||Math.random()-.5).slice(0,cap);
+const playSet=new Set(play);bye=roster.filter(i=>!playSet.has(i));
+let best=null,bestScore=Infinity;
+for(let attempt=0;attempt<500;attempt++){
+const shuffled=play.slice().sort(()=>Math.random()-.5);let score=0,roundMatches=[];
+for(let i=0;i<shuffled.length;i+=4){
+const [a,b,x,y]=shuffled.slice(i,i+4),pairKey=(u,v)=>[u,v].sort((p,q)=>p-q).join(":");
+score+=25*((pc[pairKey(a,b)]||0)**2+(pc[pairKey(x,y)]||0)**2);
+[[a,x],[a,y],[b,x],[b,y]].forEach(([u,v])=>score+=(oc[pairKey(u,v)]||0)**2*5);
+score+=Math.abs(R(a)+R(b)-R(x)-R(y))*4;
+roundMatches.push({a:[a,b],b:[x,y],sa:"",sb:""})
+}
+if(score<bestScore){bestScore=score;best=roundMatches}
+}
+matches=best||[]
+}
+}
+S.rounds.push({m:matches,bye});save();draw()}
+function teamLabel(team){return team.map(i=>P(i)).join("・")}
+function round(r,ri){const b=(k,mi,d)=>`<button class="g pm" aria-label="${k=="sa"?"左":"右"}チーム得点${d>0?"+1":"-1"}" onclick="modSc(${ri},${mi},'${k}',${d})">${d>0?"+":"−"}</button>`;
+const inp=(k,mi,v)=>`<input class="sc" inputmode="numeric" aria-label="${k=="sa"?"左":"右"}チーム得点" value="${v}" onchange="setSc(${ri},${mi},'${k}',this.value)">`;
+return `<h2>ラウンド ${ri+1}</h2>${r.m.map((m,mi)=>`<div class="court"><div class="t">コート ${mi+1}</div>
+<div class="m"><div class="${wn(m)==1?"win":""}">${teamLabel(m.a)}</div>
+<div>${b("sa",mi,-1)}${inp("sa",mi,m.sa)}${b("sa",mi,1)}<span class="sub" style="margin:0">:</span>${b("sb",mi,-1)}${inp("sb",mi,m.sb)}${b("sb",mi,1)}</div>
+<div class="${wn(m)==2?"win":""}">${teamLabel(m.b)}</div></div></div>`).join("")}
+${r.bye.length?`<div class="bye">お休み: ${r.bye.map(P).join("、")}</div>`:""}`}
+const wn=m=>m.sa===""||m.sb===""?0:m.sa>m.sb?1:m.sa<m.sb?2:0;
+function setSc(ri,mi,k,v){const m=S.rounds[ri].m[mi];m[k]=v===""?"":+v;save();draw()}
+function undoR(){if(S.rounds.length)ask("最新のラウンドを取り消しますか？",()=>{S.rounds.pop();save();draw()})}
+function shareR(){shareTxt("【PICKLE HUB 試合結果】\n"+table().map((r,k)=>(k+1)+". "+S.players[r.i]+" "+r.w+"勝"+r.l+"敗 ("+(r.d>0?"+":"")+r.d+")").join("\n"))}
+function big(){const r=S.rounds[S.rounds.length-1];if(!r){alert("先にラウンドを組んでください");return}const d=document.createElement("div");d.id="bg";d.onclick=()=>d.remove();d.innerHTML="<h1 style='color:var(--ac)'>ラウンド "+S.rounds.length+"</h1>"+r.m.map((m,i)=>'<div class="court"><div class="t">コート '+(i+1)+'</div><div class="m"><div style="font-size:18px">'+teamLabel(m.a)+'</div><div style="font-size:22px;font-weight:900">VS</div><div style="font-size:18px">'+teamLabel(m.b)+'</div></div></div>').join("")+(r.bye.length?'<p class="bye">お休み: '+r.bye.map(P).join("、")+'</p>':"")+'<p class="sub" style="text-align:center;margin-top:20px">タップして閉じる</p>';document.body.appendChild(d)}
+function table(){
+const t=tournamentPlayers().map(i=>({i,w:0,l:0,d:0,g:0}));
+S.rounds.forEach(r=>r.m.forEach(m=>{if(m.sa===""||m.sb==="")return;
+const df=m.sa-m.sb;
+m.a.forEach(i=>{t[i].g++;t[i].d+=df;df>0?t[i].w++:df<0&&t[i].l++});
+m.b.forEach(i=>{t[i].g++;t[i].d-=df;df<0?t[i].w++:df>0&&t[i].l++})}));
+return t.sort((a,b)=>b.w-a.w||b.d-a.d)}
+function pairTable(){
+const pairs={};
+S.rounds.forEach(round=>round.m.forEach(match=>{
+if(match.sa===""||match.sb==="")return;
+[[match.a,match.sa,match.sb],[match.b,match.sb,match.sa]].forEach(([team,score,against])=>{
+const ids=team.slice().sort((a,b)=>a-b),key=ids.join(":");
+const pair=pairs[key]||(pairs[key]={ids,g:0,w:0,l:0,scored:0,against:0});
+pair.g++;pair.scored+=+score;pair.against+=+against;
+if(+score>+against)pair.w++;else if(+score<+against)pair.l++
+})
+}));
+return Object.values(pairs).sort((a,b)=>b.w-a.w||(b.scored-b.against)-(a.scored-a.against))
+}
+function stand(){return `<h3 style="font-size:14px;margin:18px 0 8px">${S.tournamentFormat==="singles"?"対戦者別戦績":"ペア別戦績"}</h3><table><tr><th>${S.tournamentFormat==="singles"?"選手":"ペア"}</th><th>試合</th><th>勝</th><th>負</th><th>得点</th><th>得失点</th></tr>${pairTable().map(pair=>`<tr><td>${teamLabel(pair.ids)}</td><td>${pair.g}</td><td>${pair.w}</td><td>${pair.l}</td><td>${pair.scored}-${pair.against}</td><td>${pair.scored-pair.against>0?"+":""}${pair.scored-pair.against}</td></tr>`).join("")||'<tr><td colspan="6">スコア入力後に表示されます</td></tr>'}</table>${S.tournamentFormat==="singles"?"":`<h3 style="font-size:14px;margin:22px 0 8px">個人順位</h3><table id="st"><tr><th>順位</th><th>名前</th><th>勝</th><th>負</th><th>得失点</th></tr>${table().map((r,k)=>`<tr><td><b>#${k+1}</b></td><td>${P(r.i)}</td><td>${r.w}</td><td>${r.l}</td><td>${r.d>0?"+":""}${r.d}</td></tr>`).join("")}</table>`}`}
+function demo(){S.players=["Kaito","Ren","Aoi","Yuki","Hina","Sota","Mio","Riku"];S.rt={};S.rounds=[];S.tournamentTeams=[];save();draw()}
+function saveH(){if(!S.rounds.length){alert("保存するラウンドがありません");return}S.hist=S.hist||[];S.hist.unshift({d:new Date().toLocaleString("ja-JP"),p:S.players,r:S.rounds,c:S.courts,t:S.rt||{},teams:S.tournamentTeams||[],format:S.tournamentFormat||"doubles"});S.hist=S.hist.slice(0,10);save();toast("履歴に保存しました")}
+function loadH(i){ask("この履歴を読み込みますか？",()=>{const h=S.hist[i];S.players=h.p;S.rounds=h.r;S.courts=h.c;S.rt=h.t;S.tournamentTeams=h.teams||[];S.tournamentFormat=h.format||"doubles";save();draw()})}
+function deleteH(i){ask("この大会履歴を削除しますか？",()=>{S.hist.splice(i,1);save();draw()})}
+
+/* ---------- 練習 ---------- */
+const DR=[["ディンク練習",300,"キッチンライン越しに相手と柔らかく打ち合う。30球続けば合格。"],["サード・ドロップ",420,"ベースラインからキッチンへ落とす。10本中7本が目標。"],["サーブ精度",300,"ターゲットを決めて深さを狙う。10本中8本が目標。"],["ボレー連打",180,"ノンボレーゾーン手前で速い打ち合い。ラケット面を安定させる。"],["ステップ&フットワーク",240,"サイドステップでライン間を往復。膝を曲げたまま。"]];
+let T={left:0,id:null,name:""};
+function pr(){
+const L=table().filter(r=>r.g);
+return `<span class="badge">TRAINING</span><h1>スキル練習</h1><p class="sub">ドリルを選んでタイマーをスタート！</p>
+<div class="box" style="text-align:center;padding:24px;"><div class="big" id="tm">${fmt(T.left)}</div><div id="tn" class="sub" style="margin:8px 0 16px">${esc(T.name)||"ドリルを選択してください"}</div>
+<div class="row" style="justify-content:center"><button class="g" onclick="stopT()">タイマー停止</button></div></div>
+${DR.map((d,i)=>`<div class="box"><b>${d[0]}</b> <span class="sub" style="float:right">${d[1]/60}分</span><div class="sub" style="margin:4px 0 10px">${d[2]}</div><button onclick="startT(${i})">開始する</button></div>`).join("")}
+<h2>試合記録の勝率</h2>
+${L.length?`<table><tr><th>名前</th><th>試合</th><th>勝率</th><th>得失点</th></tr>${L.map(r=>`<tr><td>${P(r.i)}</td><td>${r.g}</td><td><b>${Math.round(r.w/r.g*100)}%</b></td><td>${r.d>0?"+":""}${r.d}</td></tr>`).join("")}</table>`:'<p class="sub">大会でスコアを入力すると勝率が反映されます。</p>'}`}
+function memberOptions(selected=""){return S.members.map(member=>`<option value="${esc(member.n)}" ${member.n===selected?"selected":""}>${esc(member.n)}</option>`).join("")}
+function eq(){
+const selected=S.members.some(member=>member.n===S.rentalMember)?S.rentalMember:(S.members[0]?.n||"");
+return `<span class="badge">EQUIPMENT</span><h1>パドル・用具の貸出</h1><p class="sub">クラブメンバーから貸出先を選択します。</p>
+<div class="box"><label>用具名</label><input id="ri" placeholder="例: パドルA" style="width:100%"><label>借りるメンバー</label><select id="rh" style="width:100%" onchange="S.rentalMember=this.value;save()"><option value="">メンバーを選択</option>${memberOptions(selected)}</select><div class="row"><button onclick="addRental()" ${S.members.length?"":"disabled"}>貸出を記録</button></div>${S.members.length?"":'<p class="sub">先にクラブシートでメンバーを登録してください。</p>'}</div>
+<h2>貸出中</h2>${(S.rentals||[]).map((item,index)=>`<div class="box"><div class="row" style="justify-content:space-between;margin:0"><span><b>${esc(item.item)}</b><span class="sub" style="margin-left:10px;display:inline-flex;align-items:center;gap:6px">${memberIcon(item.holder,24)}${esc(item.holder)}</span></span><button class="g" onclick="returnRental(${index})">返却</button></div></div>`).join("")||'<p class="sub">貸出中の用具はありません。</p>'}`
+}
+function returnRental(index){S.rentals.splice(index,1);save();draw()}
+const LEVEL_QUESTIONS=[
+["サーブの安定性",["まだ入ることが少ない","ゆっくりなら入る","安定して入れられる","深さやコースを狙える","球種・コースを意図して使い分ける"]],
+["リターン",["返球が難しい","ゆっくりした球を返せる","安定して深く返せる","相手の位置を見てコースを選べる","深さ・方向を使い分け次の展開を作れる"]],
+["ラリー・ディンク",["短いラリーでもミスが多い","基本のラリーを続けられる","ディンクを安定して続けられる","相手を動かしながらミスを抑えられる","攻守を切り替え、配球で優位を作れる"]],
+["コートの位置取り",["立ち位置や移動にまだ慣れていない","基本の位置へ移動できる","パートナーとコートを分担できる","相手の球に合わせて連携・調整できる","状況判断して連携とポジションを組み立てられる"]],
+["ルール・スコア",["ルールやサーブ順に不安がある","基本的な進行を確認しながら行える","通常の得点・サーブ順を理解している","キッチンやフォルトを判断できる","試合進行やルールを他の人にも説明できる"]]
+];
+function lv(){return `<span class="badge">PLAYER LEVEL</span><h1>メンバーのレベル</h1><p class="sub">自己評価を変更する場合は「プロフィール」から本人の4桁PINでログインしてください。</p>${S.members.map(member=>`<div class="box"><div class="row" style="justify-content:space-between;margin:0"><b>${esc(member.n)}</b><strong>${S.rt&&S.rt[member.n]!=null?Number(S.rt[member.n]).toFixed(1):"未評価"}</strong></div></div>`).join("")||'<p class="sub">クラブシートでメンバーを登録してください。</p>'}`}
+function selectLevelMember(name){S.levelMember=name;levelDraft=null;save();draw()}
+function saveLevelAnswers(){
+const name=$("level_member").value;if(!name)return;
+levelDraft=null;
+S.levelAnswers=S.levelAnswers||{};
+S.levelAnswers[name]=[...document.querySelectorAll(".level_question")].map(field=>field.value===""?null:+field.value);
+save()
+}
+function calculateLevel(){
+const name=$("level_member").value;if(!name){alert("メンバーを選択してください");return}
+saveLevelAnswers();
+const answers=S.levelAnswers[name]||[];
+if(!answers.length)return;
+if(answers.some(answer=>!Number.isFinite(answer))){alert("5つの質問すべてに回答してください");return}
+const value=Math.round(answers.reduce((sum,answer)=>sum+answer,0)/answers.length*10)/10;
+levelDraft={name,value};$("level_value").value=value;draw()
+}
+function saveLevel(){
+const name=$("level_member").value,value=Number($("level_value").value);
+if(!name){alert("メンバーを選択してください");return}
+if(!levelDraft||levelDraft.name!==name){alert("質問に回答して目安を出してから、評価を保存してください");return}
+if(!Number.isFinite(value)||value<1||value>5){alert("レベルは1.0〜5.0で入力してください");return}
+S.rt=S.rt||{};S.rt[name]=Math.round(value*10)/10;S.levelMember=name;save();draw();toast(`${name}さんのレベルを保存しました`)
+}
+function clearLevel(){const name=$("level_member").value;if(!name||!S.rt||S.rt[name]==null)return;delete S.rt[name];S.levelMember=name;save();draw()}
+function profileData(name){S.profiles=S.profiles||{};return S.profiles[name]||(S.profiles[name]={bio:"",avatar:"",pinSalt:"",pinHash:""})}
+function logMemberUpdate(name,action){
+S.memberAudit=S.memberAudit||[];
+S.memberAudit.unshift({member:name,action,date:new Date().toLocaleString("ja-JP")});
+S.memberAudit=S.memberAudit.slice(0,300)
+}
+function memberIcon(name,size=32){
+const profile=S.profiles&&S.profiles[name]||{};
+return profile.avatar?`<img src="${esc(profile.avatar)}" alt="" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:50%;vertical-align:middle">`:`<span aria-hidden="true" style="display:inline-grid;place-items:center;width:${size}px;height:${size}px;border-radius:50%;background:var(--sf2);vertical-align:middle">${esc((name||"?").slice(0,1))}</span>`
+}
+const RADAR_LABELS=["サーブ","リターン","ラリー","位置取り","ルール"];
+function radarSvg(name,answers,size=260,compareAnswers=null){
+if(!Array.isArray(answers)||answers.length!==5||answers.some(value=>!Number.isFinite(+value)))return '<p class="sub">5項目の自己評価を保存するとレーダーチャートが表示されます。</p>';
+const width=size,height=Math.round(size*.84),cx=width/2,cy=height/2+2,r=Math.min(width*.31,height*.36);
+const point=(value,index)=>{const angle=-Math.PI/2+index*2*Math.PI/5,rad=r*Math.max(0,Math.min(5,+value||0))/5;return `${(cx+Math.cos(angle)*rad).toFixed(1)},${(cy+Math.sin(angle)*rad).toFixed(1)}`};
+const grid=[1,2,3,4,5].map(level=>`<polygon points="${RADAR_LABELS.map((_,index)=>point(level,index)).join(" ")}" fill="none" stroke="var(--ln)" stroke-width="1"/>`).join("");
+const axes=RADAR_LABELS.map((label,index)=>{const angle=-Math.PI/2+index*2*Math.PI/5,[x2,y2]=point(5,index).split(",").map(Number),x=cx+Math.cos(angle)*(r+14),y=cy+Math.sin(angle)*(r+14);return `<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="var(--ln)"/><text x="${x.toFixed(1)}" y="${y.toFixed(1)}" fill="var(--ink)" font-size="${size<220?9:11}" text-anchor="middle" dominant-baseline="middle">${label}</text>`}).join("");
+const previous=compareAnswers&&compareAnswers.length===5?`<polygon points="${compareAnswers.map((value,index)=>point(value,index)).join(" ")}" fill="rgba(222,164,93,.12)" stroke="#DEA45D" stroke-width="2" stroke-dasharray="4 3"/>`:"";
+const current=`<polygon points="${answers.map((value,index)=>point(value,index)).join(" ")}" fill="rgba(108,169,139,.24)" stroke="#6CA98B" stroke-width="2.5"/>`;
+return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(name)}のレベル評価" style="display:block;width:min(100%,${size}px);height:auto;overflow:visible">${grid}${axes}${previous}${current}</svg>`
+}
+function profileCard(name,compact=false){
+const profile=profileData(name),answers=S.levelAnswers&&S.levelAnswers[name];
+const avatar=profile.avatar?`<img src="${esc(profile.avatar)}" alt="${esc(name)}のプロフィール画像" style="width:76px;height:76px;object-fit:cover;border-radius:50%;border:2px solid var(--ln)">`:`<div aria-label="プロフィール画像なし" style="width:76px;height:76px;border-radius:50%;border:2px solid var(--ln);display:grid;place-items:center;background:var(--sf2);font-size:26px">${esc((name||"?").slice(0,1))}</div>`;
+return `<div class="row" style="align-items:center">${avatar}<div><b>${esc(name)}</b><div class="sub">${S.rt&&S.rt[name]!=null?`レベル ${Number(S.rt[name]).toFixed(1)}`:"レベル未評価"}</div></div></div>${profile.bio?`<p style="white-space:pre-wrap">${esc(profile.bio)}</p>`:'<p class="sub">自己紹介はまだ登録されていません。</p>'}<div style="display:flex;justify-content:center">${radarSvg(name,answers,compact?190:280)}</div>`
+}
+
+/* ---------- プロフィール画面（ご意見・要望送信フォームを追加） ---------- */
+function pf(){
+const selected=S.members.some(member=>member.n===profileSessionName)?profileSessionName:(S.members.some(member=>member.n===S.profileMember)?S.profileMember:(S.members[0]?.n||""));
+const profile=selected?profileData(selected):null;
+const unlocked=selected&&(profileUnlockedName===selected||profileSessionName===selected);
+const history=S.levelHistory&&S.levelHistory[selected]||[];
+const compareIndex=Number.isInteger(S.radarCompareIndex)?S.radarCompareIndex:-1;
+const comparison=history[compareIndex];
+return `<span class="badge">MEMBER PROFILE</span><h1>メンバープロフィール</h1><p class="sub">写真と自己紹介を登録できます。編集には本人が設定したPINが必要です。</p>
+<div class="box"><label>クラブメンバー</label><select id="profile_member" style="width:100%" onchange="selectProfileMember(this.value)"><option value="">メンバーを選択</option>${memberOptions(selected)}</select>
+${selected?`${profileCard(selected)}<h2>評価の推移</h2>${history.length?`<label>比較する過去の評価<select onchange="S.radarCompareIndex=this.value===''?-1:Number(this.value);save();draw()" style="width:100%"><option value="">比較なし</option>${history.map((entry,index)=>`<option value="${index}" ${index===compareIndex?"selected":""}>${esc(entry.date)} / ${Number(entry.rating).toFixed(1)}</option>`).join("")}</select></label><div style="display:flex;justify-content:center">${radarSvg(selected,S.levelAnswers&&S.levelAnswers[selected],300,comparison?.answers)}</div><p class="sub" style="text-align:center"><span style="color:#6CA98B">● 現在</span>${comparison?` <span style="color:#DEA45D">● ${esc(comparison.date)}</span>`:""}</p>`:'<p class="sub">別の日に評価を更新すると、過去の評価と比較できます。</p>'}${unlocked?profileEditor(selected,profile):profileGate(selected,profile)}${unlocked?'<button class="g" onclick="logoutProfile()">ログアウト</button>':""}`:'<p class="sub">先にクラブシートでメンバーを登録してください。</p>'}</div>
+
+${selected&&unlocked?dmBox(selected):(selected?'<p class="sub">管理者への連絡は、本人ログイン後に表示されます。</p>':"")}
+
+<h2>メンバー一覧</h2>${S.members.map(member=>`<div class="box">${profileCard(member.n,true)}</div>`).join("")||'<p class="sub">メンバーがいません。</p>'}`
+}
+
+
+function profileEditor(name,profile){
+  const answers=S.levelAnswers&&S.levelAnswers[name]||[];
+  return `<div class="box" style="margin-top:18px"><h2 style="margin-top:0">プロフィールを編集</h2><label>プロフィール画像（700KB以下）</label><input id="profile_avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="loadProfilePhoto(this)" style="width:100%">${profilePhotoDraft||profile.avatar?`<img id="profile_preview" src="${esc(profilePhotoDraft||profile.avatar)}" alt="画像プレビュー" style="display:block;width:96px;height:96px;object-fit:cover;border-radius:50%;margin-top:10px">`:"<img id=\"profile_preview\" alt=\"画像プレビュー\" style=\"display:none;width:96px;height:96px;object-fit:cover;border-radius:50%;margin-top:10px\">"}<label>自己紹介</label><textarea id="profile_bio" maxlength="300" rows="5" style="width:100%" placeholder="好きなプレー、目標、ひとことなど（300文字まで）">${esc(profile.bio||"")}</textarea><h3 style="font-size:14px;margin-top:20px">レベル自己評価</h3>${LEVEL_QUESTIONS.map((question,index)=>`<label>${question[0]}<select class="profile_level_question" id="profile_q${index}" onchange="saveProfileLevelAnswers()" style="width:100%"><option value="" ${answers[index]==null?"selected":""} disabled>選択してください</option>${question[1].map((option,score)=>`<option value="${score+1}" ${Number(answers[index])===score+1?"selected":""}>${score+1}. ${option}</option>`).join("")}</select></label>`).join("")}<div class="row"><button class="g" onclick="calculateProfileLevel()">回答から目安を出す</button></div><label>自分で調整する評価 (1.0〜5.0)</label><input id="profile_level_value" type="number" min="1" max="5" step="0.1" value="${levelDraft&&levelDraft.name===name?levelDraft.value:(S.rt&&S.rt[name]!=null?S.rt[name]:"")}" placeholder="質問の目安を調整"><p class="sub">${levelDraft&&levelDraft.name===name?`質問からの目安は${Number(levelDraft.value).toFixed(1)}です。必要に応じて調整してください。`:S.rt&&S.rt[name]!=null?`現在の評価: ${Number(S.rt[name]).toFixed(1)}`:"5問に回答すると評価を算出できます。"}</p><label>PINの変更（変更する場合のみ入力）</label><input id="profile_new_pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" style="width:100%" placeholder="新しい4桁PIN"><label>新しいPINを再入力</label><input id="profile_new_pin_confirm" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" style="width:100%"><div class="row"><button onclick="saveProfile()">プロフィール・評価を保存</button><button class="g" onclick="lockProfile()">編集を終了</button></div></div>`
+}
+function saveProfileLevelAnswers(){
+  const name=$("profile_member").value;if(!name)return;
+  levelDraft=null;profileAnswersEditedName=name;S.levelAnswers=S.levelAnswers||{};
+  S.levelAnswers[name]=[...document.querySelectorAll(".profile_level_question")].map(field=>field.value===""?null:+field.value);
+  save()
+}
+function calculateProfileLevel(){
+  const name=$("profile_member").value;if(!name||profileUnlockedName!==name){alert("本人のPINでログインしてください");return}
+  saveProfileLevelAnswers();const answers=S.levelAnswers[name]||[];
+  if(answers.length!==LEVEL_QUESTIONS.length||answers.some(answer=>!Number.isFinite(answer))){alert("5つの質問すべてに回答してください");return}
+  const value=Math.round(answers.reduce((sum,answer)=>sum+answer,0)/answers.length*10)/10;
+  levelDraft={name,value};const input=$("profile_level_value");if(input)input.value=value;draw()
+}
+function profileGate(name,profile){
+const locked=(profile.pinLockUntil||0)>Date.now();
+if(profile.pinHash)return `<div class="box" style="margin-top:18px"><h2 style="margin-top:0">本人ログイン</h2>${locked?`<p class="sub">ログインを一時停止中です。${new Date(profile.pinLockUntil).toLocaleTimeString("ja-JP")}以降に再試行できます。</p>`:`<label>4桁のPIN</label><input id="profile_pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" style="width:100%" placeholder="4桁の数字"><button onclick="unlockProfile()">ログイン</button>`}</div>`;
+return `<div class="box" style="margin-top:18px"><h2 style="margin-top:0">管理者発行コードで初回設定</h2>${locked?`<p class="sub">コード入力を一時停止中です。${new Date(profile.pinLockUntil).toLocaleTimeString("ja-JP")}以降に再試行できます。</p>`:profile.setupCodeHash?`<label>管理者から受け取った8桁コード</label><input id="profile_setup_code" type="password" inputmode="numeric" maxlength="8" style="width:100%" placeholder="8桁コード"><label>自分の4桁PIN</label><input id="profile_new_pin" type="password" inputmode="numeric" maxlength="4" style="width:100%" placeholder="4桁PIN"><label>PINを再入力</label><input id="profile_new_pin_confirm" type="password" inputmode="numeric" maxlength="4" style="width:100%"><button onclick="unlockProfile()">コードを確認してPIN設定</button>`:'<p class="sub">まだ本人用コードが発行されていません。管理者へ初回設定コードを依頼してください。</p>'}</div>`
+}
+function selectProfileMember(name){profileUnlockedName="";profileSessionName="";profileBaseline=null;profilePhotoDraft="";levelDraft=null;S.profileMember=name;save();draw()}
+async function digestProfilePin(name,pin,salt){
+if(!crypto.subtle)throw new Error("この環境では安全なPIN処理を利用できません");
+const bytes=new TextEncoder().encode(`pickle-hub-profile-v1:${name}:${salt}:${pin}`);
+const key=await crypto.subtle.importKey("raw",bytes,"PBKDF2",false,["deriveBits"]);
+const saltBytes=new Uint8Array(salt.match(/.{2}/g).map(value=>parseInt(value,16)));
+const digest=await crypto.subtle.deriveBits({name:"PBKDF2",salt:saltBytes,iterations:120000,hash:"SHA-256"},key,256);
+return [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,"0")).join("")
+}
+async function unlockProfile(){
+const name=$("profile_member").value;if(!name){alert("メンバーを選択してください");return}
+const profile=profileData(name);
+if((profile.pinLockUntil||0)>Date.now()){alert("PIN入力を一時停止中です。しばらくしてから再試行してください。");draw();return}
+if(profile.pinLockUntil){profile.pinLockUntil=0;profile.pinFailures=0;save()}
+try{
+if(profile.pinHash){
+const pin=$("profile_pin").value;
+if(!/^\d{4,8}$/.test(pin)){alert("PINを入力してください");return}
+const hash=await digestProfilePin(name,pin,profile.pinSalt);
+if(hash!==profile.pinHash){registerProfileAuthFailure(profile);return}
+profile.pinFailures=0;profile.pinLockUntil=0;save()
+}else{
+if(!profile.setupCodeHash||profile.setupCodeUsed){alert("先に管理者から初回設定コードを発行してもらってください");return}
+const code=$("profile_setup_code").value,newPin=$("profile_new_pin").value,confirm=$("profile_new_pin_confirm").value;
+if(!/^\d{8}$/.test(code)){alert("8桁の初回設定コードを入力してください");return}
+if(!/^\d{4}$/.test(newPin)||newPin!==confirm){alert("自分の4桁PINを2回同じ内容で入力してください");return}
+const setupHash=await digestProfilePin(name,code,profile.setupSalt);
+if(setupHash!==profile.setupCodeHash){registerProfileAuthFailure(profile,"初回設定コードが違います");return}
+const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(byte=>byte.toString(16).padStart(2,"0")).join("");
+profile.pinSalt=salt;profile.pinHash=await digestProfilePin(name,newPin,salt);profile.pinLength=4;profile.setupCodeHash="";profile.setupCodeUsed=true;profile.setupSalt="";profile.pinFailures=0;profile.pinLockUntil=0;logMemberUpdate(name,"本人PIN初回設定");save()
+}
+profileUnlockedName=name;profileSessionName=name;S.profileMember=name;profileAnswersEditedName="";profileBaseline={rating:S.rt&&S.rt[name]!=null?Number(S.rt[name]):null,answers:(S.levelAnswers&&S.levelAnswers[name]||[]).slice(),bio:profile.bio||"",avatar:profile.avatar||""};save();draw()
+}catch(error){alert(error.message||"PINを確認できませんでした")}
+}
+function registerProfileAuthFailure(profile,message="PINが違います"){
+profile.pinFailures=(profile.pinFailures||0)+1;
+if(profile.pinFailures>=5){profile.pinFailures=0;profile.pinLockUntil=Date.now()+5*60*1000}
+save();alert(profile.pinLockUntil?"5回間違えたため5分間停止します":message);draw()
+}
+function loadProfilePhoto(input){
+const file=input.files&&input.files[0];if(!file)return;
+if(!["image/png","image/jpeg","image/webp","image/gif"].includes(file.type)){alert("PNG、JPEG、WebP、GIF画像を選択してください");input.value="";return}
+if(file.size>700*1024){alert("画像は700KB以下にしてください");input.value="";return}
+const reader=new FileReader();reader.onload=()=>{profilePhotoDraft=reader.result;const preview=$("profile_preview");if(preview){preview.src=profilePhotoDraft;preview.style.display="block"}};reader.onerror=()=>alert("画像を読み込めませんでした");reader.readAsDataURL(file)
+}
+function saveProfile(){
+const name=$("profile_member").value;if(!name||profileUnlockedName!==name){alert("本人確認をしてください");return}
+const profile=profileData(name),bio=$("profile_bio").value.trim(),nextPin=$("profile_new_pin").value,confirm=$("profile_new_pin_confirm").value;
+if(nextPin||confirm){if(!/^\d{4}$/.test(nextPin)||nextPin!==confirm){alert("新しいPINを4桁で一致させてください");return}}
+const updateRating=(!!levelDraft&&levelDraft.name===name)||profileAnswersEditedName===name;
+let rating=null;
+if(updateRating){
+if(!levelDraft||levelDraft.name!==name){alert("質問の回答から目安を算出してください");return}
+rating=Number($("profile_level_value").value);
+if(!Number.isFinite(rating)||rating<1||rating>5){alert("評価は1.0〜5.0で調整してください");return}
+}
+const oldBio=profile.bio||"",oldAvatar=profile.avatar||"",oldRating=profileBaseline?.rating??(S.rt&&S.rt[name]);
+const bioChanged=bio!==oldBio,avatarChanged=!!profilePhotoDraft&&profilePhotoDraft!==oldAvatar,ratingChanged=updateRating&&Number(oldRating)!==Math.round(rating*10)/10;
+const newAnswers=S.levelAnswers&&S.levelAnswers[name]||[],oldAnswers=profileBaseline?.answers||[];
+const answersChanged=updateRating&&JSON.stringify(newAnswers)!==JSON.stringify(oldAnswers);
+if(updateRating&&Number.isFinite(Number(oldRating))&&(answersChanged||ratingChanged)){
+S.levelHistory=S.levelHistory||{};S.levelHistory[name]=S.levelHistory[name]||[];
+const previousAnswers=oldAnswers;
+const snapshotAnswers=Array.isArray(previousAnswers)&&previousAnswers.length===5&&previousAnswers.every(Number.isFinite)?previousAnswers.slice():Array(5).fill(Number(oldRating));
+S.levelHistory[name].push({date:new Date().toLocaleString("ja-JP"),rating:Number(oldRating),answers:snapshotAnswers});
+}
+profile.bio=bio;if(profilePhotoDraft)profile.avatar=profilePhotoDraft;
+const persist=async()=>{if(updateRating){S.rt=S.rt||{};S.rt[name]=Math.round(rating*10)/10}if(nextPin){const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(byte=>byte.toString(16).padStart(2,"0")).join("");profile.pinSalt=salt;profile.pinHash=await digestProfilePin(name,nextPin,salt);profile.pinLength=4}if(bioChanged||avatarChanged)logMemberUpdate(name,"プロフィール更新");if(ratingChanged||answersChanged)logMemberUpdate(name,"レベル自己評価更新");if(nextPin)logMemberUpdate(name,"プロフィールPIN変更");profileBaseline={rating:S.rt&&S.rt[name]!=null?Number(S.rt[name]):null,answers:(S.levelAnswers&&S.levelAnswers[name]||[]).slice(),bio:profile.bio||"",avatar:profile.avatar||""};save();profilePhotoDraft="";levelDraft=null;profileAnswersEditedName="";draw();toast("プロフィール・評価を保存しました")};
+persist().catch(error=>alert(error.message||"プロフィールを保存できませんでした"))
+}
+function lockProfile(){profileUnlockedName="";profileSessionName="";profilePhotoDraft="";levelDraft=null;profileBaseline=null;draw()}
+function logoutProfile(){lockProfile();toast("ログアウトしました")}
+function rules(){
+return `<span class="badge">OFFICIAL RULE GUIDE</span><h1>ピックルボールのルール</h1><p class="sub">試合でよく使う基本ルールのガイドです。大会では主催者が指定する公式ルールブックの年度・競技要項を確認してください。</p>
+<div class="box"><h2 style="margin-top:0">公式ルールを確認</h2><p>このページはルール本文の転載ではなく、要点をまとめた案内です。条文・例外・年度改訂は公式原文を優先してください。</p><a href="https://usapickleball.org/rules/" target="_blank" rel="noopener noreferrer">USA Pickleball 公式ルールページ</a><p class="sub" style="margin-top:8px">日本国内の大会では、日本ピックルボール協会や大会要項が採用する規則もあわせて確認してください。</p></div>
+<h2>基本</h2><div class="box"><b>コート</b><p>ダブルス・シングルスともコートは幅20フィート、長さ44フィートが標準で、ネット両側に深さ7フィートのノンボレーゾーンがあります。ラインの判定や設備規格は公式ルールを確認してください。</p></div>
+<div class="box"><b>サーブ</b><p>ベースラインの後ろから対角のサービスコートへ打ちます。ボレーサーブでは、打点を腰より低くし、パドルヘッドを手首より下に保ち、上向きの弧を描くなどの条件があります。ドロップサーブも認められており、バウンド後に打つ方式には別の制限があります。いずれもネットを越えて相手側の正しいサービスコートに入れる必要があります。</p></div>
+<div class="box"><b>ツーバウンス・ルール</b><p>サーブを受けた側は一度バウンドさせてから返球し、サーブ側も返球を一度バウンドさせてから打ち返します。その後はボレー（バウンド前の打球）もできます。</p></div>
+<div class="box"><b>ノンボレーゾーン（キッチン）</b><p>ネット両側の非ボレーゾーン内では、ボールがバウンドする前に打つことはできません。ラインに触れた場合もゾーン内です。ボレー後の勢いでゾーンに触れた場合もフォルトになります。ゾーン内でも、バウンドしたボールを打つことはできます。</p></div>
+<div class="box"><b>得点とサーブ順</b><p>一般的なサイドアウト方式のダブルスではサーブ側のみ得点し、サーブ権はチーム内のサーバー交代と相手側への移行で進みます。シングルスでは自分の得点が偶数なら右、奇数なら左からサーブする方式が基本です。ゲームは11点先取・2点差を標準としますが、イベントによって15点・21点やラリースコア等を採用する場合があります。</p></div>
+<div class="box"><b>主なフォルト</b><p>サーブのアウト、ツーバウンス前のボレー、ノンボレーゾーンでのボレー、ボールのアウト、ネットを越える前の打球などはフォルトになります。細かな判定や特例は公式ルールブックを参照してください。</p></div>
+<p class="sub">この要約は教育用の概要で、公式ルール本文や大会要項の代わりではありません。公式ルールページで最新版を確認してください。</p>`
+}
+const fmt=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+function showT(){const e=$("tm");if(e)e.textContent=fmt(T.left)}
+function startT(i){stopT();T.left=DR[i][1];T.name=DR[i][0];$("tn").textContent=T.name;
+T.id=setInterval(()=>{T.left--;showT();if(T.left<=0){stopT();$("tn").textContent="終了！お疲れさまでした 🎉";try{navigator.vibrate&&navigator.vibrate(300)}catch(e){}}},1000);showT()}
+function stopT(){clearInterval(T.id);T.id=null}
+/* ---------- 仲間 ---------- */
+function co(){
+return `<span class="badge">COMMUNITY</span><h1>仲間・コート</h1><p class="sub">練習の募集やコート情報をシェアしよう！</p>
+<div class="box"><label>いつ・どこで</label><textarea id="pw" rows="3" placeholder="例: 土曜夜 中央公園 初心者歓迎！" style="width:100%"></textarea>
+<label>レベル・人数</label><div class="row"><select id="pl"><option>初心者歓迎</option><option>中級</option><option>上級</option></select><label style="margin:0">人数 <input id="pk" type="number" inputmode="numeric" min="1" max="99" value="4" style="width:70px"> 人</label><label style="margin:0">締切 <input id="pd2" type="datetime-local"></label></div>
+<button onclick="addPost()" style="margin-top:10px">募集を出す</button></div>
+${S.posts.map(postCard).join("")||'<p class="sub">現在募集はありません。</p>'}
+<h2>コートを探す</h2><div class="box"><div class="row"><input id="ar" placeholder="地域名 (例: 渋谷)"><button onclick="srch()" class="g">Google Mapsで検索</button></div></div>
+<h2>コート順番待ち</h2><div class="row"><input id="qn" placeholder="名前"><button onclick="S.queue.push($('qn').value.trim()||'名無し');save();draw()">並ぶ</button></div>
+${S.queue.map((q,i)=>`<div class="box">${i+1}. ${esc(q)} ${i==0?'<span class="ok">次です！</span>':""}<button class="x" onclick="S.queue.splice(${i},1);save();draw()">完了</button></div>`).join("")}`}
+function addPost(){const w=$("pw").value.trim();if(!w){alert("日時や場所を入力してください");return}const c=Math.max(1,parseInt($("pk").value)||1);S.posts.unshift({w,l:$("pl").value,r:c,c,m:[],wl:[],dl:$("pd2").value||""});save();draw()}
+const closed=p=>p.dl&&Date.now()>new Date(p.dl).getTime();
+function postCard(p,i){const m=p.m||[],wl=p.wl||[],rr=p.r==null?0:p.r,full=rr<=0,cl=closed(p);
+return `<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(p.w)}</div>
+${p.eventDate||p.eventTime||p.eventPlace?`<div class="sub">${p.eventDate?"開催日 "+esc(formatEventDate(p.eventDate)):""}${p.eventTime?" / "+esc(p.eventTime):""}${p.eventPlace?" / "+esc(p.eventPlace):""}</div>`:""}
+<div class="sub">${esc(p.l)} / ${cl?"締切済み":full?"満員":"あと"+rr+"人"}${p.dl?" / 締切 "+esc(p.dl.replace("T"," ")):""}</div>
+${m.length?`<div>参加者: ${m.map((x,k)=>`<span class="chip">${esc(x)}<button class="x" aria-label="取消" onclick="leave(${i},${k})">×</button></span>`).join("")}</div>`:""}
+${wl.length?`<div class="sub">キャンセル待ち: ${wl.map(esc).join("、")}</div>`:""}
+${cl?"":`<div class="row"><input id="jn${i}" placeholder="あなたの名前" onkeydown="if(event.key=='Enter')join(${i})"><button onclick="join(${i})">${full?"キャンセル待ち":"参加する"}</button></div>`}
+<div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpP(${i})">LINE共有</button><button class="g" onclick="dupP(${i})">来週も募集</button>${m.length?`<button class="g" onclick="toEv2(${i})">大会へ</button>`:""}<button class="x" onclick="S.posts.splice(${i},1);save();draw()">削除</button></div></div>`}
+function formatEventDate(value){const [year,month,day]=value.split("-");return `${year}年${Number(month)}月${Number(day)}日`}
+function cpP(i){const p=S.posts[i],m=p.m||[],t="【ピックルボール募集】\n"+p.w+(p.eventDate?"\n開催日: "+formatEventDate(p.eventDate):"")+(p.eventTime?" "+p.eventTime:"")+(p.eventPlace?"\n場所: "+p.eventPlace:"")+"\n"+p.l+" / "+(p.r>0?"あと"+p.r+"人":"満員")+(p.dl?"\n締切 "+p.dl.replace("T"," "):"")+(m.length?"\n参加: "+m.join("、"):"");shareTxt(t)}
+function dupP(i){const p=S.posts[i];let dl="";if(p.dl){const t=new Date(p.dl),z=n=>String(n).padStart(2,"0");t.setDate(t.getDate()+7);dl=t.getFullYear()+"-"+z(t.getMonth()+1)+"-"+z(t.getDate())+"T"+z(t.getHours())+":"+z(t.getMinutes())}const c=p.c||(p.r||0)+(p.m||[]).length||4;S.posts.unshift({w:p.w,l:p.l,r:c,c,m:[],wl:[],dl});save();draw()}
+function toEv2(i){const p=S.posts[i],f=()=>{S.players=p.m.slice();S.rounds=[];save();go("ev")};S.players.length?ask("大会参加者をこのメンバーに置き換えますか？",f):f()}
+function join(i){const p=S.posts[i],nm=($("jn"+i).value||"").trim();if(!nm){alert("名前を入力してください");return}p.m=p.m||[];p.wl=p.wl||[];if(p.m.includes(nm)||p.wl.includes(nm)){alert("すでに登録されています");return}if(p.r>0){p.m.push(nm);p.r--}else{p.wl.push(nm)}save();draw()}
+function leave(i,k){const p=S.posts[i];p.m.splice(k,1);p.r++;if(p.wl&&p.wl.length){p.m.push(p.wl.shift());p.r--}save();draw()}
+function srch(){const a=$("ar").value.trim();window.open("https://www.google.com/maps/search/"+encodeURIComponent("ピックルボール コート "+a),"_blank")}
+
+/* ---------- クラブ ---------- */
+function cl(){
+const due=S.members.reduce((a,m)=>a+(m.paid?1:0),0);
+return `<span class="badge">MEMBERS</span><h1>メンバー</h1><p class="sub">出欠確認や会費、メンバー情報を管理します。</p>
+<div class="row"><input id="mn" placeholder="メンバー名" onkeydown="if(event.key=='Enter')addM()"><button onclick="addM()">追加</button></div>
+<div class="box"><div style="font-weight:700;margin-bottom:8px">会費納入: ${due} / ${S.members.length}人 完了</div>
+${S.members.map((m,i)=>`<div class="row" style="justify-content:space-between;border-bottom:2px solid var(--ln);padding:8px 0"><span style="font-weight:700;display:flex;align-items:center;gap:8px">${memberIcon(m.n)}<span>${esc(m.n)}</span></span>
+<div class="row" style="margin:0"><button class="${m.at?"":"g"}" onclick="setAttendance(${i})" style="font-size:12px;padding:6px 10px">${m.at?"出席":"欠席"}</button>
+<button class="${m.paid?"":"g"}" onclick="S.members[${i}].paid=!S.members[i].paid;save();draw()" style="font-size:12px;padding:6px 10px">${m.paid?"会費済":"未納"}</button>
+<button class="x" onclick="removeM(${i})">×</button></div></div>`).join("")||'<p class="sub" style="margin:0">メンバーがいません</p>'}</div>
+${S.members.some(m=>m.at)?'<p class="sub">出席にしたメンバーは大会参加者へ自動反映されます。</p>':""}
+${S.rounds.length?'<p class="sub">試合記録中は欠席に変更したメンバーも名簿に残ります。記録を全消去すると出席状況に合わせて同期されます。</p>':""}
+<h2>お知らせボード</h2><div class="row"><textarea id="nw" rows="2" style="flex:1" placeholder="例: 次回は新球を使います！"></textarea><button onclick="addN()" class="g">投稿</button></div>
+${S.news.map((n,i)=>`<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(n)}</div><div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpN(${i})" style="font-size:12px;padding:8px 14px">LINE共有</button><button class="x" onclick="S.news.splice(${i},1);save();draw()">削除</button></div></div>`).join("")}`}
+function addN(){const v=$("nw").value.trim();if(!v){alert("内容を入力してください");return}S.news.unshift(v);save();draw()}
+function cpN(i){shareTxt(S.news[i])}
+function addM(){const v=$("mn").value.trim();if(!v)return;S.members.push({n:v,at:true,paid:false});syncClubPlayers();draw()}
+function removeM(i){S.members.splice(i,1);syncClubPlayers();draw()}
+function toEv(){syncClubPlayers();go("ev")}
+
+/* ---------- 収益・要望管理（管理者専用裏画面） ---------- */
+const BD=[0,1500,0,12000,10000,3.6];
+const B=i=>S.bz&&S.bz[i]!=null?S.bz[i]:(i==2?(S.players.length||16):BD[i]);
+function bz(){
+S.adminSheet=S.adminSheet||"finance";
+const sheets=[["finance","収支"],["feedbacks","ご意見・要望"],["dues","会費"],["events","イベント"],["posts","募集・お知らせ"],["updates","更新履歴"],["profiles","PIN承認"],["settings","設定"]];
+return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者</h1><div class="row"><button class="g" onclick="go('ev')">大会へ戻る</button></div><div class="row" role="tablist">${sheets.map(([key,label])=>`<button class="${S.adminSheet===key?"":"g"}" role="tab" aria-selected="${S.adminSheet===key}" onclick="setAdminSheet('${key}')">${label}</button>`).join("")}</div>${({finance:adminFinance,feedbacks:adminFeedbacks,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,settings:adminSettings})[S.adminSheet]()}`
+}
+function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;S.adminSheet=sheet;save();draw()}
+
+/* ---------- 管理者への連絡(DM)・掲示板 ---------- */
+let adminSession=false,bch="notice";
+const BCH=[["notice","連絡事項"],["chat","雑談"],["play","練習・試合"],["ask","質問"]];
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const fmtT=ts=>new Date(ts).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
+const whoAmI=()=>adminSession?"管理者":(S.members.some(m=>m.n===profileSessionName)?profileSessionName:"");
+async function mutate(key,fn){let arr=(S[key]||[]).slice();try{const{data}=await supabaseClient.from('app_state').select('data').eq('id','main_data').single();if(data&&data.data&&Array.isArray(data.data[key]))arr=data.data[key].slice()}catch(e){}fn(arr);S[key]=arr;await save()}
+function editDlg(init,f){const d=document.createElement("div");d.id="dg";d.innerHTML='<div class="box"><p style="font-weight:700">メッセージを編集</p><textarea rows="4" style="width:100%"></textarea><div class="row" style="margin-top:12px"><button id="y">保存</button><button class="g" id="n">やめる</button></div></div>';const a=d.querySelector("textarea");a.value=init;document.body.appendChild(d);a.focus();d.querySelector("#y").onclick=()=>{const v=a.value.trim();if(!v){alert("内容を入力してください");return}d.remove();f(v)};d.querySelector("#n").onclick=()=>d.remove()}
+function migrateFb(){if(!(S.feedbacks||[]).length)return;S.dms=S.dms||[];let k=0;S.feedbacks.slice().reverse().forEach(f=>{S.dms.push({id:uid(),m:f.name,f:"m",t:f.text,ts:Date.now()+(k++)});if(f.reply)S.dms.push({id:uid(),m:f.name,f:"a",t:f.reply,ts:Date.now()+(k++)})});S.feedbacks=[];save()}
+function link(label,fn){return `<a href="#" onclick="${fn};return false">${label}</a>`}
+function dmBox(name){migrateFb();const th=(S.dms||[]).filter(x=>x.m===name).sort((a,b)=>a.ts-b.ts);
+return `<div class="box" style="margin-top:20px"><h2 style="margin-top:0">管理者への連絡</h2><p class="sub">ログイン中のあなたと管理者の連絡欄です。他のメンバーの画面には表示されません。送った後も「編集」できます。</p>
+<div class="chat" id="dm_log">${th.map(x=>`<div class="msg ${x.f==="m"?"me":"ot"}"><div class="bub">${esc(x.t)}</div><div class="meta">${x.f==="a"?"管理者 ・ ":""}${fmtT(x.ts)}${x.f==="m"?" ・ "+link("編集",`dmEdit('${x.id}')`):""}</div></div>`).join("")||'<p class="sub">まだメッセージはありません。</p>'}</div>
+<div class="row"><textarea id="dm_text" data-keep rows="2" style="flex:1" placeholder="意見・要望・質問を入力"></textarea><button onclick="dmSend()">送信</button></div></div>`}
+async function dmSend(){const name=profileSessionName;if(!S.members.some(m=>m.n===name)){alert("ログインしてください");return}const f=$("dm_text"),t=f.value.trim();if(!t)return;f.value="";await mutate("dms",a=>a.push({id:uid(),m:name,f:"m",t,ts:Date.now()}));draw();toast("送信しました")}
+function dmEdit(id){const x=(S.dms||[]).find(y=>y.id===id);if(!x||x.f!=="m"||x.m!==profileSessionName)return;editDlg(x.t,async v=>{await mutate("dms",a=>{const y=a.find(z=>z.id===id);if(y&&y.m===profileSessionName&&y.f==="m"&&y.t!==v){y.o=y.o||y.t;y.e=1;y.t=v}});draw()})}
+function dmNames(){const last={};(S.dms||[]).forEach(x=>{last[x.m]=Math.max(last[x.m]||0,x.ts)});return Object.keys(last).sort((a,b)=>last[b]-last[a])}
+function adminFeedbacks(){migrateFb();const names=dmNames();
+return `<h2>メンバーとの連絡</h2><p class="sub">メンバー本人がログインして送ったメッセージです。返信や編集ができます。メンバーの画面には「編集済み」とは表示されません(ここだけに表示されます)。</p>`+(names.map((n,i)=>{const th=(S.dms||[]).filter(x=>x.m===n).sort((a,b)=>a.ts-b.ts),last=th[th.length-1];
+return `<div class="box"><div class="row" style="justify-content:space-between"><b>${memberIcon(n,24)} ${esc(n)}</b>${last.f==="m"?'<span class="badge" style="background:var(--warn)">未返信</span>':""}</div><div class="chat">${th.map(x=>`<div class="msg ${x.f==="a"?"me":"ot"}"><div class="bub">${esc(x.t)}</div><div class="meta">${fmtT(x.ts)}${x.e?" ・ 編集済み":""} ・ ${link("編集",`adEdit('${x.id}')`)} ・ ${link("削除",`adDel('${x.id}')`)}</div>${x.o?`<details class="meta"><summary>編集前を見る</summary>${esc(x.o)}</details>`:""}</div>`).join("")}</div>
+<div class="row"><textarea id="ar_${i}" data-keep rows="2" style="flex:1" placeholder="${esc(n)}さんへの返信"></textarea><button onclick="adSend(${i})">返信</button></div></div>`}).join("")||'<p class="sub">届いたメッセージはありません。</p>')}
+async function adSend(i){if(!adminSession)return;const n=dmNames()[i],f=$("ar_"+i),t=f&&f.value.trim();if(!n||!t)return;f.value="";await mutate("dms",a=>a.push({id:uid(),m:n,f:"a",t,ts:Date.now()}));draw();toast("返信しました")}
+function adEdit(id){if(!adminSession)return;const x=(S.dms||[]).find(y=>y.id===id);if(!x)return;editDlg(x.t,async v=>{await mutate("dms",a=>{const y=a.find(z=>z.id===id);if(y&&y.t!==v){y.o=y.o||y.t;y.e=1;y.t=v}});draw()})}
+function adDel(id){if(!adminSession)return;ask("このメッセージを削除しますか？",async()=>{await mutate("dms",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)});draw()})}
+/* 掲示板 */
+function bd(){const who=whoAmI(),list=(S.bmsg||[]).filter(x=>x.c===bch).sort((a,b)=>a.ts-b.ts).slice(-80);
+return `<span class="badge">BOARD</span><h1>掲示板</h1><p class="sub">クラブ全員が見られる連絡・雑談の場です。</p>
+<div class="row" role="tablist">${BCH.map(([k,l])=>`<button class="${k===bch?"":"g"}" role="tab" aria-selected="${k===bch}" onclick="bch='${k}';draw()">${l}</button>`).join("")}</div>
+<div class="chat" id="bd_log">${list.map(x=>{const mine=x.n===who;return `<div class="msg ${mine?"me":"ot"}">${mine?"":`<div class="meta">${memberIcon(x.n,18)} ${esc(x.n)}</div>`}<div class="bub">${esc(x.t)}</div><div class="meta">${fmtT(x.ts)}${mine?" ・ "+link("編集",`bdEdit('${x.id}')`)+" ・ "+link("削除",`bdDel('${x.id}')`):adminSession?" ・ "+link("削除",`bdDel('${x.id}')`):""}</div></div>`}).join("")||'<p class="sub">まだ投稿はありません。</p>'}</div>
+${who?`<div class="row"><textarea id="bd_text" data-keep rows="2" style="flex:1" placeholder="${esc(who)}として投稿"></textarea><button onclick="bdSend()">送信</button></div>`:`<div class="box"><p class="sub">投稿するにはプロフィールでログインしてください。</p><button onclick="openProfileLogin()">ログインする</button></div>`}`}
+async function bdSend(){const who=whoAmI();if(!who){alert("ログインしてください");return}const f=$("bd_text"),t=f.value.trim();if(!t)return;f.value="";const c=bch;await mutate("bmsg",a=>{a.push({id:uid(),c,n:who,t,ts:Date.now()});if(a.length>400)a.splice(0,a.length-400)});draw()}
+function bdEdit(id){const x=(S.bmsg||[]).find(y=>y.id===id);if(!x||x.n!==whoAmI())return;editDlg(x.t,async v=>{await mutate("bmsg",a=>{const y=a.find(z=>z.id===id);if(y&&y.n===whoAmI())y.t=v});draw()})}
+function bdDel(id){const x=(S.bmsg||[]).find(y=>y.id===id);if(!x||(x.n!==whoAmI()&&!adminSession))return;ask("この投稿を削除しますか？",async()=>{await mutate("bmsg",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)});draw()})}
+function mo(){return `<span class="badge">MORE</span><h1>その他</h1><p class="sub">プロフィール・練習・貸出・ルールはこちらです。</p>${MORE.map(([k,l])=>`<div class="box"><button onclick="go('${k}')" style="width:100%">${l}</button></div>`).join("")}`}
+function keepCap(){const v={},a=document.activeElement,sc={};document.querySelectorAll("[data-keep]").forEach(e=>{v[e.id]=e.value});["bd_log","dm_log"].forEach(i=>{const l=$(i);if(l)sc[i]=l.scrollHeight-l.scrollTop-l.clientHeight<60});return{v,sc,f:a&&a.dataset&&a.dataset.keep!==undefined?a.id:"",s:a&&a.selectionStart}}
+function keepRes(k){Object.entries(k.v).forEach(([id,val])=>{const e=$(id);if(e&&!e.value)e.value=val});if(k.f&&$(k.f)){const e=$(k.f);e.focus();try{e.setSelectionRange(k.s,k.s)}catch(x){}}["bd_log","dm_log"].forEach(i=>{const l=$(i);if(l&&k.sc[i]!==false)l.scrollTop=l.scrollHeight})}
+
+function adminFinance(){return `<h2>大会収支</h2><div class="box">
+<label>大会名</label><input id="bname" value="${esc(S.adminForm&&S.adminForm.bname||"")}" oninput="captureAdminForm()" placeholder="例: 週末クラブ大会" style="width:100%">
+<label>参加費 (1人・円)</label><input id="b1" type="number" min="0" value="${B(1)}" oninput="calcB()" style="width:100%">
+<label>参加人数</label><input id="b2" type="number" min="0" value="${B(2)}" oninput="calcB()" style="width:100%">
+<label>コート代・景品など費用 (円)</label><input id="b3" type="number" min="0" value="${B(3)}" oninput="calcB()" style="width:100%">
+<label>スポンサー協賛金 (円)</label><input id="b4" type="number" min="0" value="${B(4)}" oninput="calcB()" style="width:100%">
+<label>その他収入 (円)</label><input id="b6" type="number" min="0" value="${S.adminForm&&S.adminForm.b6||0}" oninput="calcB()" style="width:100%">
+<label>その他支出 (円)</label><input id="b7" type="number" min="0" value="${S.adminForm&&S.adminForm.b7||0}" oninput="calcB()" style="width:100%">
+<label>決済手数料 (%)</label><input id="b5" type="number" min="0" max="100" step="0.1" value="${B(5)}" oninput="calcB()" style="width:100%">
+<h3 style="font-size:14px;margin-top:20px">集計</h3><div class="row" style="justify-content:space-between"><span>参加費収入</span><b id="br_ticket">0円</b></div><div class="row" style="justify-content:space-between"><span>協賛金</span><b id="br_sponsor">0円</b></div><div class="row" style="justify-content:space-between"><span>その他収入</span><b id="br_other_income">0円</b></div><div class="row" style="justify-content:space-between"><span>総収入</span><b id="br_income">0円</b></div><div class="row" style="justify-content:space-between"><span>大会費用</span><b id="br_cost">0円</b></div><div class="row" style="justify-content:space-between"><span>その他支出</span><b id="br_other_cost">0円</b></div><div class="row" style="justify-content:space-between"><span>決済手数料</span><b id="br_fee">0円</b></div><div class="row" style="justify-content:space-between"><span>総支出</span><b id="br_expense">0円</b></div><div class="row" style="justify-content:space-between"><span>差引利益</span><b id="bo" class="big" style="font-size:28px">0円</b></div><div id="bs" class="sub"></div><div class="row" style="justify-content:space-between"><span>一人あたり差引</span><b id="br_per_person">0円</b></div><button onclick="saveFinanceRecord()">この収支を保存</button></div>
+<h2>保存済み収支の総計</h2>${financeTotals()}<h2>保存履歴</h2>${(S.financeRecords||[]).map((record,index)=>`<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(record.name||"大会")}</b><span class="sub">${esc(record.date)}</span></div><div class="row" style="justify-content:space-between"><span>収入 ${record.income.toLocaleString()}円</span><b>${record.profit.toLocaleString()}円</b></div><div class="row"><button class="g" onclick="loadFinanceRecord(${index})">読み込む</button><button class="x" onclick="deleteFinanceRecord(${index})">削除</button></div></div>`).join("")||'<p class="sub">保存された収支はありません。</p>'}`}
+function adminDues(){return `<h2>会費の回収</h2><div class="box"><label>1人あたりの会費 (円)</label><select id="dues_amount" oninput="calcDues()" style="width:100%">${duesOptions()}</select><div class="row" style="justify-content:space-between"><span>対象人数</span><b>${S.members.length}人</b></div><div class="row" style="justify-content:space-between"><span>回収済み</span><b id="dues_collected">0円</b></div><div class="row" style="justify-content:space-between"><span>未回収</span><b id="dues_remaining">0円</b></div><div class="row"><button class="g" onclick="shareDues()">未納者に案内を共有</button></div>${S.members.map((m,i)=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--ln);padding:8px 0"><span><b>${memberIcon(m.n,24)} ${esc(m.n)}</b><span class="sub" style="margin-left:8px">${m.paid?"入金済み":"未納"}</span></span><button class="${m.paid?"g":""}" onclick="toggleDues(${i})" style="font-size:12px;padding:6px 10px">${m.paid?"未納に戻す":"入金済みにする"}</button></div>`).join("")||'<p class="sub">先にクラブ画面でメンバーを登録してください。</p>'}</div>`}
+function adminPosts(){return `<h2>募集・お知らせを作成</h2><div class="box">
+<label>投稿の種類</label><select id="admin_kind" style="width:100%"><option value="recruit">練習・イベントの募集</option><option value="news">クラブのお知らせ</option></select><label>投稿の目的</label><select id="admin_goal" style="width:100%"><option>通常の参加募集</option><option>初心者向け体験会</option><option>大会・イベント告知</option><option>直前の追加募集</option><option>日時・場所の変更案内</option><option>中止・延期のお知らせ</option><option>会費・手続きの案内</option><option>お礼・活動報告</option><option>練習日程のお知らせ</option></select><label>届けたい相手</label><select id="admin_audience" style="width:100%"><option>初心者・初参加の人</option><option>クラブメンバー</option><option>経験者・中級者</option><option>家族や友人を含む地域の人</option><option>大会参加者</option><option>幅広いレベルの人</option></select><label>文体</label><select id="admin_tone" style="width:100%"><option>親しみやすく気軽</option><option>明るく元気</option><option>丁寧で落ち着いた</option><option>短く要点重視</option><option>初参加でも安心できる</option><option>スポーツらしく熱意のある</option></select><label>募集レベル</label><select id="admin_level" style="width:100%"><option>初心者歓迎</option><option>中級</option><option>上級</option></select><label>場所</label><input id="admin_place" list="admin_place_options" placeholder="例: 中央公園テニスコート" style="width:100%"><datalist id="admin_place_options">${adminSuggestionOptions("place")}</datalist><label>追加情報（持ち物など）</label><textarea id="admin_details" rows="3" style="width:100%"></textarea><label>開催日</label><input id="admin_event_date" type="date" style="width:100%"><label>開催時刻</label><select id="admin_event_time" style="width:100%">${adminTimeOptions()}</select><div class="row"><label style="margin:0">募集人数 <input id="admin_capacity" type="number" min="1" max="99" value="4" style="width:76px"></label></div><div class="row"><button onclick="askAdminAI()">GeminiでAI案を作る</button><button class="g" onclick="copyAdminPrompt()">依頼文をコピー</button></div><label>AIへの依頼文</label><textarea id="admin_prompt" rows="5" readonly style="width:100%"></textarea><label>公開する文章</label><textarea id="admin_draft" rows="5" style="width:100%"></textarea><button onclick="publishAdminContent()">この内容を公開</button></div>
+<h2>募集の管理</h2>${(S.posts||[]).map((p,i)=>`<div class="box"><div class="row" style="justify-content:space-between"><span style="white-space:pre-wrap;flex:1">${esc(p.w)}</span><button class="x" onclick="deleteAdminPost(${i})">削除</button></div></div>`).join("")||'<p class="sub">公開中の募集はありません。</p>'}<h2>お知らせの管理</h2>${(S.news||[]).map((n,i)=>`<div class="box"><div class="row" style="justify-content:space-between"><span style="white-space:pre-wrap;flex:1">${esc(n)}</span><button class="x" onclick="deleteAdminNews(${i})">削除</button></div></div>`).join("")||'<p class="sub">公開中のお知らせはありません。</p>'}`}
+function adminEvents(){
+const editing=(S.events||[]).find(event=>event.id===S.adminEventEdit);
+const draft=S.adminForm||{};
+const dateValue=editing?.date||draft.event_date||"";
+const timeValue=editing?.time||draft.event_time||"";
+const sorted=(S.events||[]).map((event,index)=>({event,index})).sort((a,b)=>(a.event.date||"").localeCompare(b.event.date||""));
+return `<h2>${editing?"イベントを編集":"イベント日程を登録"}</h2><div class="box"><label>イベント名</label><input id="event_title" value="${esc(editing?.title||draft.event_title||"")}" placeholder="例: 週末ピックルボール練習会" style="width:100%"><label>開催日 <span class="sub">必須</span></label><input id="event_date" type="date" value="${esc(dateValue)}" style="width:100%"><label>開催時刻</label><select id="event_time" style="width:100%">${eventTimeOptions(timeValue)}</select><label>場所 <span class="sub">必須</span></label><input id="event_place" value="${esc(editing?.place||draft.event_place||"")}" list="event_place_options" placeholder="例: 中央公園テニスコート" style="width:100%"><datalist id="event_place_options">${adminSuggestionOptions("place")}</datalist><label>募集人数（0は定員なし）</label><input id="event_capacity" type="number" min="0" max="999" value="${editing?.capacity??draft.event_capacity??0}" style="width:100%"><label>内容・持ち物など</label><textarea id="event_details" rows="4" style="width:100%">${esc(editing?.details||draft.event_details||"")}</textarea><div class="row"><button onclick="saveEvent()">${editing?"変更を保存":"イベントを公開"}</button>${editing?'<button class="g" onclick="cancelEditEvent()">編集をやめる</button>':""}</div></div>
+<h2>イベント一覧・参加状況</h2>${sorted.map(({event,index})=>eventAdminCard(event,index)).join("")||'<p class="sub">登録済みイベントはありません。</p>'}`
+}
+function eventTimeOptions(selected=""){
+const options=Array.from({length:96},(_,index)=>`${String(Math.floor(index/4)).padStart(2,"0")}:${String(index%4*15).padStart(2,"0")}`);
+if(selected&&!options.includes(selected))options.unshift(selected);
+return `<option value="">時刻を選択</option>`+options.map(time=>`<option value="${time}" ${time===selected?"selected":""}>${time}</option>`).join("")
+}
+function eventCounts(event){
+const responses=event.responses||{},yes=S.members.filter(member=>responses[member.n]==="yes"),no=S.members.filter(member=>responses[member.n]==="no"),unanswered=S.members.filter(member=>!responses[member.n]);
+return {yes,no,unanswered,remaining:event.capacity?Math.max(0,event.capacity-yes.length):null}
+}
+function eventAdminCard(event,index){
+const counts=eventCounts(event);
+return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${esc(event.date)}${event.time?` ${esc(event.time)}`:""}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="row"><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div></div>`
+}
+function saveEvent(){
+const title=$("event_title").value.trim(),date=$("event_date").value,place=$("event_place").value.trim();
+if(!title){alert("イベント名を入力してください");return}
+if(!date){alert("開催日を選択してください");return}
+if(!place){alert("開催場所を入力してください");return}
+const event={id:S.adminEventEdit||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,title,date,time:$("event_time").value,place,capacity:Math.max(0,parseInt($("event_capacity").value,10)||0),details:$("event_details").value.trim(),responses:{}};
+S.events=S.events||[];
+const index=S.events.findIndex(item=>item.id===event.id);
+if(index>=0){event.responses=S.events[index].responses||{};S.events[index]=event}else S.events.push(event);
+rememberAdminSuggestion("place");S.adminEventEdit="";["event_title","event_date","event_time","event_place","event_capacity","event_details"].forEach(id=>{if(S.adminForm)delete S.adminForm[id]});save();draw();toast("イベントを公開しました")
+}
+function editEvent(index){const event=S.events[index];if(!event)return;S.adminEventEdit=event.id;save();draw()}
+function cancelEditEvent(){S.adminEventEdit="";draw()}
+function deleteEvent(index){ask("このイベントと参加回答を削除しますか？",()=>{S.events.splice(index,1);S.adminEventEdit="";save();draw()})}
+function events(){
+const selected=S.members.some(member=>member.n===profileSessionName)?profileSessionName:"";
+const upcoming=(S.events||[]).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+return `<span class="badge">CLUB EVENTS</span><h1>イベント</h1><p class="sub">開催日と場所を確認し、参加可否を回答してください。</p>${selected?`<div class="row"><span>ログイン中: ${memberIcon(selected,24)} <b>${esc(selected)}</b></span><button class="g" onclick="logoutProfile()">ログアウト</button></div>`:`<div class="box"><p class="sub">参加可否の回答にはプロフィールへのログインが必要です。</p><button onclick="openProfileLogin()">プロフィールでログイン</button></div>`}${upcoming.map(event=>eventMemberCard(event,selected)).join("")||'<p class="sub">公開中のイベントはありません。</p>'}`
+}
+function eventMemberCard(event,memberName){
+const counts=eventCounts(event),response=event.responses&&event.responses[memberName];
+const full=event.capacity&&counts.yes.length>=event.capacity&&response!=="yes";
+return `<div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)}${event.time?` ${esc(event.time)}`:""}</span></div><p><b>場所:</b> ${esc(event.place)}</p>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div><div class="sub">参加予定メンバー: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"まだいません"}</div>${memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":"未回答"}</p><div class="row"><button onclick="respondEvent('${esc(event.id)}','yes')" ${full?"disabled":""}>参加する</button><button class="g" onclick="respondEvent('${esc(event.id)}','no')">参加しない</button></div>${full?'<p class="sub">定員に達しています。参加回答済みの人が取り消すと選択できます。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>'}</div>`
+}
+function openProfileLogin(){S.profileMember=S.members[0]?.n||"";profileSessionName="";profileUnlockedName="";go("pf")}
+function respondEvent(eventId,status){
+const event=(S.events||[]).find(item=>item.id===eventId),member=profileSessionName;
+if(!event||!member||!S.members.some(item=>item.n===member)){alert("プロフィールからログインしてください");return}
+const counts=eventCounts(event);
+if(status==="yes"&&event.capacity&&counts.yes.length>=event.capacity&&event.responses?.[member]!=="yes"){alert("このイベントは定員に達しています");return}
+event.responses=event.responses||{};event.responses[member]=status;logMemberUpdate(member,status==="yes"?`イベント参加回答: ${event.title}`:`イベント不参加回答: ${event.title}`);save();draw();toast(status==="yes"?"参加で回答しました":"不参加で回答しました")
+}
+function adminUpdates(){
+const audit=S.memberAudit||[];
+return `<h2>メンバー更新履歴</h2><p class="sub">プロフィール、自己評価、イベント参加回答の更新記録です。</p>${audit.length?audit.map(item=>`<div class="box"><div class="row" style="justify-content:space-between"><b>${memberIcon(item.member,24)} ${esc(item.member)}</b><span class="sub">${esc(item.date)}</span></div><div>${esc(item.action)}</div></div>`).join(""):'<p class="sub">更新履歴はありません。</p>'}`
+}
+function adminProfiles(){
+return `<h2>プロフィール初回PINの承認</h2><p class="sub">未設定のメンバーに個別コードを発行してください。コードは本人へ直接伝え、本人が4桁PINを設定します。コードの再表示はできません。紛失時は再発行してください。</p>${S.members.map(member=>{const profile=profileData(member.n),issued=adminSetupCodeDisplay&&adminSetupCodeDisplay.name===member.n;return `<div class="box"><div class="row" style="justify-content:space-between"><b>${memberIcon(member.n,24)} ${esc(member.n)}</b><span class="sub">${profile.pinHash?"PIN設定済み":profile.setupCodeHash?"初回コード発行済み":"初回PIN未設定"}</span></div><button onclick="issueProfileSetupCode('${esc(member.n)}')" ${profile.pinHash?"disabled":""}>${profile.setupCodeHash?"初回コードを再発行":"初回設定コードを発行"}</button>${issued?`<p><b>本人へ直接渡すコード: ${esc(adminSetupCodeDisplay.code)}</b></p><p class="sub">この画面を離れるとコードは再表示されません。</p>`:""}</div>`}).join("")||'<p class="sub">先にメンバーを登録してください。</p>'}<p class="sub">管理者画面もこのHTML内で動作するため、共有ファイルを直接編集できる人まで防ぐにはサーバー認証が必要です。</p>`
+}
+async function issueProfileSetupCode(name){
+const profile=profileData(name);
+if(profile.pinHash){alert("このメンバーはすでにPIN設定済みです");return}
+const bytes=crypto.getRandomValues(new Uint8Array(4));
+const code=String(((bytes[0]<<24)|(bytes[1]<<16)|(bytes[2]<<8)|bytes[3])>>>0).padStart(10,"0").slice(-8);
+const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(byte=>byte.toString(16).padStart(2,"0")).join("");
+profile.setupSalt=salt;profile.setupCodeHash=await digestProfilePin(name,code,salt);profile.setupCodeUsed=false;
+adminSetupCodeDisplay={name,code};logMemberUpdate(name,"プロフィール初回設定コード発行");save();draw()
+}
+function adminSettings(){return `<h2>管理者設定</h2><div class="box"><label>管理者パスワード変更</label><div class="row"><input id="new_pw" type="password" placeholder="新しいパスワード"><button onclick="changePw()">変更する</button></div></div>`}
+function financeTotals(){const records=S.financeRecords||[],total=records.reduce((sum,item)=>({income:sum.income+item.income,expense:sum.expense+item.expense,profit:sum.profit+item.profit,fee:sum.fee+item.fee}),{income:0,expense:0,profit:0,fee:0});return `<div class="box"><div class="row" style="justify-content:space-between"><span>保存件数</span><b>${records.length}件</b></div><div class="row" style="justify-content:space-between"><span>累計総収入</span><b>${total.income.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計総支出</span><b>${total.expense.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計決済手数料</span><b>${total.fee.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計差引利益</span><b>${total.profit.toLocaleString()}円</b></div></div>`}
+function currentFinance(){const value=id=>Math.max(0,Number($(id)?.value)||0),price=value("b1"),participants=value("b2"),feeRate=Math.min(100,value("b5")),ticket=price*participants,fee=ticket*feeRate/100,sponsor=value("b4"),otherIncome=value("b6"),courtCost=value("b3"),otherCost=value("b7"),income=ticket+sponsor+otherIncome,expense=courtCost+otherCost+fee,profit=income-expense,denominator=price*(1-feeRate/100);return {name:$("bname")?.value.trim()||"大会",price,participants,ticket,feeRate,fee,sponsor,otherIncome,courtCost,otherCost,income,expense,profit,perPerson:participants?profit/participants:0,breakEven:denominator>0?Math.max(0,Math.ceil((courtCost+otherCost-sponsor-otherIncome)/denominator)):0}}
+function saveFinanceRecord(){
+const result=currentFinance();
+if(!result.name.trim()){alert("大会名を入力してください");return}
+if(result.participants<1){alert("参加人数を1人以上入力してください");return}
+S.financeRecords=S.financeRecords||[];
+ S.financeRecords.unshift({...result,date:new Date().toLocaleString("ja-JP")});
+S.financeRecords=S.financeRecords.slice(0,100);save();toast("収支を保存しました");draw()
+}
+function loadFinanceRecord(index){const record=S.financeRecords[index];if(!record)return;S.bz=[0,record.price,record.participants,record.courtCost,record.sponsor,record.feeRate];S.adminForm=S.adminForm||{};S.adminForm.bname=record.name;S.adminForm.b6=record.otherIncome;S.adminForm.b7=record.otherCost;S.adminSheet="finance";save();draw()}
+function deleteFinanceRecord(index){ask("この収支記録を削除しますか？",()=>{S.financeRecords.splice(index,1);save();draw()})}
+function buildAdminPrompt(){
+const kind=$("admin_kind").value==="recruit"?"練習・イベントの募集":"クラブのお知らせ";
+rememberAdminTime();
+const date=$("admin_event_date").value||"未入力";
+const eventTime=$("admin_event_time").value||"未選択";
+rememberAdminSuggestion("place");
+const place=$("admin_place").value.trim()||"未入力";
+const details=$("admin_details").value.trim()||"追加情報なし";
+const prompt=`あなたは地域のピックルボールクラブの広報担当です。次の条件で、自然で読みやすい日本語の${kind}文を1案作成してください。\n目的: ${$("admin_goal").value}\n対象: ${$("admin_audience").value}\n文体: ${$("admin_tone").value}\n募集レベル: ${$("admin_level").value}\n開催日: ${date}\n開催時刻: ${eventTime}\n場所: ${place}\n追加情報: ${details}\n\n事実にない日時・場所・料金などは作らず、未記載の情報は書かないでください。絵文字は控えめにし、参加方法が伝わる文章にしてください。本文だけを出力してください。`;
+$("admin_prompt").value=prompt;
+return prompt
+}
+async function copyAdminPrompt(){
+const prompt=buildAdminPrompt();
+try{await navigator.clipboard.writeText(prompt);toast("AIへの依頼文をコピーしました")}catch(e){$("admin_prompt").focus();$("admin_prompt").select();toast("依頼文を選択しました。コピーしてAIに貼り付けてください")}
+}
+async function askAdminAI(){
+buildAdminPrompt();
+window.open("https://gemini.google.com/app","_blank","noopener");
+await copyAdminPrompt();
+toast("Geminiに依頼文を貼り付け、回答を下の欄に戻してください")
+}
+function publishAdminContent(){
+const text=$("admin_draft").value.trim();
+if(!text){alert("公開する文章を入力してください");return}
+if($("admin_kind").value==="recruit"){
+const capacity=Math.max(1,Math.min(99,parseInt($("admin_capacity").value,10)||1));
+const eventDate=$("admin_event_date").value||"";
+const eventTime=$("admin_event_time").value||"";
+rememberAdminTime();
+S.posts.unshift({w:text,l:$("admin_level").value,r:capacity,c:capacity,m:[],wl:[],dl:"",eventDate,eventTime,eventPlace:$("admin_place").value.trim()})
+}else{S.news.unshift(text)}
+save();draw();toast("投稿を公開しました")
+}
+function deleteAdminPost(i){ask("この募集を削除しますか？",()=>{S.posts.splice(i,1);save();draw()})}
+function deleteAdminNews(i){ask("このお知らせを削除しますか？",()=>{S.news.splice(i,1);save();draw()})}
+function adminSuggestionOptions(key){
+return (S.adminSuggestions&&S.adminSuggestions[key]||[]).map(value=>`<option value="${esc(value)}"></option>`).join("")
+}
+function adminTimeOptions(){
+const standard=Array.from({length:96},(_,i)=>`${String(Math.floor(i/4)).padStart(2,"0")}:${String(i%4*15).padStart(2,"0")}`);
+const history=S.adminSuggestions&&S.adminSuggestions.eventTime||[];
+const options=[...new Set([...history,...standard])];
+const selected=S.adminForm&&S.adminForm.admin_event_time||"";
+if(selected&&!options.includes(selected))options.unshift(selected);
+return `<option value="" ${selected?"":"selected"}>時刻を選択</option>`+options.map(value=>`<option value="${esc(value)}" ${value===selected?"selected":""}>${esc(value)}</option>`).join("")
+}
+function rememberAdminTime(){
+const field=$("admin_event_time");if(!field||!field.value)return;
+S.adminSuggestions=S.adminSuggestions||{time:[],place:[],eventTime:[]};
+const history=S.adminSuggestions.eventTime||[];
+S.adminSuggestions.eventTime=[field.value,...history.filter(value=>value!==field.value)].slice(0,20);
+save()
+}
+function rememberAdminSuggestion(key){
+const input=$(key==="time"?"admin_time":"admin_place");
+if(!input)return;
+const value=input.value.trim();if(!value)return;
+S.adminSuggestions=S.adminSuggestions||{time:[],place:[]};
+const suggestions=S.adminSuggestions[key]||[];
+S.adminSuggestions[key]=[value,...suggestions.filter(item=>item!==value)].slice(0,20);
+const list=$(key==="time"?"admin_time_options":"admin_place_options");
+if(list)list.innerHTML=adminSuggestionOptions(key);
+save()
+}
+function duesOptions(){
+const current=Math.max(0,parseInt(S.duesAmount,10)||0);
+const amounts=Array.from({length:501},(_,i)=>i*100);
+if(!amounts.includes(current))amounts.push(current);
+return amounts.sort((a,b)=>a-b).map(amount=>`<option value="${amount}" ${amount===current?"selected":""}>${amount.toLocaleString()}円</option>`).join("")
+}
+const adminFormIds=["dues_amount","bname","b6","b7","event_title","event_date","event_time","event_place","event_capacity","event_details","admin_kind","admin_goal","admin_audience","admin_tone","admin_level","admin_place","admin_details","admin_capacity","admin_event_date","admin_event_time","admin_prompt","admin_draft","new_pw"];
+function captureAdminForm(){
+const values={...(S.adminForm||{})};
+let changed=false;
+adminFormIds.forEach(id=>{const field=$(id);if(field){values[id]=field.value;changed=true}});
+if(changed){S.adminForm=values;save()}
+}
+function restoreAdminForm(){
+adminFormIds.forEach(id=>{const field=$(id);if(field&&S.adminForm&&S.adminForm[id]!=null)field.value=S.adminForm[id]});
+adminFormIds.forEach(id=>{const field=$(id);if(field){field.addEventListener("input",captureAdminForm);field.addEventListener("change",captureAdminForm)}})
+$("admin_event_time")?.addEventListener("change",rememberAdminTime);
+$("admin_place")?.addEventListener("change",()=>rememberAdminSuggestion("place"));
+}
+function calcDues(){
+const input=$("dues_amount");if(!input)return;
+const amount=Math.max(0,parseInt(input.value,10)||0);S.duesAmount=amount;save();
+const collected=S.members.filter(m=>m.paid).length*amount;
+$("dues_collected").textContent=collected.toLocaleString()+"円";
+$("dues_remaining").textContent=((S.members.length*amount)-collected).toLocaleString()+"円";
+}
+function toggleDues(i){S.members[i].paid=!S.members[i].paid;save();draw()}
+function shareDues(){
+const unpaid=S.members.filter(m=>!m.paid).map(m=>m.n);
+if(!unpaid.length){alert("未納のメンバーはいません");return}
+shareTxt("【会費のお知らせ】\n会費: "+(S.duesAmount||0).toLocaleString()+"円\n未納: "+unpaid.join("、")+"\nご確認をお願いします。")
+}
+function calcB(){
+if(!$('b1'))return;
+S.bz=[0,1,2,3,4,5].map(i=>i?+$("b"+i).value||0:0);save();
+captureAdminForm();
+const result=currentFinance(),yen=value=>Math.round(value).toLocaleString()+"円";
+$("br_ticket").textContent=yen(result.ticket);$("br_sponsor").textContent=yen(result.sponsor);$("br_other_income").textContent=yen(result.otherIncome);$("br_income").textContent=yen(result.income);$("br_cost").textContent=yen(result.courtCost);$("br_other_cost").textContent=yen(result.otherCost);$("br_fee").textContent=yen(result.fee);$("br_expense").textContent=yen(result.expense);
+const profit=$("bo");profit.textContent=yen(result.profit);profit.style.color=result.profit<0?"var(--dg)":"var(--ac2)";
+$("br_per_person").textContent=yen(result.perPerson);
+$("bs").textContent=`損益分岐点: ${result.breakEven.toLocaleString()}人 / ${result.participants.toLocaleString()}人参加時の収支`;
+}
+function changePw(){const p=$("new_pw").value.trim();if(!p){alert("パスワードを入力してください");return}S.adminPw=p;save();alert("パスワードを変更しました！")}
+
+// ▼ アプリ初期化の呼び出しに変更
+initApp();
+const _d=draw;draw=function(){_d();if(tab=="bz"){calcB();calcDues()}};
+const _drawWithAdminForm=draw;draw=function(){captureAdminForm();_drawWithAdminForm();restoreAdminForm();if(tab=="bz"){calcB();calcDues()}};
+const _drawKeep=draw;draw=function(){const k=keepCap();_drawKeep();keepRes(k)};
+scheduleTournamentDayCheck();
+</script></body></html>
