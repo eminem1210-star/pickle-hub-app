@@ -235,8 +235,7 @@ label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-top:1
   left:16px;
   right:16px;
   bottom:calc(80px + env(safe-area-inset-bottom,0px));
-  background:var(--ink);
-  color:#FFF;
+  background:var(--sf2);color:var(--ink);border:2px solid var(--ac);
   padding:14px 18px;
   border-radius:16px;
   z-index:30;
@@ -251,6 +250,9 @@ label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-top:1
 .bub{display:inline-block;text-align:left;white-space:pre-wrap;word-break:break-word;padding:10px 14px;border-radius:18px;background:var(--sf2);border:2px solid var(--ln)}
 .msg.me .bub{background:var(--ac);color:var(--on);border-color:var(--ac)}
 .meta{font-size:11px;color:var(--mu);margin-top:3px}.meta a{color:inherit;text-decoration:underline}
+.lvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+.lvcard{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--sf);color:var(--ink);border:2px solid var(--ln);border-radius:18px;padding:12px 8px;box-shadow:none;font-weight:700;text-align:center}
+.lvcard:hover{border-color:var(--ac);transform:none}
 </style>
 </head>
 <body>
@@ -263,7 +265,7 @@ const SUPABASE_KEY = 'sb_publishable_6ai48uMR372DwW-K6Looxw_MIWT91mp';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TABS=[["ev","大会"],["events","イベント"],["bd","掲示板"],["cl","メンバー"],["mo","その他"]];
-const MORE=[["pf","プロフィール"],["pr","練習"],["eq","貸出"],["rules","ルール"],["lv","レベル一覧"]];
+const MORE=[["nt","通知"],["pf","プロフィール"],["pr","練習"],["eq","貸出"],["rules","ルール"],["lv","レベル一覧"]];
 let tab="pf",S={players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[],feedbacks:[]};
 
 // データの保存（Supabaseに書き込み ＆ localStorageにも一時保存）
@@ -297,8 +299,7 @@ async function initApp() {
   supabaseClient.channel('public:app_state')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state', filter: 'id=eq.main_data' }, payload => {
       if (payload.new && payload.new.data) {
-        S = payload.new.data;
-        draw();
+        const old=S;S=payload.new.data;try{notifyDiff(old,S)}catch(e){}draw();
       }
     })
     .subscribe();
@@ -328,11 +329,15 @@ function ask(m,f){const d=document.createElement("div");d.id="dg";d.innerHTML='<
 function showCopy(t){const d=document.createElement("div");d.id="dg";d.innerHTML='<div class="box"><p style="font-weight:700;">下の文章をコピーしてください</p><textarea rows="6" style="width:100%"></textarea><div class="row" style="margin-top:12px;"><button>閉じる</button></div></div>';const a=d.querySelector("textarea");a.value=t;d.querySelector("button").onclick=()=>d.remove();document.body.appendChild(d);a.select()}
 function go(t){if(!["bz","bd"].includes(t))adminSession=false;if(tab==="bz"&&t!=="bz")adminSetupCodeDisplay=null;if(t!=="pf"){profileUnlockedName="";profilePhotoDraft=""}tab=t;draw()}
 function draw(){
-$("nav").innerHTML=TABS.map(([k,n])=>`<button role="tab" aria-selected="${k==tab||(k==='mo'&&MORE.some(m=>m[0]===tab))}" onclick="go('${k}')">${n}</button>`).join("")+`<button role="tab" onclick="checkAdmin()" style="font-size:11px;color:var(--mu);">🔒管理者</button>`;
-  checkTournamentDay();
-$("app").innerHTML = ({ev, events, pr, eq, lv, pf, rules, co, cl, bz, bd, mo})[tab]();
+checkTournamentDay();
+$("app").innerHTML=noticeBanner()+({ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt})[tab]();
 if(tab=="pr")showT();
 if(tab=="bz")calcB();
+if(tab=="bd")markSeen("bd");
+if(tab=="pf"&&profileSessionName)markSeen("dm");
+if(tab=="nt")markSeen("nt");
+const u=unread(),dot=' <span style="color:var(--dg)" aria-label="未読あり">●</span>';
+$("nav").innerHTML=TABS.map(([k,n])=>`<button role="tab" aria-selected="${k==tab||(k==='mo'&&MORE.some(m=>m[0]===tab))}" onclick="go('${k}')">${n}${(k==="bd"&&u.bd)||(k==="mo"&&(u.dm||u.nt))?dot:""}</button>`).join("")+`<button role="tab" onclick="checkAdmin()" style="font-size:11px;color:var(--mu);">🔒管理者</button>`;
 if(lastTab!=tab){window.scrollTo(0,0);lastTab=tab}}
 
 // 管理者画面（裏画面）へのアクセス関数
@@ -348,7 +353,7 @@ function checkAdmin(){
   d.id="dg";
   d.innerHTML=`<div class="box">
     <p style="font-weight:900;font-size:18px;color:var(--ac);margin-bottom:8px;">🔒 管理者ログイン</p>
-    <p class="sub">パスワードを入力してください (初期値: 1234)</p>
+    <p class="sub">パスワードを入力してください</p>
     <input type="password" id="admin_pw" placeholder="パスワード" style="width:100%;margin-bottom:16px;" autofocus>
     <div class="row"><button id="login_btn" style="flex:1;">ログイン</button><button class="g" id="cancel_btn">閉じる</button></div>
   </div>`;
@@ -357,14 +362,14 @@ function checkAdmin(){
   input.focus();
   input.onkeydown = e => { if(e.key=='Enter') d.querySelector("#login_btn").click(); };
   d.querySelector("#login_btn").onclick=()=>{
-    if(input.value==="1234" || input.value===(S.adminPw||"1234")){
+    if(input.value===(S.adminPw||"1234")){
       S.adminLoginFailures=0;
       S.adminLockUntil=0;
       save();
       d.remove();
-      tab="bz";
+      adminSession=true;tab="bz";
       draw();
-      adminSession=true;toast("管理者モードでログインしました");
+      toast("管理者モードでログインしました");
     } else {
       S.adminLoginFailures=(S.adminLoginFailures||0)+1;
       if(S.adminLoginFailures>=3){
@@ -570,7 +575,8 @@ const LEVEL_QUESTIONS=[
 ["コートの位置取り",["立ち位置や移動にまだ慣れていない","基本の位置へ移動できる","パートナーとコートを分担できる","相手の球に合わせて連携・調整できる","状況判断して連携とポジションを組み立てられる"]],
 ["ルール・スコア",["ルールやサーブ順に不安がある","基本的な進行を確認しながら行える","通常の得点・サーブ順を理解している","キッチンやフォルトを判断できる","試合進行やルールを他の人にも説明できる"]]
 ];
-function lv(){return `<span class="badge">PLAYER LEVEL</span><h1>メンバーのレベル</h1><p class="sub">自己評価を変更する場合は「プロフィール」から本人の4桁PINでログインしてください。</p>${S.members.map(member=>`<div class="box"><div class="row" style="justify-content:space-between;margin:0"><b>${esc(member.n)}</b><strong>${S.rt&&S.rt[member.n]!=null?Number(S.rt[member.n]).toFixed(1):"未評価"}</strong></div></div>`).join("")||'<p class="sub">クラブシートでメンバーを登録してください。</p>'}`}
+function lv(){return `<span class="badge">PLAYER LEVEL</span><h1>メンバーのレベル</h1><p class="sub">カードをタップすると、前回からの成長が見られます。</p><div class="lvgrid">${S.members.map((m,i)=>{const a=S.levelAnswers&&S.levelAnswers[m.n],h=S.levelHistory&&S.levelHistory[m.n]||[],pv=h[h.length-1],cr=S.rt&&S.rt[m.n],d=pv&&cr!=null?Math.round((cr-pv.rating)*10)/10:0,ok=Array.isArray(a)&&a.length===5&&a.every(v=>Number.isFinite(+v));
+return `<button class="lvcard" onclick="lvOpen(${i})"><span>${memberIcon(m.n,28)} ${esc(m.n)}</span>${ok?radarSvg(m.n,a,140,pv&&pv.answers):'<span class="sub" style="margin:30px 0">未評価</span>'}<span style="font-size:18px;color:var(--ac)">${cr!=null?Number(cr).toFixed(1):"-"}${d?` <small style="color:${d>0?"var(--ac2)":"var(--dg)"}">${d>0?"▲+":"▼"}${d.toFixed(1)}</small>`:""}</span></button>`}).join("")||'<p class="sub">メンバーを登録してください。</p>'}</div>`}
 function selectLevelMember(name){S.levelMember=name;levelDraft=null;save();draw()}
 function saveLevelAnswers(){
 const name=$("level_member").value;if(!name)return;
@@ -633,7 +639,7 @@ const compareIndex=Number.isInteger(S.radarCompareIndex)?S.radarCompareIndex:-1;
 const comparison=history[compareIndex];
 return `<span class="badge">MEMBER PROFILE</span><h1>メンバープロフィール</h1><p class="sub">写真と自己紹介を登録できます。編集には本人が設定したPINが必要です。</p>
 <div class="box"><label>クラブメンバー</label><select id="profile_member" style="width:100%" onchange="selectProfileMember(this.value)"><option value="">メンバーを選択</option>${memberOptions(selected)}</select>
-${selected?`${profileCard(selected)}<h2>評価の推移</h2>${history.length?`<label>比較する過去の評価<select onchange="S.radarCompareIndex=this.value===''?-1:Number(this.value);save();draw()" style="width:100%"><option value="">比較なし</option>${history.map((entry,index)=>`<option value="${index}" ${index===compareIndex?"selected":""}>${esc(entry.date)} / ${Number(entry.rating).toFixed(1)}</option>`).join("")}</select></label><div style="display:flex;justify-content:center">${radarSvg(selected,S.levelAnswers&&S.levelAnswers[selected],300,comparison?.answers)}</div><p class="sub" style="text-align:center"><span style="color:#6CA98B">● 現在</span>${comparison?` <span style="color:#DEA45D">● ${esc(comparison.date)}</span>`:""}</p>`:'<p class="sub">別の日に評価を更新すると、過去の評価と比較できます。</p>'}${unlocked?profileEditor(selected,profile):profileGate(selected,profile)}${unlocked?'<button class="g" onclick="logoutProfile()">ログアウト</button>':""}`:'<p class="sub">先にクラブシートでメンバーを登録してください。</p>'}</div>
+${selected?`${profileCard(selected)}<h2>成長の記録</h2>${growthBlock(selected)}${unlocked?profileEditor(selected,profile):profileGate(selected,profile)}${unlocked?'<button class="g" onclick="logoutProfile()">ログアウト</button>':""}`:'<p class="sub">先にクラブシートでメンバーを登録してください。</p>'}</div>
 
 ${selected&&unlocked?dmBox(selected):(selected?'<p class="sub">管理者への連絡は、本人ログイン後に表示されます。</p>':"")}
 
@@ -787,7 +793,7 @@ return `<span class="badge">MEMBERS</span><h1>メンバー</h1><p class="sub">�
 <div class="box"><div style="font-weight:700;margin-bottom:8px">会費納入: ${due} / ${S.members.length}人 完了</div>
 ${S.members.map((m,i)=>`<div class="row" style="justify-content:space-between;border-bottom:2px solid var(--ln);padding:8px 0"><span style="font-weight:700;display:flex;align-items:center;gap:8px">${memberIcon(m.n)}<span>${esc(m.n)}</span></span>
 <div class="row" style="margin:0"><button class="${m.at?"":"g"}" onclick="setAttendance(${i})" style="font-size:12px;padding:6px 10px">${m.at?"出席":"欠席"}</button>
-<button class="${m.paid?"":"g"}" onclick="S.members[${i}].paid=!S.members[i].paid;save();draw()" style="font-size:12px;padding:6px 10px">${m.paid?"会費済":"未納"}</button>
+<button class="${m.paid?"":"g"}" onclick="S.members[${i}].paid=!S.members[${i}].paid;save();draw()" style="font-size:12px;padding:6px 10px">${m.paid?"会費済":"未納"}</button>
 <button class="x" onclick="removeM(${i})">×</button></div></div>`).join("")||'<p class="sub" style="margin:0">メンバーがいません</p>'}</div>
 ${S.members.some(m=>m.at)?'<p class="sub">出席にしたメンバーは大会参加者へ自動反映されます。</p>':""}
 ${S.rounds.length?'<p class="sub">試合記録中は欠席に変更したメンバーも名簿に残ります。記録を全消去すると出席状況に合わせて同期されます。</p>':""}
@@ -804,8 +810,8 @@ const BD=[0,1500,0,12000,10000,3.6];
 const B=i=>S.bz&&S.bz[i]!=null?S.bz[i]:(i==2?(S.players.length||16):BD[i]);
 function bz(){
 S.adminSheet=S.adminSheet||"finance";
-const sheets=[["finance","収支"],["feedbacks","ご意見・要望"],["dues","会費"],["events","イベント"],["posts","募集・お知らせ"],["updates","更新履歴"],["profiles","PIN承認"],["settings","設定"]];
-return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者</h1><div class="row"><button class="g" onclick="go('ev')">大会へ戻る</button></div><div class="row" role="tablist">${sheets.map(([key,label])=>`<button class="${S.adminSheet===key?"":"g"}" role="tab" aria-selected="${S.adminSheet===key}" onclick="setAdminSheet('${key}')">${label}</button>`).join("")}</div>${({finance:adminFinance,feedbacks:adminFeedbacks,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,settings:adminSettings})[S.adminSheet]()}`
+const sheets=[["finance","収支"],["feedbacks","ご意見・要望"],["notify","通知"],["dues","会費"],["events","イベント"],["posts","募集・お知らせ"],["updates","更新履歴"],["profiles","PIN承認"],["settings","設定"]];
+return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者</h1><div class="row"><button class="g" onclick="go('ev')">大会へ戻る</button></div><div class="row" role="tablist">${sheets.map(([key,label])=>`<button class="${S.adminSheet===key?"":"g"}" role="tab" aria-selected="${S.adminSheet===key}" onclick="setAdminSheet('${key}')">${label}</button>`).join("")}</div>${({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,settings:adminSettings})[S.adminSheet]()}`
 }
 function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;S.adminSheet=sheet;save();draw()}
 
@@ -837,7 +843,7 @@ function adDel(id){if(!adminSession)return;ask("このメッセージを削除�
 function bd(){const who=whoAmI(),list=(S.bmsg||[]).filter(x=>x.c===bch).sort((a,b)=>a.ts-b.ts).slice(-80);
 return `<span class="badge">BOARD</span><h1>掲示板</h1><p class="sub">クラブ全員が見られる連絡・雑談の場です。</p>
 <div class="row" role="tablist">${BCH.map(([k,l])=>`<button class="${k===bch?"":"g"}" role="tab" aria-selected="${k===bch}" onclick="bch='${k}';draw()">${l}</button>`).join("")}</div>
-<div class="chat" id="bd_log">${list.map(x=>{const mine=x.n===who;return `<div class="msg ${mine?"me":"ot"}">${mine?"":`<div class="meta">${memberIcon(x.n,18)} ${esc(x.n)}</div>`}<div class="bub">${esc(x.t)}</div><div class="meta">${fmtT(x.ts)}${mine?" ・ "+link("編集",`bdEdit('${x.id}')`)+" ・ "+link("削除",`bdDel('${x.id}')`):adminSession?" ・ "+link("削除",`bdDel('${x.id}')`):""}</div></div>`}).join("")||'<p class="sub">まだ投稿はありません。</p>'}</div>
+<div class="chat" id="bd_log">${list.map(x=>{const mine=x.n===who;return `<div class="msg ${mine?"me":"ot"}"><div class="meta">${memberIcon(x.n,18)} <b>${esc(x.n)}</b></div><div class="bub">${esc(x.t)}</div><div class="meta">${fmtT(x.ts)}${mine?" ・ "+link("編集",`bdEdit('${x.id}')`)+" ・ "+link("削除",`bdDel('${x.id}')`):adminSession?" ・ "+link("削除",`bdDel('${x.id}')`):""}</div></div>`}).join("")||'<p class="sub">まだ投稿はありません。</p>'}</div>
 ${who?`<div class="row"><textarea id="bd_text" data-keep rows="2" style="flex:1" placeholder="${esc(who)}として投稿"></textarea><button onclick="bdSend()">送信</button></div>`:`<div class="box"><p class="sub">投稿するにはプロフィールでログインしてください。</p><button onclick="openProfileLogin()">ログインする</button></div>`}`}
 async function bdSend(){const who=whoAmI();if(!who){alert("ログインしてください");return}const f=$("bd_text"),t=f.value.trim();if(!t)return;f.value="";const c=bch;await mutate("bmsg",a=>{a.push({id:uid(),c,n:who,t,ts:Date.now()});if(a.length>400)a.splice(0,a.length-400)});draw()}
 function bdEdit(id){const x=(S.bmsg||[]).find(y=>y.id===id);if(!x||x.n!==whoAmI())return;editDlg(x.t,async v=>{await mutate("bmsg",a=>{const y=a.find(z=>z.id===id);if(y&&y.n===whoAmI())y.t=v});draw()})}
@@ -846,6 +852,41 @@ function mo(){return `<span class="badge">MORE</span><h1>その他</h1><p class=
 function keepCap(){const v={},a=document.activeElement,sc={};document.querySelectorAll("[data-keep]").forEach(e=>{v[e.id]=e.value});["bd_log","dm_log"].forEach(i=>{const l=$(i);if(l)sc[i]=l.scrollHeight-l.scrollTop-l.clientHeight<60});return{v,sc,f:a&&a.dataset&&a.dataset.keep!==undefined?a.id:"",s:a&&a.selectionStart}}
 function keepRes(k){Object.entries(k.v).forEach(([id,val])=>{const e=$(id);if(e&&!e.value)e.value=val});if(k.f&&$(k.f)){const e=$(k.f);e.focus();try{e.setSelectionRange(k.s,k.s)}catch(x){}}["bd_log","dm_log"].forEach(i=>{const l=$(i);if(l&&k.sc[i]!==false)l.scrollTop=l.scrollHeight})}
 
+/* ---------- 成長チャート・通知 ---------- */
+function growthBlock(name,sel=true){
+const hist=S.levelHistory&&S.levelHistory[name]||[],cur=S.levelAnswers&&S.levelAnswers[name];
+if(!Array.isArray(cur)||cur.length!==5||cur.some(v=>!Number.isFinite(+v)))return '<p class="sub">5項目の自己評価を保存するとチャートが表示されます。</p>';
+const none=sel&&S.radarCompareIndex===-9;
+const ci=sel&&Number.isInteger(S.radarCompareIndex)&&S.radarCompareIndex>=0&&S.radarCompareIndex<hist.length?S.radarCompareIndex:hist.length-1;
+const prev=none||ci<0?null:hist[ci],cr=S.rt&&S.rt[name];
+const pick=sel&&hist.length?`<label>比較する過去の評価<select onchange="S.radarCompareIndex=this.value==='none'?-9:Number(this.value);save();draw()" style="width:100%"><option value="none" ${none?"selected":""}>比較なし</option>${hist.map((e,i)=>`<option value="${i}" ${!none&&i===ci?"selected":""}>${esc(e.date)} / ${Number(e.rating).toFixed(1)}</option>`).join("")}</select></label>`:"";
+const col=d=>d>0?"var(--ac2)":d<0?"var(--dg)":"var(--mu)";
+let head=`<div class="row" style="justify-content:center;gap:18px;margin:12px 0 0"><span>現在 <b style="font-size:24px;color:var(--ac)">${cr!=null?Number(cr).toFixed(1):"-"}</b></span>`;
+if(prev&&cr!=null){const d=Math.round((cr-prev.rating)*10)/10;head+=`<span class="sub" style="margin:0">前回 ${Number(prev.rating).toFixed(1)}</span><b style="color:${col(d)}">${d>0?"▲ +":d<0?"▼ ":"± "}${d.toFixed(1)}</b>`}
+head+="</div>";
+const chips=prev&&Array.isArray(prev.answers)?RADAR_LABELS.map((l,i)=>{const d=cur[i]-prev.answers[i];return `<span class="chip" style="color:${col(d)}">${l} ${d>0?"▲+"+d:d<0?"▼"+Math.abs(d):"±0"}</span>`}).join(""):"";
+return `${pick}${head}<div style="display:flex;justify-content:center">${radarSvg(name,cur,sel?300:250,prev?prev.answers:null)}</div><p class="sub" style="text-align:center"><span style="color:#6CA98B">● 現在</span>${prev?` <span style="color:#DEA45D">● 前回(${esc(prev.date)})</span>`:""}</p>${chips?`<div style="text-align:center">${chips}</div>`:'<p class="sub" style="text-align:center">評価を更新すると、前回との差がここに表示されます。</p>'}`}
+function lvOpen(i){const m=S.members[i];if(!m)return;const d=document.createElement("div");d.id="dg";d.innerHTML=`<div class="box" style="max-height:90vh;overflow:auto"><div class="row" style="justify-content:space-between"><b>${memberIcon(m.n,32)} ${esc(m.n)}</b></div>${growthBlock(m.n,false)}<div class="row"><button class="g" id="c">閉じる</button></div></div>`;document.body.appendChild(d);d.querySelector("#c").onclick=()=>d.remove();d.onclick=e=>{if(e.target===d)d.remove()}}
+const seenGet=k=>{try{return +(JSON.parse(localStorage.getItem("ph_seen")||"{}")[k]||0)}catch(e){return 0}};
+function markSeen(k){try{const o=JSON.parse(localStorage.getItem("ph_seen")||"{}");o[k]=Date.now();localStorage.setItem("ph_seen",JSON.stringify(o))}catch(e){}}
+try{if(!localStorage.getItem("ph_seen")){const n=Date.now();localStorage.setItem("ph_seen",JSON.stringify({bd:n,dm:n,nt:n}))}}catch(e){}
+function unread(){const me=whoAmI();return{bd:(S.bmsg||[]).some(x=>x.ts>seenGet("bd")&&x.n!==me),dm:!!profileSessionName&&(S.dms||[]).some(x=>x.m===profileSessionName&&x.f==="a"&&x.ts>seenGet("dm")),nt:(S.notices||[]).some(x=>x.ts>seenGet("nt"))}}
+function noticeBanner(){if(tab==="nt"||tab==="bz")return"";const s=seenGet("nt"),l=(S.notices||[]).filter(x=>x.ts>s).sort((a,b)=>b.ts-a.ts);if(!l.length)return"";return `<div class="box" style="border-color:var(--ac)"><b>📢 新しいお知らせ</b>${l.slice(0,3).map(x=>`<p style="white-space:pre-wrap;margin:8px 0 0">${esc(x.text)}</p>`).join("")}<div class="row"><button onclick="markSeen('nt');draw()" style="font-size:12px;padding:8px 14px">既読にする</button></div></div>`}
+function nt(){const list=(S.notices||[]).slice().sort((a,b)=>b.ts-a.ts),perm="Notification" in window?Notification.permission:"unsupported";
+return `<span class="badge">NOTICE</span><h1>通知</h1><p class="sub">管理者からのお知らせです。</p>
+<div class="box"><b>この端末の通知</b><p class="sub">${perm==="granted"?"オンです。アプリを開いたまま別のタブや画面を見ている間も、新着をお知らせします。アプリを閉じている間は届きません。":perm==="denied"?"ブラウザの設定で通知がブロックされています。":perm==="unsupported"?"このブラウザは通知に対応していません。":"オンにすると、アプリを開いたまま別の画面を見ている間も新着をお知らせします。"}</p>${perm==="default"?'<button onclick="askNotify()">通知をオンにする</button>':""}</div>
+${list.map(x=>`<div class="box"><div class="sub">${fmtT(x.ts)}</div><div style="white-space:pre-wrap;font-weight:700">${esc(x.text)}</div></div>`).join("")||'<p class="sub">お知らせはありません。</p>'}`}
+async function askNotify(){try{await Notification.requestPermission()}catch(e){}draw()}
+function pushNote(t,b){const m=b.length>60?b.slice(0,60)+"…":b;if(!document.hidden)toast(t+"："+m);else if("Notification" in window&&Notification.permission==="granted"){try{new Notification(t,{body:m})}catch(e){}}}
+function notifyDiff(o,n){const me=whoAmI(),has=(a)=>new Set((a||[]).map(x=>x.id)),out=[];
+const ob=has(o.bmsg);(n.bmsg||[]).forEach(x=>{if(!ob.has(x.id)&&x.n!==me)out.push(["掲示板 "+x.n,x.t])});
+if(!adminSession){const on=has(o.notices);(n.notices||[]).forEach(x=>{if(!on.has(x.id))out.push(["お知らせ",x.text])});const oe=new Set((o.events||[]).map(x=>x.id));(n.events||[]).forEach(x=>{if(!oe.has(x.id))out.push(["新しいイベント",x.title])})}
+const od=has(o.dms);(n.dms||[]).forEach(x=>{if(od.has(x.id))return;if(adminSession&&x.f==="m")out.push(["メンバーからの連絡",x.m+": "+x.t]);else if(!adminSession&&profileSessionName&&x.f==="a"&&x.m===profileSessionName)out.push(["管理者から返信",x.t])});
+out.slice(0,3).forEach(([t,b])=>pushNote(t,b))}
+function adminNotify(){return `<h2>全員に通知を送る</h2><p class="sub">送信すると、メンバーの画面に「新しいお知らせ」が表示され、アプリを開いている端末にはリアルタイムで通知されます。アプリを閉じている人には届かないので、必要ならLINEにも送ってください。</p><div class="box"><textarea id="nt_text" data-keep rows="3" style="width:100%" placeholder="例: 明日の練習は体育館に変更です"></textarea><div class="row"><button onclick="sendNotice()">通知を送る</button><button class="line-btn" onclick="shareNoticeLine()">LINEにも送る</button></div></div><h2>送信済み</h2>${(S.notices||[]).slice().sort((a,b)=>b.ts-a.ts).map(x=>`<div class="box"><div class="sub">${fmtT(x.ts)}</div><div style="white-space:pre-wrap">${esc(x.text)}</div><button class="x" onclick="delNotice('${x.id}')">削除</button></div>`).join("")||'<p class="sub">まだありません。</p>'}`}
+async function sendNotice(){if(!adminSession)return;const f=$("nt_text"),t=f.value.trim();if(!t){alert("内容を入力してください");return}f.value="";await mutate("notices",a=>{a.unshift({id:uid(),ts:Date.now(),text:t});if(a.length>50)a.length=50});draw();toast("通知を送りました")}
+function shareNoticeLine(){const t=$("nt_text").value.trim();if(!t){alert("内容を入力してください");return}shareTxt("【お知らせ】\n"+t)}
+function delNotice(id){if(!adminSession)return;ask("この通知を削除しますか？",async()=>{await mutate("notices",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)});draw()})}
 function adminFinance(){return `<h2>大会収支</h2><div class="box">
 <label>大会名</label><input id="bname" value="${esc(S.adminForm&&S.adminForm.bname||"")}" oninput="captureAdminForm()" placeholder="例: 週末クラブ大会" style="width:100%">
 <label>参加費 (1人・円)</label><input id="b1" type="number" min="0" value="${B(1)}" oninput="calcB()" style="width:100%">
