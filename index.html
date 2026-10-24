@@ -269,26 +269,42 @@ const MORE=[["nt","通知"],["pf","プロフィール"],["pr","練習"],["eq","�
 let tab="pf",S={players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[],feedbacks:[]};
 
 // データの保存（Supabaseに書き込み ＆ localStorageにも一時保存）
-const save = async () => {
-  try {
-    localStorage.setItem("ph_pop", JSON.stringify(S));
-    await supabaseClient.from('app_state').upsert({ id: 'main_data', data: S });
-  } catch(e) {
-    console.error("保存エラー:", e);
-  }
-};
+const defaultS=()=>({players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[],feedbacks:[]});
+let loaded=false,saveQ=Promise.resolve();
+const remoteV=async()=>{try{const{data,error}=await supabaseClient.from('app_state').select('v:data->>_v').eq('id','main_data').maybeSingle();if(error||!data)return null;return +(data.v||0)}catch(e){return null}};
+async function reloadRemote(){try{const{data}=await supabaseClient.from('app_state').select('data').eq('id','main_data').maybeSingle();if(data&&data.data){S=Object.assign(defaultS(),data.data);draw()}}catch(e){}}
+async function flushSave(){
+  try{localStorage.setItem("ph_pop",JSON.stringify(S))}catch(e){}
+  if(!loaded)return false; // 読み込みに成功するまで、サーバーへは一切書き込まない
+  const rv=await remoteV();
+  if(rv!==null&&rv!==(+S._v||0)){await reloadRemote();toast("他の人が先に更新したため、最新の内容に更新しました。もう一度操作してください");return false}
+  S._v=(+S._v||0)+1;
+  const{error}=await supabaseClient.from('app_state').upsert({id:'main_data',data:S});
+  if(error){S._v--;console.error(error);toast("保存できませんでした。通信状況を確認してください");return false}
+  return true}
+const save=()=>{saveQ=saveQ.then(flushSave).catch(e=>{console.error(e);return false});return saveQ};
+function showLoadError(){const d=document.createElement("div");d.id="ld";d.setAttribute("role","alert");d.style.cssText="position:fixed;top:0;left:0;right:0;z-index:50;background:var(--dg);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;font-weight:700;display:flex;gap:10px;align-items:center;justify-content:space-between";d.innerHTML='<span>サーバーに接続できないため、保存を止めています(保存済みのデータは消えません)。</span><button class="g" style="color:#fff;border-color:#fff;padding:6px 12px" onclick="location.reload()">再読み込み</button>';document.body.appendChild(d)}
+async function backupDaily(){try{const key='backup_'+localDateKey(),{data}=await supabaseClient.from('app_state').select('id').eq('id',key).maybeSingle();if(data)return;await supabaseClient.from('app_state').upsert({id:key,data:S});const{data:all}=await supabaseClient.from('app_state').select('id').like('id','backup_%').order('id',{ascending:false});(all||[]).slice(7).forEach(r=>supabaseClient.from('app_state').delete().eq('id',r.id))}catch(e){}}
+async function loadBackups(){const el=$("bk_list");if(!el)return;try{const{data,error}=await supabaseClient.from('app_state').select('id').like('id','backup_%').order('id',{ascending:false});if(error)throw error;el.innerHTML=(data||[]).map(r=>`<div class="row" style="justify-content:space-between"><span>${esc(r.id.replace('backup_',''))}</span><button class="g" onclick="restoreBackup('${esc(r.id)}')">この日に戻す</button></div>`).join("")||'<p class="sub">バックアップはまだありません。</p>'}catch(e){el.innerHTML='<p class="sub">バックアップを読み込めませんでした。</p>'}}
+function restoreBackup(id){ask("この日の状態に全体を戻します。現在の内容は上書きされます。よろしいですか？",async()=>{const{data,error}=await supabaseClient.from('app_state').select('data').eq('id',id).maybeSingle();if(error||!data||!data.data){alert("読み込めませんでした");return}const v=+S._v||0;S=Object.assign(defaultS(),data.data);S._v=v;await save();draw();toast("バックアップから復元しました")})}
 
 // 起動時にSupabaseからデータを読み込む ＆ リアルタイム購読のセットアップ
 async function initApp() {
+  let ok=false;
   try {
-    const { data, error } = await supabaseClient.from('app_state').select('data').eq('id', 'main_data').single();
-    if (data && data.data) {
-      S = Object.assign(S, data.data);
-    }
+    const { data, error } = await supabaseClient.from('app_state').select('data').eq('id', 'main_data').maybeSingle();
+    if (error) throw error;
+    if (data && data.data) S = Object.assign(S, data.data);
+    ok=true; // data が無い場合は初回起動(空の状態から開始してよい)
   } catch(e) {
-    const r = localStorage.getItem("ph_pop");
-    if(r) S = Object.assign(S, JSON.parse(r));
+    console.error("読み込みエラー:", e);
   }
+  if(ok){loaded=true;backupDaily()}
+  else{
+    try{const r=localStorage.getItem("ph_pop");if(r)S=Object.assign(S,JSON.parse(r))}catch(x){}
+    showLoadError();
+  }
+
   
   if(S.adminSetupCode){delete S.adminSetupCode; save();}
   syncClubPlayers();
@@ -299,7 +315,7 @@ async function initApp() {
   supabaseClient.channel('public:app_state')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state', filter: 'id=eq.main_data' }, payload => {
       if (payload.new && payload.new.data) {
-        const old=S;S=payload.new.data;try{notifyDiff(old,S)}catch(e){}draw();
+        if((+payload.new.data._v||0)<=(+S._v||0))return;const old=S;S=payload.new.data;try{notifyDiff(old,S)}catch(e){}draw();
       }
     })
     .subscribe();
@@ -333,6 +349,7 @@ checkTournamentDay();
 $("app").innerHTML=noticeBanner()+({ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt})[tab]();
 if(tab=="pr")showT();
 if(tab=="bz")calcB();
+if(tab=="bz"&&S.adminSheet==="settings")loadBackups();
 if(tab=="bd")markSeen("bd");
 if(tab=="pf"&&profileSessionName)markSeen("dm");
 if(tab=="nt")markSeen("nt");
@@ -572,7 +589,7 @@ const LEVEL_QUESTIONS=[
 ["サーブの安定性",["まだ入ることが少ない","ゆっくりなら入る","安定して入れられる","深さやコースを狙える","球種・コースを意図して使い分ける"]],
 ["リターン",["返球が難しい","ゆっくりした球を返せる","安定して深く返せる","相手の位置を見てコースを選べる","深さ・方向を使い分け次の展開を作れる"]],
 ["ラリー・ディンク",["短いラリーでもミスが多い","基本のラリーを続けられる","ディンクを安定して続けられる","相手を動かしながらミスを抑えられる","攻守を切り替え、配球で優位を作れる"]],
-["コートの位置取り",["立ち位置や移動にまだ慣れていない","基本の位置へ移動できる","パートナーとコートを分担できる","相手の球に合わせて連携・調整できる","状況判断して連携とポジションを組み立てられる"]],
+["コートの位置取り",["立ち位置や移動にまだ慣れていない","基本の位置へ移動できる","パートナーとコートを分担できる","相手の球に合わせて連携・調整できる","状況判断して連携とポジションを組み立てられる"]] ,
 ["ルール・スコア",["ルールやサーブ順に不安がある","基本的な進行を確認しながら行える","通常の得点・サーブ順を理解している","キッチンやフォルトを判断できる","試合進行やルールを他の人にも説明できる"]]
 ];
 function lv(){return `<span class="badge">PLAYER LEVEL</span><h1>メンバーのレベル</h1><p class="sub">カードをタップすると、前回からの成長が見られます。</p><div class="lvgrid">${S.members.map((m,i)=>{const a=S.levelAnswers&&S.levelAnswers[m.n],h=S.levelHistory&&S.levelHistory[m.n]||[],pv=h[h.length-1],cr=S.rt&&S.rt[m.n],d=pv&&cr!=null?Math.round((cr-pv.rating)*10)/10:0,ok=Array.isArray(a)&&a.length===5&&a.every(v=>Number.isFinite(+v));
@@ -833,7 +850,7 @@ async function dmSend(){const name=profileSessionName;if(!S.members.some(m=>m.n=
 function dmEdit(id){const x=(S.dms||[]).find(y=>y.id===id);if(!x||x.f!=="m"||x.m!==profileSessionName)return;editDlg(x.t,async v=>{await mutate("dms",a=>{const y=a.find(z=>z.id===id);if(y&&y.m===profileSessionName&&y.f==="m"&&y.t!==v){y.o=y.o||y.t;y.e=1;y.t=v}});draw()})}
 function dmNames(){const last={};(S.dms||[]).forEach(x=>{last[x.m]=Math.max(last[x.m]||0,x.ts)});return Object.keys(last).sort((a,b)=>last[b]-last[a])}
 function adminFeedbacks(){migrateFb();const names=dmNames();
-return `<h2>メンバーとの連絡</h2><p class="sub">メンバー本人がログインして送ったメッセージです。返信や編集ができます。メンバーの画面には「編集済み」とは表示されません(ここだけに表示されます)。</p>`+(names.map((n,i)=>{const th=(S.dms||[]).filter(x=>x.m===n).sort((a,b)=>a.ts-b.ts),last=th[th.length-1];
+return `<h2>メンバーとの連絡</h2><p class="sub">メンバー本人がログインして送ったメッセージです。返信や編集ができます。メンバーの画面には「編集済み」とは表示されない(ここだけに表示されます)。</p>`+(names.map((n,i)=>{const th=(S.dms||[]).filter(x=>x.m===n).sort((a,b)=>a.ts-b.ts),last=th[th.length-1];
 return `<div class="box"><div class="row" style="justify-content:space-between"><b>${memberIcon(n,24)} ${esc(n)}</b>${last.f==="m"?'<span class="badge" style="background:var(--warn)">未返信</span>':""}</div><div class="chat">${th.map(x=>`<div class="msg ${x.f==="a"?"me":"ot"}"><div class="bub">${esc(x.t)}</div><div class="meta">${fmtT(x.ts)}${x.e?" ・ 編集済み":""} ・ ${link("編集",`adEdit('${x.id}')`)} ・ ${link("削除",`adDel('${x.id}')`)}</div>${x.o?`<details class="meta"><summary>編集前を見る</summary>${esc(x.o)}</details>`:""}</div>`).join("")}</div>
 <div class="row"><textarea id="ar_${i}" data-keep rows="2" style="flex:1" placeholder="${esc(n)}さんへの返信"></textarea><button onclick="adSend(${i})">返信</button></div></div>`}).join("")||'<p class="sub">届いたメッセージはありません。</p>')}
 async function adSend(i){if(!adminSession)return;const n=dmNames()[i],f=$("ar_"+i),t=f&&f.value.trim();if(!n||!t)return;f.value="";await mutate("dms",a=>a.push({id:uid(),m:n,f:"a",t,ts:Date.now()}));draw();toast("返信しました")}
@@ -972,7 +989,7 @@ const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(byte=>byte.toStri
 profile.setupSalt=salt;profile.setupCodeHash=await digestProfilePin(name,code,salt);profile.setupCodeUsed=false;
 adminSetupCodeDisplay={name,code};logMemberUpdate(name,"プロフィール初回設定コード発行");save();draw()
 }
-function adminSettings(){return `<h2>管理者設定</h2><div class="box"><label>管理者パスワード変更</label><div class="row"><input id="new_pw" type="password" placeholder="新しいパスワード"><button onclick="changePw()">変更する</button></div></div>`}
+function adminSettings(){return `<h2>管理者設定</h2><div class="box"><label>管理者パスワード変更</label><div class="row"><input id="new_pw" type="password" placeholder="新しいパスワード"><button onclick="changePw()">変更する</button></div></div><h2>自動バックアップ</h2><p class="sub">アプリを開いた最初の日ごとに自動で保存されます(直近7日分)。間違えて消したときは、ここから戻せます。</p><div class="box" id="bk_list"><p class="sub">読み込み中…</p></div>`}
 function financeTotals(){const records=S.financeRecords||[],total=records.reduce((sum,item)=>({income:sum.income+item.income,expense:sum.expense+item.expense,profit:sum.profit+item.profit,fee:sum.fee+item.fee}),{income:0,expense:0,profit:0,fee:0});return `<div class="box"><div class="row" style="justify-content:space-between"><span>保存件数</span><b>${records.length}件</b></div><div class="row" style="justify-content:space-between"><span>累計総収入</span><b>${total.income.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計総支出</span><b>${total.expense.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計決済手数料</span><b>${total.fee.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計差引利益</span><b>${total.profit.toLocaleString()}円</b></div></div>`}
 function currentFinance(){const value=id=>Math.max(0,Number($(id)?.value)||0),price=value("b1"),participants=value("b2"),feeRate=Math.min(100,value("b5")),ticket=price*participants,fee=ticket*feeRate/100,sponsor=value("b4"),otherIncome=value("b6"),courtCost=value("b3"),otherCost=value("b7"),income=ticket+sponsor+otherIncome,expense=courtCost+otherCost+fee,profit=income-expense,denominator=price*(1-feeRate/100);return {name:$("bname")?.value.trim()||"大会",price,participants,ticket,feeRate,fee,sponsor,otherIncome,courtCost,otherCost,income,expense,profit,perPerson:participants?profit/participants:0,breakEven:denominator>0?Math.max(0,Math.ceil((courtCost+otherCost-sponsor-otherIncome)/denominator)):0}}
 function saveFinanceRecord(){
@@ -1100,4 +1117,5 @@ const _d=draw;draw=function(){_d();if(tab=="bz"){calcB();calcDues()}};
 const _drawWithAdminForm=draw;draw=function(){captureAdminForm();_drawWithAdminForm();restoreAdminForm();if(tab=="bz"){calcB();calcDues()}};
 const _drawKeep=draw;draw=function(){const k=keepCap();_drawKeep();keepRes(k)};
 scheduleTournamentDayCheck();
-</script></body></html>
+</script></body>
+</html>
