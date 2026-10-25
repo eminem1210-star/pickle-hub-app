@@ -334,12 +334,9 @@ function showLogin(msg=""){
   d.style.cssText="position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 24px) 16px 24px";
   d.innerHTML=`<main><span class="badge">PICKLE HUB</span><h1>ログイン</h1><p class="sub">クラブメンバー専用です。${esc(msg)}</p>
 <div class="box"><label>お名前（登録名）</label><input id="lg_name" autocomplete="username" style="width:100%" value="${esc(localStorage.getItem("ph_name")||"")}">
-<label>4桁のPIN</label><input id="lg_pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" style="width:100%" onkeydown="if(event.key==='Enter')doMemberLogin()">
-<div class="row"><button onclick="doMemberLogin()" style="flex:1">ログイン</button></div>
-<details style="margin-top:14px"><summary class="sub">はじめての方（管理者から初回コードをもらった方）</summary>
-<label>8桁の初回コード</label><input id="lg_code" type="password" inputmode="numeric" maxlength="8" style="width:100%">
-<label>新しく決める4桁のPIN</label><input id="lg_new" type="password" inputmode="numeric" maxlength="4" style="width:100%">
-<div class="row"><button onclick="doSetup()">PINを設定してログイン</button></div></details></div>
+<label>PIN（4桁）／初回は管理者からもらった8桁のコード</label><input id="lg_pin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" style="width:100%" onkeydown="if(event.key==='Enter')doMemberLogin()">
+<div id="lg_setup" style="display:none"><p class="sub">初回コードを確認します。これから使う4桁のPINを決めてください。</p><label>新しい4桁のPIN</label><input id="lg_new" type="password" inputmode="numeric" maxlength="4" style="width:100%" onkeydown="if(event.key==='Enter')doSetup()"></div>
+<div class="row"><button id="lg_btn" onclick="doMemberLogin()" style="flex:1">ログイン</button></div></div>
 <details class="box"><summary>管理者の方</summary><label>管理者パスワード</label><input id="lg_apw" type="password" style="width:100%" onkeydown="if(event.key==='Enter')doAdminLogin()">
 <div class="row"><button onclick="doAdminLogin()">管理者ログイン</button></div></details></main>`;
   document.body.appendChild(d)}
@@ -352,8 +349,11 @@ async function doLogin(fn,args){
     const ld=document.getElementById("ld");if(ld)ld.remove();
     await startApp()
   }catch(e){console.error(e);toast("通信できませんでした。しばらくしてからお試しください")}}
-const doMemberLogin=()=>doLogin("member_login",{p_name:$("lg_name").value.trim(),p_pin:$("lg_pin").value});
-const doSetup=()=>doLogin("member_setup",{p_name:$("lg_name").value.trim(),p_code:$("lg_code").value,p_pin:$("lg_new").value});
+function doMemberLogin(){const pin=$("lg_pin").value.trim();
+if(/^\d{8}$/.test(pin)){if($("lg_setup").style.display==="none"){$("lg_setup").style.display="block";$("lg_new").focus();$("lg_btn").textContent="PINを設定してログイン";return}return doSetup()}
+$("lg_setup").style.display="none";$("lg_btn").textContent="ログイン";
+return doLogin("member_login",{p_name:$("lg_name").value.trim(),p_pin:pin})}
+const doSetup=()=>doLogin("member_setup",{p_name:$("lg_name").value.trim(),p_code:$("lg_pin").value.trim(),p_pin:$("lg_new").value.trim()});
 const doAdminLogin=()=>doLogin("admin_login",{p_pw:$("lg_apw").value});
 async function doLogout(){try{await rpc("logout")}catch(e){}try{localStorage.removeItem("ph_tok")}catch(e){}location.reload()}
 
@@ -841,7 +841,7 @@ function bd(){const who=whoAmI(),list=bdRows.filter(x=>x.c===bch).sort((a,b)=>a.
 return `<span class="badge">BOARD</span><h1>掲示板</h1><p class="sub">クラブ全員が見られる連絡・雑談の場です。</p>
 <div class="row" role="tablist">${BCH.map(([k,l])=>`<button class="${k===bch?"":"g"}" role="tab" aria-selected="${k===bch}" onclick="bch='${k}';draw()">${l}</button>`).join("")}</div>
 <div class="chat" id="bd_log">${list.map(x=>{const mine=x.n===who;return `<div class="msg ${mine?"me":"ot"}"><div class="meta">${memberIcon(x.n,18)} <b>${esc(x.n)}</b></div><div class="bub">${esc(x.t)}</div><div class="meta">${fmtT(x.ts)}${mine?" ・ "+link("編集",`bdEdit('${x.id}')`)+" ・ "+link("削除",`bdDel('${x.id}')`):adminSession?" ・ "+link("削除",`bdDel('${x.id}')`):""}</div></div>`}).join("")||'<p class="sub">まだ投稿はありません。</p>'}</div>
-${who?`<div class="row"><textarea id="bd_text" data-keep rows="2" style="flex:1" placeholder="${esc(who)}として投稿"></textarea><button onclick="bdSend()">送信</button></div>`:`<div class="box"><p class="sub">投稿するにはプロフィールでログインしてください。</p><button onclick="openProfileLogin()">ログインする</button></div>`}`}
+${who?`<div class="row"><textarea id="bd_text" data-keep rows="2" style="flex:1" placeholder="${esc(who)}として投稿"></textarea><button onclick="bdSend()">送信</button></div>`:`<p class="sub">この画面では投稿できません。</p>`}`}
 async function bdSend(){const f=$("bd_text"),t=f.value.trim();if(!t)return;f.value="";try{await rpc("board_post",{p_c:bch,p_text:t});await refreshRows(false);draw()}catch(e){alert("投稿できませんでした")}}
 function bdEdit(id){const x=bdRows.find(y=>y.id===id);if(!x||x.n!==whoAmI())return;editDlg(x.t,async v=>{try{await rpc("board_edit",{p_id:id,p_text:v});await refreshRows(false);draw()}catch(e){alert("編集できませんでした")}})}
 function bdDel(id){ask("この投稿を削除しますか？",async()=>{try{await rpc("board_delete",{p_id:id});await refreshRows(false);draw()}catch(e){alert("削除できませんでした")}})}
@@ -934,7 +934,7 @@ function deleteEvent(index){ask("このイベントと参加回答を削除し�
 function events(){
 const selected=S.members.some(member=>member.n===profileSessionName)?profileSessionName:"";
 const upcoming=(S.events||[]).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-return `<span class="badge">CLUB EVENTS</span><h1>イベント</h1><p class="sub">開催日と場所を確認し、参加可否を回答してください。</p>${selected?`<div class="row"><span>ログイン中: ${memberIcon(selected,24)} <b>${esc(selected)}</b></span><button class="g" onclick="logoutProfile()">ログアウト</button></div>`:`<div class="box"><p class="sub">参加可否の回答にはプロフィールへのログインが必要です。</p><button onclick="openProfileLogin()">プロフィールでログイン</button></div>`}${upcoming.map(event=>eventMemberCard(event,selected)).join("")||'<p class="sub">公開中のイベントはありません。</p>'}`
+return `<span class="badge">CLUB EVENTS</span><h1>イベント</h1><p class="sub">開催日と場所を確認し、参加可否を回答してください。</p>${selected?`<div class="row"><span>ログイン中: ${memberIcon(selected,24)} <b>${esc(selected)}</b></span></div>`:`<p class="sub">管理者アカウントでは参加の回答はできません。メンバーとしてログインして回答してください。</p>`}${upcoming.map(event=>eventMemberCard(event,selected)).join("")||'<p class="sub">公開中のイベントはありません。</p>'}`
 }
 function eventMemberCard(event,memberName){
 const counts=eventCounts(event),response=event.responses&&event.responses[memberName];
