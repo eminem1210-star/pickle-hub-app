@@ -4,12 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PICKLE HUB - Pop Style</title>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Yuji+Mai&family=M+PLUS+Rounded+1c:wght@700;900&family=M+PLUS+1p:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg: #171D19;
-  --bg-img: none;
   --sf: #202923;
   --sf2: #29352D;
   --ink: #E5EAE5;
@@ -21,7 +20,6 @@
   --on: #18221B;
   --dg: #E1847D;
   --warn: #C7A76A;
-  --font-family: 'Zen Maru Gothic', sans-serif;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -30,13 +28,9 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{
   margin:0;
-  background-color:var(--bg);
-  background-image: var(--bg-img);
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background:var(--bg);
   color:var(--ink);
-  font-family: var(--font-family);
+  font-family:"Zen Maru Gothic", sans-serif;
   font-size:15px;
   line-height:1.6;
   padding-bottom:90px;
@@ -48,7 +42,6 @@ h1{
   margin:4px 0 2px;
   color: var(--ac);
   letter-spacing:.02em;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 h2{
   font-size:16px;
@@ -83,7 +76,7 @@ h2::before{
   border-radius:20px;
   padding:18px;
   margin:12px 0;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 20px rgba(255, 107, 107, 0.08);
 }
 .court{
   border:2px solid var(--ln);
@@ -245,7 +238,7 @@ label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-top:1
   background:var(--sf2);color:var(--ink);border:2px solid var(--ac);
   padding:14px 18px;
   border-radius:16px;
-  z-index:30;
+  z-index:70;
   display:none;
   font-weight:700;
   box-shadow: 0 10px 25px rgba(0,0,0,0.2);
@@ -260,8 +253,6 @@ label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-top:1
 .lvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
 .lvcard{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--sf);color:var(--ink);border:2px solid var(--ln);border-radius:18px;padding:12px 8px;box-shadow:none;font-weight:700;text-align:center}
 .lvcard:hover{border-color:var(--ac);transform:none}
-.clickable-avatar{ cursor: pointer; transition: transform 0.2s; display: inline-block; }
-.clickable-avatar:hover{ transform: scale(1.1); }
 </style>
 </head>
 <body>
@@ -273,73 +264,103 @@ const SUPABASE_URL = 'https://slhfhxwddtxhqarkyldk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_6ai48uMR372DwW-K6Looxw_MIWT91mp';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const ADMIN_DISPLAY_NAME = "かつみっちぇる";
-
 const TABS=[["ev","大会"],["events","イベント"],["bd","掲示板"],["cl","メンバー"],["mo","その他"]];
-const MORE=[["nt","通知"],["pf","プロフィール"],["pr","練習"],["eq","貸出"],["rules","ルール"],["lv","レベル一覧"],["theme","デザイン設定"]];
+const MORE=[["nt","通知"],["pf","プロフィール"],["pr","練習"],["eq","貸出"],["rules","ルール"],["lv","レベル一覧"]];
 let tab="pf",S={players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[],feedbacks:[]};
 
-// ログインセッションの永続保持（ローカルストレージ）
-let adminSession = localStorage.getItem("ph_admin_session") === "true";
-let profileSessionName = localStorage.getItem("ph_user_session") || "";
-
 // データの保存（Supabaseに書き込み ＆ localStorageにも一時保存）
-const defaultS=()=>({players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[],feedbacks:[]});
-let loaded=false,saveQ=Promise.resolve();
-const remoteV=async()=>{try{const{data,error}=await supabaseClient.from('app_state').select('v:data->>_v').eq('id','main_data').maybeSingle();if(error||!data)return null;return +(data.v||0)}catch(e){return null}};
-async function reloadRemote(){try{const{data}=await supabaseClient.from('app_state').select('data').eq('id','main_data').maybeSingle();if(data&&data.data){S=Object.assign(defaultS(),data.data);applyLocalTheme();draw()}}catch(e){}}
+const defaultS=()=>({players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[]});
+let loaded=false,saveQ=Promise.resolve(),pending=0,TOKEN=localStorage.getItem("ph_tok")||"",ROLE="",ME="",bdRows=[],dmRows=[],PINST={},pollKey="",pollTimer=null;
+const LOCAL_KEYS=["profileMember","levelMember","radarCompareIndex","rentalMember","adminSheet","adminEventEdit"];
+function relogin(msg){TOKEN="";ROLE="";ME="";loaded=false;try{localStorage.removeItem("ph_tok")}catch(e){}showLogin(msg)}
+async function rpc(fn,args={}){const{data,error}=await supabaseClient.rpc(fn,{p_token:TOKEN,...args});if(error){if(String(error.message).includes("unauthorized"))relogin("ログインの有効期限が切れました。もう一度ログインしてください。");throw error}return data}
+async function rpc0(fn,args){const{data,error}=await supabaseClient.rpc(fn,args);if(error)throw error;return data}
+async function reloadState(redraw=true,notify=false){const st=await rpc("get_state"),keep={};LOCAL_KEYS.forEach(k=>{if(S[k]!==undefined)keep[k]=S[k]});const old=S;S=Object.assign(defaultS(),st,keep);if(notify){try{notifyDiff(old,S)}catch(e){}}if(redraw)draw()}
 async function flushSave(){
-  try{localStorage.setItem("ph_pop",JSON.stringify(S))}catch(e){}
-  if(!loaded)return false; // 読み込みに成功するまで、サーバーへは一切書き込まない
-  const rv=await remoteV();
-  if(rv!==null&&rv!==(+S._v||0)){await reloadRemote();toast("他の人が先に更新したため、最新の内容に更新しました。もう一度操作してください");return false}
-  S._v=(+S._v||0)+1;
-  const{error}=await supabaseClient.from('app_state').upsert({id:'main_data',data:S});
-  if(error){S._v--;console.error(error);toast("保存できませんでした。通信状況を確認してください");return false}
-  return true}
-const save=()=>{saveQ=saveQ.then(flushSave).catch(e=>{console.error(e);return false});return saveQ};
-function showLoadError(){const d=document.createElement("div");d.id="ld";d.setAttribute("role","alert");d.style.cssText="position:fixed;top:0;left:0;right:0;z-index:50;background:var(--dg);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;font-weight:700;display:flex;gap:10px;align-items:center;justify-content:space-between";d.innerHTML='<span>サーバーに接続できないため、保存を止めています(保存済みのデータは消えません)。</span><button class="g" style="color:#fff;border-color:#fff;padding:6px 12px" onclick="location.reload()">再読み込み</button>';document.body.appendChild(d)}
-async function backupDaily(){try{const key='backup_'+localDateKey(),{data}=await supabaseClient.from('app_state').select('id').eq('id',key).maybeSingle();if(data)return;await supabaseClient.from('app_state').upsert({id:key,data:S});const{data:all}=await supabaseClient.from('app_state').select('id').like('id','backup_%').order('id',{ascending:false});(all||[]).slice(7).forEach(r=>supabaseClient.from('app_state').delete().eq('id',r.id))}catch(e){}}
-async function loadBackups(){const el=$("bk_list");if(!el)return;try{const{data,error}=await supabaseClient.from('app_state').select('id').like('id','backup_%').order('id',{ascending:false});if(error)throw error;el.innerHTML=(data||[]).map(r=>`<div class="row" style="justify-content:space-between"><span>${esc(r.id.replace('backup_',''))}</span><button class="g" onclick="restoreBackup('${esc(r.id)}')">この日に戻す</button></div>`).join("")||'<p class="sub">バックアップはまだありません。</p>'}catch(e){el.innerHTML='<p class="sub">バックアップを読み込めませんでした。</p>'}}
-function restoreBackup(id){ask("この日の状態に全体を戻します。現在の内容は上書きされます。よろしいですか？",async()=>{const{data,error}=await supabaseClient.from('app_state').select('data').eq('id',id).maybeSingle();if(error||!data||!data.data){alert("読み込めませんでした");return}const v=+S._v||0;S=Object.assign(defaultS(),data.data);S._v=v;await save();draw();toast("バックアップから復元しました")})}
+  if(!loaded||!TOKEN)return false;
+  const out={...S};LOCAL_KEYS.forEach(k=>delete out[k]);
+  try{
+    const r=await rpc("save_state",{p_data:out,p_expected:+S._v||0});
+    if(r&&r.ok){S._v=r.v;return true}
+    if(r&&r.conflict){await reloadState();toast("他の人が先に更新したため、最新の内容に更新しました。もう一度操作してください");return false}
+  }catch(e){
+    console.error(e);
+    if(String(e.message||"").includes("forbidden")){toast("この操作は管理者のみ可能です");try{await reloadState()}catch(x){}}
+    else if(!String(e.message||"").includes("unauthorized"))toast("保存できませんでした。通信状況を確認してください");
+  }
+  return false}
+const save=()=>{pending++;saveQ=saveQ.then(flushSave).catch(e=>{console.error(e);return false}).finally(()=>{pending--});return saveQ};
+function showLoadError(){if($("ld"))return;const d=document.createElement("div");d.id="ld";d.setAttribute("role","alert");d.style.cssText="position:fixed;top:0;left:0;right:0;z-index:65;background:var(--dg);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;font-weight:700;display:flex;gap:10px;align-items:center;justify-content:space-between";d.innerHTML='<span>サーバーに接続できないため、保存を止めています(保存済みのデータは消えません)。</span><button class="g" style="color:#fff;border-color:#fff;padding:6px 12px" onclick="location.reload()">再読み込み</button>';document.body.appendChild(d)}
+async function loadBackups(){const el=$("bk_list");if(!el)return;try{const days=await rpc("admin_list_backups");el.innerHTML=(days||[]).map(d=>`<div class="row" style="justify-content:space-between"><span>${esc(d)}</span><button class="g" onclick="restoreBackup('${esc(d)}')">この日の変更前に戻す</button></div>`).join("")||'<p class="sub">バックアップはまだありません。</p>'}catch(e){el.innerHTML='<p class="sub">バックアップを読み込めませんでした。</p>'}}
+function restoreBackup(d){ask("この日の最初の変更前の状態に全体を戻します。現在の内容は上書きされます。よろしいですか？",async()=>{try{await rpc("admin_restore_backup",{p_day:d});await reloadState();toast("バックアップから復元しました")}catch(e){alert("復元できませんでした")}})}
+async function loadPinStatus(){try{const r=await rpc("admin_member_status"),k=JSON.stringify(r);if(k!==JSON.stringify(PINST)){PINST=r;draw()}}catch(e){}}
 
 // 起動時にSupabaseからデータを読み込む ＆ リアルタイム購読のセットアップ
-async function initApp() {
-  let ok=false;
-  try {
-    const { data, error } = await supabaseClient.from('app_state').select('data').eq('id', 'main_data').maybeSingle();
-    if (error) throw error;
-    if (data && data.data) S = Object.assign(S, data.data);
-    ok=true; // data が無い場合は初回起動(空の状態から開始してよい)
-  } catch(e) {
-    console.error("読み込みエラー:", e);
+async function initApp(){
+  if(TOKEN){
+    try{const si=await rpc0("session_info",{p_token:TOKEN});if(si&&si.role){ROLE=si.role;ME=si.member||""}else{TOKEN="";try{localStorage.removeItem("ph_tok")}catch(e){}}}
+    catch(e){console.error(e);showLoadError();return}
   }
-  if(ok){loaded=true;backupDaily()}
-  else{
-    try{const r=localStorage.getItem("ph_pop");if(r)S=Object.assign(S,JSON.parse(r))}catch(x){}
-    showLoadError();
-  }
-
-  if(S.adminSetupCode){delete S.adminSetupCode; save();}
-  syncClubPlayers();
-  applyLocalTheme();
-  draw();
-  setTimeout(()=>{if(tab=="bz")calcB()},0);
-
-  // リアルタイム同期（他の人が変更したら自動で画面を更新）
-  supabaseClient.channel('public:app_state')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state', filter: 'id=eq.main_data' }, payload => {
-      if (payload.new && payload.new.data) {
-        if((+payload.new.data._v||0)<=(+S._v||0))return;const old=S;S=payload.new.data;applyLocalTheme();try{notifyDiff(old,S)}catch(e){}draw();
-      }
-    })
-    .subscribe();
+  if(!TOKEN){showLogin();return}
+  await startApp()
 }
+async function startApp(){
+  try{const st=await rpc("get_state");S=Object.assign(defaultS(),st);loaded=true}
+  catch(e){console.error(e);if(TOKEN)showLoadError();return}
+  profileSessionName=ME;profileUnlockedName=ME;adminSession=ROLE==="admin";
+  try{await refreshRows(false)}catch(e){console.error(e)}
+  syncClubPlayers();draw();
+  if(!pollTimer){pollTimer=setInterval(poll,5000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()})}
+}
+async function refreshRows(notify){
+  const b=await rpc("board_list"),d=await rpc("dm_list");
+  if(notify){const ob=new Set(bdRows.map(x=>x.id)),od=new Set(dmRows.map(x=>x.id)),me=whoAmI();
+    b.forEach(x=>{if(!ob.has(x.id)&&x.n!==me)pushNote("掲示板 "+x.n,x.t)});
+    d.forEach(x=>{if(od.has(x.id))return;if(ROLE==="admin"&&x.f==="m")pushNote("メンバーからの連絡",x.member+": "+x.t);else if(ROLE!=="admin"&&x.f==="a")pushNote("管理者から返信",x.t)})}
+  bdRows=b;dmRows=d}
+async function poll(){
+  if(document.hidden||!loaded||pending>0)return;
+  try{
+    const p=await rpc("get_poll"),prev=pollKey?JSON.parse(pollKey):null;pollKey=JSON.stringify(p);
+    if(!prev){return}
+    let changed=false;
+    if(p.v!==prev.v||p.a!==prev.a){await reloadState(false,true);changed=true}
+    if(p.b!==prev.b||p.d!==prev.d){await refreshRows(true);changed=true}
+    if(changed)draw()
+  }catch(e){console.error(e)}}
+function showLogin(msg=""){
+  const old=document.getElementById("login");if(old)old.remove();
+  const d=document.createElement("div");d.id="login";
+  d.style.cssText="position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 24px) 16px 24px";
+  d.innerHTML=`<main><span class="badge">PICKLE HUB</span><h1>ログイン</h1><p class="sub">クラブメンバー専用です。${esc(msg)}</p>
+<div class="box"><label>お名前（登録名）</label><input id="lg_name" autocomplete="username" style="width:100%" value="${esc(localStorage.getItem("ph_name")||"")}">
+<label>4桁のPIN</label><input id="lg_pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" style="width:100%" onkeydown="if(event.key==='Enter')doMemberLogin()">
+<div class="row"><button onclick="doMemberLogin()" style="flex:1">ログイン</button></div>
+<details style="margin-top:14px"><summary class="sub">はじめての方（管理者から初回コードをもらった方）</summary>
+<label>8桁の初回コード</label><input id="lg_code" type="password" inputmode="numeric" maxlength="8" style="width:100%">
+<label>新しく決める4桁のPIN</label><input id="lg_new" type="password" inputmode="numeric" maxlength="4" style="width:100%">
+<div class="row"><button onclick="doSetup()">PINを設定してログイン</button></div></details></div>
+<details class="box"><summary>管理者の方</summary><label>管理者パスワード</label><input id="lg_apw" type="password" style="width:100%" onkeydown="if(event.key==='Enter')doAdminLogin()">
+<div class="row"><button onclick="doAdminLogin()">管理者ログイン</button></div></details></main>`;
+  document.body.appendChild(d)}
+async function doLogin(fn,args){
+  try{const r=await rpc0(fn,args);
+    if(!r||!r.ok){toast((r&&r.error)||"ログインできませんでした");return}
+    TOKEN=r.token;ROLE=r.role;ME=r.member||"";
+    try{localStorage.setItem("ph_tok",TOKEN);if(ME)localStorage.setItem("ph_name",ME)}catch(e){}
+    const l=document.getElementById("login");if(l)l.remove();
+    const ld=document.getElementById("ld");if(ld)ld.remove();
+    await startApp()
+  }catch(e){console.error(e);toast("通信できませんでした。しばらくしてからお試しください")}}
+const doMemberLogin=()=>doLogin("member_login",{p_name:$("lg_name").value.trim(),p_pin:$("lg_pin").value});
+const doSetup=()=>doLogin("member_setup",{p_name:$("lg_name").value.trim(),p_code:$("lg_code").value,p_pin:$("lg_new").value});
+const doAdminLogin=()=>doLogin("admin_login",{p_pw:$("lg_apw").value});
+async function doLogout(){try{await rpc("logout")}catch(e){}try{localStorage.removeItem("ph_tok")}catch(e){}location.reload()}
 
 const $ = id => document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const P=i=>`<span style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle">${memberIcon(S.players[i]||"?",24)}<span>${esc(S.players[i]||"?")}</span></span>`;
-let lastTab="",profileUnlockedName="",profilePhotoDraft="",levelDraft=null,profileAnswersEditedName="",profileBaseline=null,adminSetupCodeDisplay=null;
+let lastTab="",profileUnlockedName="",profileSessionName="",profilePhotoDraft="",levelDraft=null,profileAnswersEditedName="",profileBaseline=null,adminSetupCodeDisplay=null;
 function localDateKey(date=new Date()){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`}
 function checkTournamentDay(){
 const today=localDateKey();
@@ -358,142 +379,25 @@ function toast(m){let t=$("ts");if(!t){t=document.createElement("div");t.id="ts"
 window.alert=toast;
 function ask(m,f){const d=document.createElement("div");d.id="dg";d.innerHTML='<div class="box"><p style="font-weight:700;font-size:16px;margin-bottom:16px;">'+esc(m)+'</p><div class="row"><button id="y">はい</button><button class="g" id="n">やめる</button></div></div>';document.body.appendChild(d);d.querySelector("#y").onclick=()=>{d.remove();f()};d.querySelector("#n").onclick=()=>d.remove()}
 function showCopy(t){const d=document.createElement("div");d.id="dg";d.innerHTML='<div class="box"><p style="font-weight:700;">下の文章をコピーしてください</p><textarea rows="6" style="width:100%"></textarea><div class="row" style="margin-top:12px;"><button>閉じる</button></div></div>';const a=d.querySelector("textarea");a.value=t;d.querySelector("button").onclick=()=>d.remove();document.body.appendChild(d);a.select()}
-function go(t){if(!["bz","bd"].includes(t)&&!adminSession)adminSession=false;if(tab==="bz"&&t!=="bz")adminSetupCodeDisplay=null;if(t!=="pf"&&!profileSessionName){profileUnlockedName="";profilePhotoDraft=""}tab=t;draw()}
+function go(t){if(tab==="bz"&&t!=="bz")adminSetupCodeDisplay=null;if(t!=="pf")profilePhotoDraft="";tab=t;draw()}
 function draw(){
 checkTournamentDay();
-$("app").innerHTML=noticeBanner()+({ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,theme})[tab]();
+$("app").innerHTML=noticeBanner()+({ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt})[tab]();
 if(tab=="pr")showT();
 if(tab=="bz")calcB();
 if(tab=="bz"&&S.adminSheet==="settings")loadBackups();
+if(tab=="bz"&&S.adminSheet==="profiles")loadPinStatus();
 if(tab=="bd")markSeen("bd");
 if(tab=="pf"&&profileSessionName)markSeen("dm");
 if(tab=="nt")markSeen("nt");
 const u=unread(),dot=' <span style="color:var(--dg)" aria-label="未読あり">●</span>';
-$("nav").innerHTML=TABS.map(([k,n])=>`<button role="tab" aria-selected="${k==tab||(k==='mo'&&MORE.some(m=>m[0]===tab))}" onclick="go('${k}')">${n}${(k==="bd"&&u.bd)||(k==="mo"&&(u.dm||u.nt))?dot:""}</button>`).join("")+
-`<button role="tab" onclick="checkAdmin()" style="font-size:11px;color:${adminSession?'var(--ac)':'var(--mu)'};">${adminSession?'👑 '+ADMIN_DISPLAY_NAME:'🔒管理者'}</button>`;
+$("nav").innerHTML=TABS.map(([k,n])=>`<button role="tab" aria-selected="${k==tab||(k==='mo'&&MORE.some(m=>m[0]===tab))}" onclick="go('${k}')">${n}${(k==="bd"&&u.bd)||(k==="mo"&&(u.dm||u.nt))?dot:""}</button>`).join("")+(ROLE==="admin"?`<button role="tab" aria-selected="${tab==="bz"}" onclick="go('bz')" style="font-size:12px;">管理</button>`:"");
 if(lastTab!=tab){window.scrollTo(0,0);lastTab=tab}}
 
-// 管理者画面へのアクセス＆永続セッション管理
-function checkAdmin(){
-  if(adminSession){
-    tab="bz"; draw(); return;
-  }
-  const now=Date.now();
-  if((S.adminLockUntil||0)>now){
-    const unlockAt=new Date(S.adminLockUntil).toLocaleString("ja-JP");
-    alert(`ログインを停止中です。${unlockAt}以降に再試行してください。`);
-    return;
-  }
-  if(S.adminLockUntil){S.adminLockUntil=0;S.adminLoginFailures=0;save()}
-  const d=document.createElement("div");
-  d.id="dg";
-  d.innerHTML=`<div class="box">
-    <p style="font-weight:900;font-size:18px;color:var(--ac);margin-bottom:8px;">🔒 管理者 (${ADMIN_DISPLAY_NAME}) ログイン</p>
-    <p class="sub">パスワードを入力してください</p>
-    <input type="password" id="admin_pw" placeholder="パスワード" style="width:100%;margin-bottom:16px;" autofocus>
-    <div class="row"><button id="login_btn" style="flex:1;">ログイン</button><button class="g" id="cancel_btn">閉じる</button></div>
-  </div>`;
-  document.body.appendChild(d);
-  const input = d.querySelector("#admin_pw");
-  input.focus();
-  input.onkeydown = e => { if(e.key=='Enter') d.querySelector("#login_btn").click(); };
-  d.querySelector("#login_btn").onclick=()=>{
-    if(input.value===(S.adminPw||"1234")){
-      S.adminLoginFailures=0;
-      S.adminLockUntil=0;
-      save();
-      d.remove();
-      adminSession=true;
-      localStorage.setItem("ph_admin_session", "true");
-      tab="bz";
-      draw();
-      toast(`${ADMIN_DISPLAY_NAME}としてログインしました（自動ログイン保持）`);
-    } else {
-      S.adminLoginFailures=(S.adminLoginFailures||0)+1;
-      if(S.adminLoginFailures>=3){
-        S.adminLoginFailures=0;
-        S.adminLockUntil=Date.now()+365*24*60*60*1000;
-        save();
-        d.remove();
-        alert("3回間違えたため、ログインを1年間停止しました。");
-        return;
-      }
-      save();
-      alert(`パスワードが違います（残り${3-S.adminLoginFailures}回）`);
-      input.value="";
-      input.focus();
-    }
-  };
-  d.querySelector("#cancel_btn").onclick=()=>d.remove();
-}
-
-function adminLogout(){
-  adminSession=false;
-  localStorage.removeItem("ph_admin_session");
-  go("ev");
-  toast("管理者ログアウトしました");
-}
 
 function shareTxt(t){if(navigator.share){navigator.share({text:t}).catch(e=>{if(e&&e.name!=="AbortError")showCopy(t)})}else{const w=window.open("https://line.me/R/share?text="+encodeURIComponent(t),"_blank");if(!w)showCopy(t)}}
 function modSc(ri,mi,k,d){const m=S.rounds[ri].m[mi],c=m[k]===""?0:m[k];m[k]=Math.max(0,c+d);save();draw()}
 function addRental(){const item=$("ri").value.trim(),member=$("rh").value;if(!item||!member){alert("用具名とメンバーを選択してください");return}S.rentals=S.rentals||[];S.rentals.push({item,holder:member});save();draw()}
-
-/* ---------- 自分だけの個人デザイン設定（ローカル保持） ---------- */
-function theme(){
-  return `<span class="badge">DESIGN & THEME</span><h1>デザイン設定</h1><p class="sub">自分だけの見た目や背景、フォントを設定できます（他の人には影響しません）。</p>
-  <div class="box">
-    <h2>カラーテーマ</h2>
-    <div class="row">
-      <button class="g" onclick="setThemeStyle('default')">🥬 ポップグリーン</button>
-      <button class="g" onclick="setThemeStyle('cyber')">⚡ ネオンパープル</button>
-      <button class="g" onclick="setThemeStyle('ocean')">🌊 サイバーブルー</button>
-      <button class="g" onclick="setThemeStyle('sunset')">🌅 サンセットピンク</button>
-    </div>
-    <h2>フォントの切り替え</h2>
-    <div class="row">
-      <button class="g" onclick="setFontStyle('Zen Maru Gothic')">丸ゴシック（標準）</button>
-      <button class="g" onclick="setFontStyle('M PLUS Rounded 1c')">ポップ太文字</button>
-      <button class="g" onclick="setFontStyle('M PLUS 1p')">モダンゴシック</button>
-      <button class="g" onclick="setFontStyle('Yuji Mai')">和風・手書き</button>
-    </div>
-    <h2>背景画像のアップロード</h2>
-    <label>お好みの写真を背景に設定</label>
-    <input type="file" accept="image/*" onchange="uploadLocalBg(this)" style="width:100%">
-    ${localStorage.getItem("ph_local_bg")?`<button class="x" onclick="clearLocalBg()" style="margin-top:10px">背景画像をリセット</button>`:''}
-  </div>`;
-}
-
-function setThemeStyle(type){ localStorage.setItem("ph_local_theme", type); applyLocalTheme(); toast("カラーテーマを変更しました"); }
-function setFontStyle(font){ localStorage.setItem("ph_local_font", font); applyLocalTheme(); toast("フォントを変更しました"); }
-function uploadLocalBg(input){
-  const file = input.files && input.files[0]; if(!file) return;
-  if(file.size > 2*1024*1024){ alert("背景画像は2MB以下にしてください"); return; }
-  const reader = new FileReader();
-  reader.onload = () => { localStorage.setItem("ph_local_bg", reader.result); applyLocalTheme(); toast("背景画像を更新しました"); };
-  reader.readAsDataURL(file);
-}
-function clearLocalBg(){ localStorage.removeItem("ph_local_bg"); applyLocalTheme(); toast("背景画像をリセットしました"); }
-
-function applyLocalTheme(){
-  const root = document.documentElement.style;
-  const t = localStorage.getItem("ph_local_theme") || 'default';
-  if(t === 'cyber'){
-    root.setProperty('--bg', '#120024'); root.setProperty('--sf', '#21003b'); root.setProperty('--sf2', '#36005c');
-    root.setProperty('--ac', '#d946ef'); root.setProperty('--ac2', '#f0abfc'); root.setProperty('--ln', '#581c87');
-  } else if(t === 'ocean'){
-    root.setProperty('--bg', '#0f172a'); root.setProperty('--sf', '#1e293b'); root.setProperty('--sf2', '#334155');
-    root.setProperty('--ac', '#38bdf8'); root.setProperty('--ac2', '#7dd3fc'); root.setProperty('--ln', '#0284c7');
-  } else if(t === 'sunset'){
-    root.setProperty('--bg', '#2a0813'); root.setProperty('--sf', '#401020'); root.setProperty('--sf2', '#5c1d31');
-    root.setProperty('--ac', '#fb7185'); root.setProperty('--ac2', '#fca5a5'); root.setProperty('--ln', '#9f1239');
-  } else {
-    root.setProperty('--bg', '#171D19'); root.setProperty('--sf', '#202923'); root.setProperty('--sf2', '#29352D');
-    root.setProperty('--ac', '#83B394'); root.setProperty('--ac2', '#8BC6A0'); root.setProperty('--ln', '#39473D');
-  }
-  root.setProperty('--font-family', (localStorage.getItem("ph_local_font") || 'Zen Maru Gothic') + ", sans-serif");
-  const bg = localStorage.getItem("ph_local_bg");
-  if(bg){ root.setProperty('--bg-img', `url(${bg})`); } else { root.setProperty('--bg-img', 'none'); }
-}
 
 /* ---------- 大会 ---------- */
 function ev(){
@@ -704,32 +608,12 @@ if(!Number.isFinite(value)||value<1||value>5){alert("レベルは1.0〜5.0で入
 S.rt=S.rt||{};S.rt[name]=Math.round(value*10)/10;S.levelMember=name;save();draw();toast(`${name}さんのレベルを保存しました`)
 }
 function clearLevel(){const name=$("level_member").value;if(!name||!S.rt||S.rt[name]==null)return;delete S.rt[name];S.levelMember=name;save();draw()}
-function profileData(name){S.profiles=S.profiles||{};return S.profiles[name]||(S.profiles[name]={bio:"",avatar:"",pinSalt:"",pinHash:""})}
-function logMemberUpdate(name,action){
-S.memberAudit=S.memberAudit||[];
-S.memberAudit.unshift({member:name,action,date:new Date().toLocaleString("ja-JP")});
-S.memberAudit=S.memberAudit.slice(0,300)
-}
-
+function profileData(name){S.profiles=S.profiles||{};if(S.profiles[name])return S.profiles[name];const d={bio:"",avatar:""};if(name===profileSessionName||ROLE==="admin")S.profiles[name]=d;return d}
+function logMemberUpdate(name,action){if(TOKEN)rpc("audit_log",{p_member:name,p_action:action}).catch(()=>{})}
 function memberIcon(name,size=32){
 const profile=S.profiles&&S.profiles[name]||{};
-const img = profile.avatar?`<img src="${esc(profile.avatar)}" alt="" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:50%;vertical-align:middle">`:`<span aria-hidden="true" style="display:inline-grid;place-items:center;width:${size}px;height:${size}px;border-radius:50%;background:var(--sf2);vertical-align:middle">${esc((name||"?").slice(0,1))}</span>`;
-return `<span class="clickable-avatar" onclick="openMemberModal('${esc(name)}')" title="${esc(name)}のプロフィールを見る">${img}</span>`;
+return profile.avatar?`<img src="${esc(profile.avatar)}" alt="" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:50%;vertical-align:middle">`:`<span aria-hidden="true" style="display:inline-grid;place-items:center;width:${size}px;height:${size}px;border-radius:50%;background:var(--sf2);vertical-align:middle">${esc((name||"?").slice(0,1))}</span>`
 }
-
-function openMemberModal(name){
-  const m = S.members.find(x=>x.n===name) || {n: name};
-  const d=document.createElement("div"); d.id="dg";
-  d.innerHTML=`<div class="box" style="max-height:90vh;overflow:auto">
-    <div class="row" style="justify-content:space-between"><b>${memberIcon(m.n,32)} ${esc(m.n)}</b></div>
-    ${growthBlock(m.n,false)}
-    <div class="row"><button class="g" id="c">閉じる</button></div>
-  </div>`;
-  document.body.appendChild(d);
-  d.querySelector("#c").onclick=()=>d.remove();
-  d.onclick=e=>{if(e.target===d)d.remove()}
-}
-
 const RADAR_LABELS=["サーブ","リターン","ラリー","位置取り","ルール"];
 function radarSvg(name,answers,size=260,compareAnswers=null){
 if(!Array.isArray(answers)||answers.length!==5||answers.some(value=>!Number.isFinite(+value)))return '<p class="sub">5項目の自己評価を保存するとレーダーチャートが表示されます。</p>';
@@ -747,12 +631,15 @@ const avatar=profile.avatar?`<img src="${esc(profile.avatar)}" alt="${esc(name)}
 return `<div class="row" style="align-items:center">${avatar}<div><b>${esc(name)}</b><div class="sub">${S.rt&&S.rt[name]!=null?`レベル ${Number(S.rt[name]).toFixed(1)}`:"レベル未評価"}</div></div></div>${profile.bio?`<p style="white-space:pre-wrap">${esc(profile.bio)}</p>`:'<p class="sub">自己紹介はまだ登録されていません。</p>'}<div style="display:flex;justify-content:center">${radarSvg(name,answers,compact?190:280)}</div>`
 }
 
-/* ---------- プロフィール画面（名前変更・セッション保持追加） ---------- */
+/* ---------- プロフィール画面（ご意見・要望送信フォームを追加） ---------- */
 function pf(){
 const selected=S.members.some(member=>member.n===profileSessionName)?profileSessionName:(S.members.some(member=>member.n===S.profileMember)?S.profileMember:(S.members[0]?.n||""));
 const profile=selected?profileData(selected):null;
 const unlocked=selected&&(profileUnlockedName===selected||profileSessionName===selected);
-return `<span class="badge">MEMBER PROFILE</span><h1>メンバープロフィール</h1><p class="sub">写真と自己紹介、名前を変更できます。ログイン状態は自動保持されます。</p>
+const history=S.levelHistory&&S.levelHistory[selected]||[];
+const compareIndex=Number.isInteger(S.radarCompareIndex)?S.radarCompareIndex:-1;
+const comparison=history[compareIndex];
+return `<span class="badge">MEMBER PROFILE</span><h1>メンバープロフィール</h1><p class="sub">写真と自己紹介を登録できます。編集できるのはご本人だけです。</p>
 <div class="box"><label>クラブメンバー</label><select id="profile_member" style="width:100%" onchange="selectProfileMember(this.value)"><option value="">メンバーを選択</option>${memberOptions(selected)}</select>
 ${selected?`${profileCard(selected)}<h2>成長の記録</h2>${growthBlock(selected)}${unlocked?profileEditor(selected,profile):profileGate(selected,profile)}${unlocked?'<button class="g" onclick="logoutProfile()">ログアウト</button>':""}`:'<p class="sub">先にクラブシートでメンバーを登録してください。</p>'}</div>
 
@@ -761,11 +648,10 @@ ${selected&&unlocked?dmBox(selected):(selected?'<p class="sub">管理者への�
 <h2>メンバー一覧</h2>${S.members.map(member=>`<div class="box">${profileCard(member.n,true)}</div>`).join("")||'<p class="sub">メンバーがいません。</p>'}`
 }
 
+
 function profileEditor(name,profile){
   const answers=S.levelAnswers&&S.levelAnswers[name]||[];
-  return `<div class="box" style="margin-top:18px"><h2 style="margin-top:0">プロフィールを編集</h2>
-  <label>お名前（自由に変更可能）</label><input id="profile_rename" type="text" value="${esc(name)}" style="width:100%">
-  <label>プロフィール画像（700KB以下）</label><input id="profile_avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="loadProfilePhoto(this)" style="width:100%">${profilePhotoDraft||profile.avatar?`<img id="profile_preview" src="${esc(profilePhotoDraft||profile.avatar)}" alt="画像プレビュー" style="display:block;width:96px;height:96px;object-fit:cover;border-radius:50%;margin-top:10px">`:"<img id=\"profile_preview\" alt=\"画像プレビュー\" style=\"display:none;width:96px;height:96px;object-fit:cover;border-radius:50%;margin-top:10px\">"}<label>自己紹介</label><textarea id="profile_bio" maxlength="300" rows="5" style="width:100%" placeholder="好きなプレー、目標、ひとことなど（300文字まで）">${esc(profile.bio||"")}</textarea><h3 style="font-size:14px;margin-top:20px">レベル自己評価</h3>${LEVEL_QUESTIONS.map((question,index)=>`<label>${question[0]}<select class="profile_level_question" id="profile_q${index}" onchange="saveProfileLevelAnswers()" style="width:100%"><option value="" ${answers[index]==null?"selected":""} disabled>選択してください</option>${question[1].map((option,score)=>`<option value="${score+1}" ${Number(answers[index])===score+1?"selected":""}>${score+1}. ${option}</option>`).join("")}</select></label>`).join("")}<div class="row"><button class="g" onclick="calculateProfileLevel()">回答から目安を出す</button></div><label>自分で調整する評価 (1.0〜5.0)</label><input id="profile_level_value" type="number" min="1" max="5" step="0.1" value="${levelDraft&&levelDraft.name===name?levelDraft.value:(S.rt&&S.rt[name]!=null?S.rt[name]:"")}" placeholder="質問の目安を調整"><p class="sub">${levelDraft&&levelDraft.name===name?`質問からの目安は${Number(levelDraft.value).toFixed(1)}です。`:S.rt&&S.rt[name]!=null?`現在の評価: ${Number(S.rt[name]).toFixed(1)}`:"5問に回答すると評価を算出できます。"}</p><label>PINの変更（変更する場合のみ入力）</label><input id="profile_new_pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" style="width:100%" placeholder="新しい4桁PIN"><div class="row"><button onclick="saveProfile()">プロフィール・評価を保存</button><button class="g" onclick="lockProfile()">編集を終了</button></div></div>`
+  return `<div class="box" style="margin-top:18px"><h2 style="margin-top:0">プロフィールを編集</h2><label>プロフィール画像（700KB以下）</label><input id="profile_avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="loadProfilePhoto(this)" style="width:100%">${profilePhotoDraft||profile.avatar?`<img id="profile_preview" src="${esc(profilePhotoDraft||profile.avatar)}" alt="画像プレビュー" style="display:block;width:96px;height:96px;object-fit:cover;border-radius:50%;margin-top:10px">`:"<img id=\"profile_preview\" alt=\"画像プレビュー\" style=\"display:none;width:96px;height:96px;object-fit:cover;border-radius:50%;margin-top:10px\">"}<label>自己紹介</label><textarea id="profile_bio" maxlength="300" rows="5" style="width:100%" placeholder="好きなプレー、目標、ひとことなど（300文字まで）">${esc(profile.bio||"")}</textarea><h3 style="font-size:14px;margin-top:20px">レベル自己評価</h3>${LEVEL_QUESTIONS.map((question,index)=>`<label>${question[0]}<select class="profile_level_question" id="profile_q${index}" onchange="saveProfileLevelAnswers()" style="width:100%"><option value="" ${answers[index]==null?"selected":""} disabled>選択してください</option>${question[1].map((option,score)=>`<option value="${score+1}" ${Number(answers[index])===score+1?"selected":""}>${score+1}. ${option}</option>`).join("")}</select></label>`).join("")}<div class="row"><button class="g" onclick="calculateProfileLevel()">回答から目安を出す</button></div><label>自分で調整する評価 (1.0〜5.0)</label><input id="profile_level_value" type="number" min="1" max="5" step="0.1" value="${levelDraft&&levelDraft.name===name?levelDraft.value:(S.rt&&S.rt[name]!=null?S.rt[name]:"")}" placeholder="質問の目安を調整"><p class="sub">${levelDraft&&levelDraft.name===name?`質問からの目安は${Number(levelDraft.value).toFixed(1)}です。必要に応じて調整してください。`:S.rt&&S.rt[name]!=null?`現在の評価: ${Number(S.rt[name]).toFixed(1)}`:"5問に回答すると評価を算出できます。"}</p><label>PINの変更（変更する場合のみ入力）</label><input id="profile_new_pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" style="width:100%" placeholder="新しい4桁PIN"><label>新しいPINを再入力</label><input id="profile_new_pin_confirm" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" style="width:100%"><div class="row"><button onclick="saveProfile()">プロフィール・評価を保存</button><button class="g" onclick="lockProfile()">編集を終了</button></div></div>`
 }
 function saveProfileLevelAnswers(){
   const name=$("profile_member").value;if(!name)return;
@@ -774,18 +660,14 @@ function saveProfileLevelAnswers(){
   save()
 }
 function calculateProfileLevel(){
-  const name=$("profile_member").value;if(!name||(profileUnlockedName!==name&&profileSessionName!==name)){alert("本人のPINでログインしてください");return}
+  const name=$("profile_member").value;if(!name||profileSessionName!==name){alert("本人のPINでログインしてください");return}
   saveProfileLevelAnswers();const answers=S.levelAnswers[name]||[];
   if(answers.length!==LEVEL_QUESTIONS.length||answers.some(answer=>!Number.isFinite(answer))){alert("5つの質問すべてに回答してください");return}
   const value=Math.round(answers.reduce((sum,answer)=>sum+answer,0)/answers.length*10)/10;
   levelDraft={name,value};const input=$("profile_level_value");if(input)input.value=value;draw()
 }
-function profileGate(name,profile){
-const locked=(profile.pinLockUntil||0)>Date.now();
-if(profile.pinHash)return `<div class="box" style="margin-top:18px"><h2 style="margin-top:0">本人ログイン</h2>${locked?`<p class="sub">ログインを一時停止中です。${new Date(profile.pinLockUntil).toLocaleTimeString("ja-JP")}以降に再試行できます。</p>`:`<label>4桁のPIN</label><input id="profile_pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" style="width:100%" placeholder="4桁の数字"><button onclick="unlockProfile()">ログインして固定保持</button>`}</div>`;
-return `<div class="box" style="margin-top:18px"><h2 style="margin-top:0">管理者発行コードで初回設定</h2>${locked?`<p class="sub">コード入力を一時停止中です。${new Date(profile.pinLockUntil).toLocaleTimeString("ja-JP")}以降に再試行できます。</p>`:profile.setupCodeHash?`<label>管理者から受け取った8桁コード</label><input id="profile_setup_code" type="password" inputmode="numeric" maxlength="8" style="width:100%" placeholder="8桁コード"><label>自分の4桁PIN</label><input id="profile_new_pin" type="password" inputmode="numeric" maxlength="4" style="width:100%" placeholder="4桁PIN"><button onclick="unlockProfile()">コードを確認してPIN設定</button>`:'<p class="sub">まだ本人用コードが発行されていません。管理者へ初回設定コードを依頼してください。</p>'}</div>`
-}
-function selectProfileMember(name){profileUnlockedName="";profilePhotoDraft="";levelDraft=null;S.profileMember=name;save();draw()}
+function profileGate(){return ""}
+function selectProfileMember(name){S.profileMember=name;profilePhotoDraft="";levelDraft=null;draw()}
 async function digestProfilePin(name,pin,salt){
 if(!crypto.subtle)throw new Error("この環境では安全なPIN処理を利用できません");
 const bytes=new TextEncoder().encode(`pickle-hub-profile-v1:${name}:${salt}:${pin}`);
@@ -808,17 +690,15 @@ if(hash!==profile.pinHash){registerProfileAuthFailure(profile);return}
 profile.pinFailures=0;profile.pinLockUntil=0;save()
 }else{
 if(!profile.setupCodeHash||profile.setupCodeUsed){alert("先に管理者から初回設定コードを発行してもらってください");return}
-const code=$("profile_setup_code").value,newPin=$("profile_new_pin").value;
+const code=$("profile_setup_code").value,newPin=$("profile_new_pin").value,confirm=$("profile_new_pin_confirm").value;
 if(!/^\d{8}$/.test(code)){alert("8桁の初回設定コードを入力してください");return}
-if(!/^\d{4}$/.test(newPin)){alert("自分の4桁PINを入力してください");return}
+if(!/^\d{4}$/.test(newPin)||newPin!==confirm){alert("自分の4桁PINを2回同じ内容で入力してください");return}
 const setupHash=await digestProfilePin(name,code,profile.setupSalt);
 if(setupHash!==profile.setupCodeHash){registerProfileAuthFailure(profile,"初回設定コードが違います");return}
 const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(byte=>byte.toString(16).padStart(2,"0")).join("");
 profile.pinSalt=salt;profile.pinHash=await digestProfilePin(name,newPin,salt);profile.pinLength=4;profile.setupCodeHash="";profile.setupCodeUsed=true;profile.setupSalt="";profile.pinFailures=0;profile.pinLockUntil=0;logMemberUpdate(name,"本人PIN初回設定");save()
 }
-profileUnlockedName=name;profileSessionName=name;S.profileMember=name;
-localStorage.setItem("ph_user_session", name);
-profileAnswersEditedName="";profileBaseline={rating:S.rt&&S.rt[name]!=null?Number(S.rt[name]):null,answers:(S.levelAnswers&&S.levelAnswers[name]||[]).slice(),bio:profile.bio||"",avatar:profile.avatar||""};save();draw();toast(`${name}としてログインしました`)
+profileUnlockedName=name;profileSessionName=name;S.profileMember=name;profileAnswersEditedName="";profileBaseline={rating:S.rt&&S.rt[name]!=null?Number(S.rt[name]):null,answers:(S.levelAnswers&&S.levelAnswers[name]||[]).slice(),bio:profile.bio||"",avatar:profile.avatar||""};save();draw()
 }catch(error){alert(error.message||"PINを確認できませんでした")}
 }
 function registerProfileAuthFailure(profile,message="PINが違います"){
@@ -833,23 +713,13 @@ if(file.size>700*1024){alert("画像は700KB以下にしてください");input.
 const reader=new FileReader();reader.onload=()=>{profilePhotoDraft=reader.result;const preview=$("profile_preview");if(preview){preview.src=profilePhotoDraft;preview.style.display="block"}};reader.onerror=()=>alert("画像を読み込めませんでした");reader.readAsDataURL(file)
 }
 function saveProfile(){
-const oldName=$("profile_member").value;if(!oldName||(profileUnlockedName!==oldName&&profileSessionName!==oldName)){alert("本人確認をしてください");return}
-const newName=$("profile_rename")?$("profile_rename").value.trim():oldName;
-
-if(newName && newName !== oldName){
-  if(S.members.some(m=>m.n===newName)){alert("すでにその名前のメンバーが存在します");return;}
-  const m = S.members.find(x=>x.n===oldName); if(m) m.n = newName;
-  S.profiles[newName] = S.profiles[oldName]; delete S.profiles[oldName];
-  profileSessionName = newName; profileUnlockedName = newName;
-  localStorage.setItem("ph_user_session", newName);
-}
-const name = newName || oldName;
-const profile=profileData(name),bio=$("profile_bio").value.trim(),nextPin=$("profile_new_pin").value;
-if(nextPin){if(!/^\d{4}$/.test(nextPin)){alert("新しいPINを4桁で入力してください");return}}
+const name=$("profile_member").value;if(!name||profileSessionName!==name){alert("本人確認をしてください");return}
+const profile=profileData(name),bio=$("profile_bio").value.trim(),nextPin=$("profile_new_pin").value,confirm=$("profile_new_pin_confirm").value;
+if(nextPin||confirm){if(!/^\d{4}$/.test(nextPin)||nextPin!==confirm){alert("新しいPINを4桁で一致させてください");return}}
 const updateRating=(!!levelDraft&&levelDraft.name===name)||profileAnswersEditedName===name;
 let rating=null;
 if(updateRating){
-if(!levelDraft||levelDraft.name===name){alert("質問の回答から目安を算出してください");return}
+if(!levelDraft||levelDraft.name!==name){alert("質問の回答から目安を算出してください");return}
 rating=Number($("profile_level_value").value);
 if(!Number.isFinite(rating)||rating<1||rating>5){alert("評価は1.0〜5.0で調整してください");return}
 }
@@ -864,15 +734,11 @@ const snapshotAnswers=Array.isArray(previousAnswers)&&previousAnswers.length===5
 S.levelHistory[name].push({date:new Date().toLocaleString("ja-JP"),rating:Number(oldRating),answers:snapshotAnswers});
 }
 profile.bio=bio;if(profilePhotoDraft)profile.avatar=profilePhotoDraft;
-const persist=async()=>{if(updateRating){S.rt=S.rt||{};S.rt[name]=Math.round(rating*10)/10}if(nextPin){const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(byte=>byte.toString(16).padStart(2,"0")).join("");profile.pinSalt=salt;profile.pinHash=await digestProfilePin(name,nextPin,salt);profile.pinLength=4}if(bioChanged||avatarChanged)logMemberUpdate(name,"プロフィール更新");if(ratingChanged||answersChanged)logMemberUpdate(name,"レベル自己評価更新");if(nextPin)logMemberUpdate(name,"プロフィールPIN変更");profileBaseline={rating:S.rt&&S.rt[name]!=null?Number(S.rt[name]):null,answers:(S.levelAnswers&&S.levelAnswers[name]||[]).slice(),bio:profile.bio||"",avatar:profile.avatar||""};save();profilePhotoDraft="";levelDraft=null;profileAnswersEditedName="";draw();toast("プロフィールを保存しました")};
+const persist=async()=>{if(updateRating){S.rt=S.rt||{};S.rt[name]=Math.round(rating*10)/10}if(nextPin){await rpc("member_change_pin",{p_pin:nextPin})}if(bioChanged||avatarChanged)logMemberUpdate(name,"プロフィール更新");if(ratingChanged||answersChanged)logMemberUpdate(name,"レベル自己評価更新");if(nextPin)logMemberUpdate(name,"プロフィールPIN変更");profileBaseline={rating:S.rt&&S.rt[name]!=null?Number(S.rt[name]):null,answers:(S.levelAnswers&&S.levelAnswers[name]||[]).slice(),bio:profile.bio||"",avatar:profile.avatar||""};save();profilePhotoDraft="";levelDraft=null;profileAnswersEditedName="";draw();toast("プロフィール・評価を保存しました")};
 persist().catch(error=>alert(error.message||"プロフィールを保存できませんでした"))
 }
-function lockProfile(){profileUnlockedName="";profilePhotoDraft="";levelDraft=null;profileBaseline=null;draw()}
-function logoutProfile(){
-  profileUnlockedName=""; profileSessionName="";
-  localStorage.removeItem("ph_user_session");
-  draw(); toast("ログアウトしました");
-}
+function lockProfile(){profilePhotoDraft="";levelDraft=null;draw()}
+function logoutProfile(){doLogout()}
 function rules(){
 return `<span class="badge">OFFICIAL RULE GUIDE</span><h1>ピックルボールのルール</h1><p class="sub">試合でよく使う基本ルールのガイドです。大会では主催者が指定する公式ルールブックの年度・競技要項を確認してください。</p>
 <div class="box"><h2 style="margin-top:0">公式ルールを確認</h2><p>このページはルール本文の転載ではなく、要点をまとめた案内です。条文・例外・年度改訂は公式原文を優先してください。</p><a href="https://usapickleball.org/rules/" target="_blank" rel="noopener noreferrer">USA Pickleball 公式ルールページ</a><p class="sub" style="margin-top:8px">日本国内の大会では、日本ピックルボール協会や大会要項が採用する規則もあわせて確認してください。</p></div>
@@ -921,16 +787,16 @@ function srch(){const a=$("ar").value.trim();window.open("https://www.google.com
 function cl(){
 const due=S.members.reduce((a,m)=>a+(m.paid?1:0),0);
 return `<span class="badge">MEMBERS</span><h1>メンバー</h1><p class="sub">出欠確認や会費、メンバー情報を管理します。</p>
-<div class="row"><input id="mn" placeholder="メンバー名" onkeydown="if(event.key=='Enter')addM()"><button onclick="addM()">追加</button></div>
+${ROLE==="admin"?`<div class="row"><input id="mn" placeholder="メンバー名" onkeydown="if(event.key=='Enter')addM()"><button onclick="addM()">追加</button></div>`:""}
 <div class="box"><div style="font-weight:700;margin-bottom:8px">会費納入: ${due} / ${S.members.length}人 完了</div>
 ${S.members.map((m,i)=>`<div class="row" style="justify-content:space-between;border-bottom:2px solid var(--ln);padding:8px 0"><span style="font-weight:700;display:flex;align-items:center;gap:8px">${memberIcon(m.n)}<span>${esc(m.n)}</span></span>
 <div class="row" style="margin:0"><button class="${m.at?"":"g"}" onclick="setAttendance(${i})" style="font-size:12px;padding:6px 10px">${m.at?"出席":"欠席"}</button>
-<button class="${m.paid?"":"g"}" onclick="S.members[${i}].paid=!S.members[${i}].paid;save();draw()" style="font-size:12px;padding:6px 10px">${m.paid?"会費済":"未納"}</button>
-<button class="x" onclick="removeM(${i})">×</button></div></div>`).join("")||'<p class="sub" style="margin:0">メンバーがいません</p>'}</div>
+${ROLE==="admin"?`<button class="${m.paid?"":"g"}" onclick="S.members[${i}].paid=!S.members[${i}].paid;save();draw()" style="font-size:12px;padding:6px 10px">${m.paid?"会費済":"未納"}</button>`:`<span class="sub" style="margin:0">${m.paid?"会費済":"未納"}</span>`}
+${ROLE==="admin"?`<button class="x" onclick="removeM(${i})">×</button>`:""}</div></div>`).join("")||'<p class="sub" style="margin:0">メンバーがいません</p>'}</div>
 ${S.members.some(m=>m.at)?'<p class="sub">出席にしたメンバーは大会参加者へ自動反映されます。</p>':""}
 ${S.rounds.length?'<p class="sub">試合記録中は欠席に変更したメンバーも名簿に残ります。記録を全消去すると出席状況に合わせて同期されます。</p>':""}
-<h2>お知らせボード</h2><div class="row"><textarea id="nw" rows="2" style="flex:1" placeholder="例: 次回は新球を使います！"></textarea><button onclick="addN()" class="g">投稿</button></div>
-${S.news.map((n,i)=>`<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(n)}</div><div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpN(${i})" style="font-size:12px;padding:8px 14px">LINE共有</button><button class="x" onclick="S.news.splice(${i},1);save();draw()">削除</button></div></div>`).join("")}`}
+<h2>お知らせボード</h2>${ROLE==="admin"?`<div class="row"><textarea id="nw" rows="2" style="flex:1" placeholder="例: 次回は新球を使います！"></textarea><button onclick="addN()" class="g">投稿</button></div>`:""}
+${S.news.map((n,i)=>`<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(n)}</div><div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpN(${i})" style="font-size:12px;padding:8px 14px">LINE共有</button>${ROLE==="admin"?`<button class="x" onclick="S.news.splice(${i},1);save();draw()">削除</button>`:""}</div></div>`).join("")}`}
 function addN(){const v=$("nw").value.trim();if(!v){alert("内容を入力してください");return}S.news.unshift(v);save();draw()}
 function cpN(i){shareTxt(S.news[i])}
 function addM(){const v=$("mn").value.trim();if(!v)return;S.members.push({n:v,at:true,paid:false});syncClubPlayers();draw()}
@@ -943,44 +809,43 @@ const B=i=>S.bz&&S.bz[i]!=null?S.bz[i]:(i==2?(S.players.length||16):BD[i]);
 function bz(){
 S.adminSheet=S.adminSheet||"finance";
 const sheets=[["finance","収支"],["feedbacks","ご意見・要望"],["notify","通知"],["dues","会費"],["events","イベント"],["posts","募集・お知らせ"],["updates","更新履歴"],["profiles","PIN承認"],["settings","設定"]];
-return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者 (${ADMIN_DISPLAY_NAME})</h1><div class="row"><button class="g" onclick="go('ev')">大会へ戻る</button><button class="x" onclick="adminLogout()">管理者ログアウト</button></div><div class="row" role="tablist">${sheets.map(([key,label])=>`<button class="${S.adminSheet===key?"":"g"}" role="tab" aria-selected="${S.adminSheet===key}" onclick="setAdminSheet('${key}')">${label}</button>`).join("")}</div>${({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,settings:adminSettings})[S.adminSheet]()}`
+return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者</h1><div class="row"><button class="g" onclick="go('ev')">大会へ戻る</button></div><div class="row" role="tablist">${sheets.map(([key,label])=>`<button class="${S.adminSheet===key?"":"g"}" role="tab" aria-selected="${S.adminSheet===key}" onclick="setAdminSheet('${key}')">${label}</button>`).join("")}</div>${({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,settings:adminSettings})[S.adminSheet]()}`
 }
 function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;S.adminSheet=sheet;save();draw()}
 
 /* ---------- 管理者への連絡(DM)・掲示板 ---------- */
+let adminSession=false,bch="notice";
 const BCH=[["notice","連絡事項"],["chat","雑談"],["play","練習・試合"],["ask","質問"]];
-let bch="notice";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const fmtT=ts=>new Date(ts).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
-const whoAmI=()=>adminSession?ADMIN_DISPLAY_NAME:(S.members.some(m=>m.n===profileSessionName)?profileSessionName:"");
-async function mutate(key,fn){let arr=(S[key]||[]).slice();try{const{data}=await supabaseClient.from('app_state').select('data').eq('id','main_data').single();if(data&&data.data&&Array.isArray(data.data[key]))arr=data.data[key].slice()}catch(e){}fn(arr);S[key]=arr;await save()}
+const whoAmI=()=>adminSession?"管理者":(S.members.some(m=>m.n===profileSessionName)?profileSessionName:"");
+async function mutate(key,fn){for(let i=0;i<3;i++){try{await reloadState(false);const arr=(S[key]||[]).slice();fn(arr);S[key]=arr;if(await save())return true}catch(e){console.error(e)}}toast("保存できませんでした");return false}
 function editDlg(init,f){const d=document.createElement("div");d.id="dg";d.innerHTML='<div class="box"><p style="font-weight:700">メッセージを編集</p><textarea rows="4" style="width:100%"></textarea><div class="row" style="margin-top:12px"><button id="y">保存</button><button class="g" id="n">やめる</button></div></div>';const a=d.querySelector("textarea");a.value=init;document.body.appendChild(d);a.focus();d.querySelector("#y").onclick=()=>{const v=a.value.trim();if(!v){alert("内容を入力してください");return}d.remove();f(v)};d.querySelector("#n").onclick=()=>d.remove()}
-function migrateFb(){if(!(S.feedbacks||[]).length)return;S.dms=S.dms||[];let k=0;S.feedbacks.slice().reverse().forEach(f=>{S.dms.push({id:uid(),m:f.name,f:"m",t:f.text,ts:Date.now()+(k++)});if(f.reply)S.dms.push({id:uid(),m:f.name,f:"a",t:f.reply,ts:Date.now()+(k++)})});S.feedbacks=[];save()}
 function link(label,fn){return `<a href="#" onclick="${fn};return false">${label}</a>`}
-function dmBox(name){migrateFb();const th=(S.dms||[]).filter(x=>x.m===name).sort((a,b)=>a.ts-b.ts);
-return `<div class="box" style="margin-top:20px"><h2 style="margin-top:0">管理者 (${ADMIN_DISPLAY_NAME}) への連絡</h2><p class="sub">ログイン中のあなたと管理者の連絡欄です。他のメンバーの画面には表示されません。</p>
-<div class="chat" id="dm_log">${th.map(x=>`<div class="msg ${x.f==="m"?"me":"ot"}"><div class="bub">${esc(x.t)}</div><div class="meta">${x.f==="a"?ADMIN_DISPLAY_NAME+" ・ ":""}${fmtT(x.ts)}${x.f==="m"?" ・ "+link("編集",`dmEdit('${x.id}')`):""}</div></div>`).join("")||'<p class="sub">まだメッセージはありません。</p>'}</div>
+function dmBox(name){const th=dmRows.filter(x=>x.member===name).sort((a,b)=>a.ts-b.ts);
+return `<div class="box" style="margin-top:20px"><h2 style="margin-top:0">管理者への連絡</h2><p class="sub">ログイン中のあなたと管理者の連絡欄です。他のメンバーの画面には表示されません。送った後も「編集」できます。</p>
+<div class="chat" id="dm_log">${th.map(x=>`<div class="msg ${x.f==="m"?"me":"ot"}"><div class="bub">${esc(x.t)}</div><div class="meta">${x.f==="a"?"管理者 ・ ":""}${fmtT(x.ts)}${x.f==="m"?" ・ "+link("編集",`dmEdit('${x.id}')`):""}</div></div>`).join("")||'<p class="sub">まだメッセージはありません。</p>'}</div>
 <div class="row"><textarea id="dm_text" data-keep rows="2" style="flex:1" placeholder="意見・要望・質問を入力"></textarea><button onclick="dmSend()">送信</button></div></div>`}
-async function dmSend(){const name=profileSessionName;if(!S.members.some(m=>m.n===name)){alert("ログインしてください");return}const f=$("dm_text"),t=f.value.trim();if(!t)return;f.value="";await mutate("dms",a=>a.push({id:uid(),m:name,f:"m",t,ts:Date.now()}));draw();toast("送信しました")}
-function dmEdit(id){const x=(S.dms||[]).find(y=>y.id===id);if(!x||x.f!=="m"||x.m!==profileSessionName)return;editDlg(x.t,async v=>{await mutate("dms",a=>{const y=a.find(z=>z.id===id);if(y&&y.m===profileSessionName&&y.f==="m"&&y.t!==v){y.o=y.o||y.t;y.e=1;y.t=v}});draw()})}
-function dmNames(){const last={};(S.dms||[]).forEach(x=>{last[x.m]=Math.max(last[x.m]||0,x.ts)});return Object.keys(last).sort((a,b)=>last[b]-last[a])}
-function adminFeedbacks(){migrateFb();const names=dmNames();
-return `<h2>メンバーとの連絡</h2><p class="sub">メンバー本人がログインして送ったメッセージです。返信や編集ができます。</p>`+(names.map((n,i)=>{const th=(S.dms||[]).filter(x=>x.m===n).sort((a,b)=>a.ts-b.ts),last=th[th.length-1];
+async function dmSend(){const f=$("dm_text"),t=f.value.trim();if(!t)return;f.value="";try{await rpc("dm_send",{p_text:t});await refreshRows(false);draw();toast("送信しました")}catch(e){alert("送信できませんでした")}}
+function dmEdit(id){const x=dmRows.find(y=>y.id===id);if(!x||x.f!=="m")return;editDlg(x.t,async v=>{try{await rpc("dm_edit",{p_id:id,p_text:v});await refreshRows(false);draw()}catch(e){alert("編集できませんでした")}})}
+function dmNames(){const last={};dmRows.forEach(x=>{last[x.member]=Math.max(last[x.member]||0,x.ts)});return Object.keys(last).sort((a,b)=>last[b]-last[a])}
+function adminFeedbacks(){const names=dmNames();
+return `<h2>メンバーとの連絡</h2><p class="sub">メンバー本人がログインして送ったメッセージです。返信や編集ができます。メンバーの画面には「編集済み」とは表示されません(ここだけに表示されます)。</p>`+(names.map((n,i)=>{const th=dmRows.filter(x=>x.member===n).sort((a,b)=>a.ts-b.ts),last=th[th.length-1];
 return `<div class="box"><div class="row" style="justify-content:space-between"><b>${memberIcon(n,24)} ${esc(n)}</b>${last.f==="m"?'<span class="badge" style="background:var(--warn)">未返信</span>':""}</div><div class="chat">${th.map(x=>`<div class="msg ${x.f==="a"?"me":"ot"}"><div class="bub">${esc(x.t)}</div><div class="meta">${fmtT(x.ts)}${x.e?" ・ 編集済み":""} ・ ${link("編集",`adEdit('${x.id}')`)} ・ ${link("削除",`adDel('${x.id}')`)}</div>${x.o?`<details class="meta"><summary>編集前を見る</summary>${esc(x.o)}</details>`:""}</div>`).join("")}</div>
 <div class="row"><textarea id="ar_${i}" data-keep rows="2" style="flex:1" placeholder="${esc(n)}さんへの返信"></textarea><button onclick="adSend(${i})">返信</button></div></div>`}).join("")||'<p class="sub">届いたメッセージはありません。</p>')}
-async function adSend(i){if(!adminSession)return;const n=dmNames()[i],f=$("ar_"+i),t=f&&f.value.trim();if(!n||!t)return;f.value="";await mutate("dms",a=>a.push({id:uid(),m:n,f:"a",t,ts:Date.now()}));draw();toast("返信しました")}
-function adEdit(id){if(!adminSession)return;const x=(S.dms||[]).find(y=>y.id===id);if(!x)return;editDlg(x.t,async v=>{await mutate("dms",a=>{const y=a.find(z=>z.id===id);if(y&&y.t!==v){y.o=y.o||y.t;y.e=1;y.t=v}});draw()})}
-function adDel(id){if(!adminSession)return;ask("このメッセージを削除しますか？",async()=>{await mutate("dms",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)});draw()})}
+async function adSend(i){if(ROLE!=="admin")return;const n=dmNames()[i],f=$("ar_"+i),t=f&&f.value.trim();if(!n||!t)return;f.value="";try{await rpc("dm_reply",{p_member:n,p_text:t});await refreshRows(false);draw();toast("返信しました")}catch(e){alert("返信できませんでした")}}
+function adEdit(id){if(ROLE!=="admin")return;const x=dmRows.find(y=>y.id===id);if(!x)return;editDlg(x.t,async v=>{try{await rpc("dm_edit",{p_id:id,p_text:v});await refreshRows(false);draw()}catch(e){alert("編集できませんでした")}})}
+function adDel(id){if(ROLE!=="admin")return;ask("このメッセージを削除しますか？",async()=>{try{await rpc("dm_delete",{p_id:id});await refreshRows(false);draw()}catch(e){alert("削除できませんでした")}})}
 /* 掲示板 */
-function bd(){const who=whoAmI(),list=(S.bmsg||[]).filter(x=>x.c===bch).sort((a,b)=>a.ts-b.ts).slice(-80);
+function bd(){const who=whoAmI(),list=bdRows.filter(x=>x.c===bch).sort((a,b)=>a.ts-b.ts).slice(-80);
 return `<span class="badge">BOARD</span><h1>掲示板</h1><p class="sub">クラブ全員が見られる連絡・雑談の場です。</p>
 <div class="row" role="tablist">${BCH.map(([k,l])=>`<button class="${k===bch?"":"g"}" role="tab" aria-selected="${k===bch}" onclick="bch='${k}';draw()">${l}</button>`).join("")}</div>
 <div class="chat" id="bd_log">${list.map(x=>{const mine=x.n===who;return `<div class="msg ${mine?"me":"ot"}"><div class="meta">${memberIcon(x.n,18)} <b>${esc(x.n)}</b></div><div class="bub">${esc(x.t)}</div><div class="meta">${fmtT(x.ts)}${mine?" ・ "+link("編集",`bdEdit('${x.id}')`)+" ・ "+link("削除",`bdDel('${x.id}')`):adminSession?" ・ "+link("削除",`bdDel('${x.id}')`):""}</div></div>`}).join("")||'<p class="sub">まだ投稿はありません。</p>'}</div>
 ${who?`<div class="row"><textarea id="bd_text" data-keep rows="2" style="flex:1" placeholder="${esc(who)}として投稿"></textarea><button onclick="bdSend()">送信</button></div>`:`<div class="box"><p class="sub">投稿するにはプロフィールでログインしてください。</p><button onclick="openProfileLogin()">ログインする</button></div>`}`}
-async function bdSend(){const who=whoAmI();if(!who){alert("ログインしてください");return}const f=$("bd_text"),t=f.value.trim();if(!t)return;f.value="";const c=bch;await mutate("bmsg",a=>{a.push({id:uid(),c,n:who,t,ts:Date.now()});if(a.length>400)a.splice(0,a.length-400)});draw()}
-function bdEdit(id){const x=(S.bmsg||[]).find(y=>y.id===id);if(!x||x.n!==whoAmI())return;editDlg(x.t,async v=>{await mutate("bmsg",a=>{const y=a.find(z=>z.id===id);if(y&&y.n===whoAmI())y.t=v});draw()})}
-function bdDel(id){const x=(S.bmsg||[]).find(y=>y.id===id);if(!x||(x.n!==whoAmI()&&!adminSession))return;ask("この投稿を削除しますか？",async()=>{await mutate("bmsg",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)});draw()})}
-function mo(){return `<span class="badge">MORE</span><h1>その他</h1><p class="sub">プロフィール・練習・貸出・デザイン設定等はこちらです。</p>${MORE.map(([k,l])=>`<div class="box"><button onclick="go('${k}')" style="width:100%">${l}</button></div>`).join("")}`}
+async function bdSend(){const f=$("bd_text"),t=f.value.trim();if(!t)return;f.value="";try{await rpc("board_post",{p_c:bch,p_text:t});await refreshRows(false);draw()}catch(e){alert("投稿できませんでした")}}
+function bdEdit(id){const x=bdRows.find(y=>y.id===id);if(!x||x.n!==whoAmI())return;editDlg(x.t,async v=>{try{await rpc("board_edit",{p_id:id,p_text:v});await refreshRows(false);draw()}catch(e){alert("編集できませんでした")}})}
+function bdDel(id){ask("この投稿を削除しますか？",async()=>{try{await rpc("board_delete",{p_id:id});await refreshRows(false);draw()}catch(e){alert("削除できませんでした")}})}
+function mo(){return `<span class="badge">MORE</span><h1>その他</h1><p class="sub">プロフィール・練習・貸出・ルールはこちらです。</p>${MORE.map(([k,l])=>`<div class="box"><button onclick="go('${k}')" style="width:100%">${l}</button></div>`).join("")}<div class="box"><button class="g" onclick="doLogout()" style="width:100%">ログアウト</button></div>`}
 function keepCap(){const v={},a=document.activeElement,sc={};document.querySelectorAll("[data-keep]").forEach(e=>{v[e.id]=e.value});["bd_log","dm_log"].forEach(i=>{const l=$(i);if(l)sc[i]=l.scrollHeight-l.scrollTop-l.clientHeight<60});return{v,sc,f:a&&a.dataset&&a.dataset.keep!==undefined?a.id:"",s:a&&a.selectionStart}}
 function keepRes(k){Object.entries(k.v).forEach(([id,val])=>{const e=$(id);if(e&&!e.value)e.value=val});if(k.f&&$(k.f)){const e=$(k.f);e.focus();try{e.setSelectionRange(k.s,k.s)}catch(x){}}["bd_log","dm_log"].forEach(i=>{const l=$(i);if(l&&k.sc[i]!==false)l.scrollTop=l.scrollHeight})}
 
@@ -1002,7 +867,7 @@ function lvOpen(i){const m=S.members[i];if(!m)return;const d=document.createElem
 const seenGet=k=>{try{return +(JSON.parse(localStorage.getItem("ph_seen")||"{}")[k]||0)}catch(e){return 0}};
 function markSeen(k){try{const o=JSON.parse(localStorage.getItem("ph_seen")||"{}");o[k]=Date.now();localStorage.setItem("ph_seen",JSON.stringify(o))}catch(e){}}
 try{if(!localStorage.getItem("ph_seen")){const n=Date.now();localStorage.setItem("ph_seen",JSON.stringify({bd:n,dm:n,nt:n}))}}catch(e){}
-function unread(){const me=whoAmI();return{bd:(S.bmsg||[]).some(x=>x.ts>seenGet("bd")&&x.n!==me),dm:!!profileSessionName&&(S.dms||[]).some(x=>x.m===profileSessionName&&x.f==="a"&&x.ts>seenGet("dm")),nt:(S.notices||[]).some(x=>x.ts>seenGet("nt"))}}
+function unread(){const me=whoAmI();return{bd:bdRows.some(x=>x.ts>seenGet("bd")&&x.n!==me),dm:ROLE!=="admin"&&dmRows.some(x=>x.f==="a"&&x.ts>seenGet("dm")),nt:(S.notices||[]).some(x=>x.ts>seenGet("nt"))}}
 function noticeBanner(){if(tab==="nt"||tab==="bz")return"";const s=seenGet("nt"),l=(S.notices||[]).filter(x=>x.ts>s).sort((a,b)=>b.ts-a.ts);if(!l.length)return"";return `<div class="box" style="border-color:var(--ac)"><b>📢 新しいお知らせ</b>${l.slice(0,3).map(x=>`<p style="white-space:pre-wrap;margin:8px 0 0">${esc(x.text)}</p>`).join("")}<div class="row"><button onclick="markSeen('nt');draw()" style="font-size:12px;padding:8px 14px">既読にする</button></div></div>`}
 function nt(){const list=(S.notices||[]).slice().sort((a,b)=>b.ts-a.ts),perm="Notification" in window?Notification.permission:"unsupported";
 return `<span class="badge">NOTICE</span><h1>通知</h1><p class="sub">管理者からのお知らせです。</p>
@@ -1010,12 +875,8 @@ return `<span class="badge">NOTICE</span><h1>通知</h1><p class="sub">管理者
 ${list.map(x=>`<div class="box"><div class="sub">${fmtT(x.ts)}</div><div style="white-space:pre-wrap;font-weight:700">${esc(x.text)}</div></div>`).join("")||'<p class="sub">お知らせはありません。</p>'}`}
 async function askNotify(){try{await Notification.requestPermission()}catch(e){}draw()}
 function pushNote(t,b){const m=b.length>60?b.slice(0,60)+"…":b;if(!document.hidden)toast(t+"："+m);else if("Notification" in window&&Notification.permission==="granted"){try{new Notification(t,{body:m})}catch(e){}}}
-function notifyDiff(o,n){const me=whoAmI(),has=(a)=>new Set((a||[]).map(x=>x.id)),out=[];
-const ob=has(o.bmsg);(n.bmsg||[]).forEach(x=>{if(!ob.has(x.id)&&x.n!==me)out.push(["掲示板 "+x.n,x.t])});
-if(!adminSession){const on=has(o.notices);(n.notices||[]).forEach(x=>{if(!on.has(x.id))out.push(["お知らせ",x.text])});const oe=new Set((o.events||[]).map(x=>x.id));(n.events||[]).forEach(x=>{if(!oe.has(x.id))out.push(["新しいイベント",x.title])})}
-const od=has(o.dms);(n.dms||[]).forEach(x=>{if(od.has(x.id))return;if(adminSession&&x.f==="m")out.push(["メンバーからの連絡",x.m+": "+x.t]);else if(!adminSession&&profileSessionName&&x.f==="a"&&x.m===profileSessionName)out.push(["管理者から返信",x.t])});
-out.slice(0,3).forEach(([t,b])=>pushNote(t,b))}
-function adminNotify(){return `<h2>全員に通知を送る</h2><p class="sub">送信すると、メンバーの画面に「新しいお知らせ」が表示され、アプリを開いている端末にはリアルタイムで通知されます。</p><div class="box"><textarea id="nt_text" data-keep rows="3" style="width:100%" placeholder="例: 明日の練習は体育館に変更です"></textarea><div class="row"><button onclick="sendNotice()">通知を送る</button><button class="line-btn" onclick="shareNoticeLine()">LINEにも送る</button></div></div><h2>送信済み</h2>${(S.notices||[]).slice().sort((a,b)=>b.ts-a.ts).map(x=>`<div class="box"><div class="sub">${fmtT(x.ts)}</div><div style="white-space:pre-wrap">${esc(x.text)}</div><button class="x" onclick="delNotice('${x.id}')">削除</button></div>`).join("")||'<p class="sub">まだありません。</p>'}`}
+function notifyDiff(o,n){if(ROLE==="admin")return;const on=new Set((o.notices||[]).map(x=>x.id)),oe=new Set((o.events||[]).map(x=>x.id));(n.notices||[]).forEach(x=>{if(!on.has(x.id))pushNote("お知らせ",x.text)});(n.events||[]).forEach(x=>{if(!oe.has(x.id))pushNote("新しいイベント",x.title)})}
+function adminNotify(){return `<h2>全員に通知を送る</h2><p class="sub">送信すると、メンバーの画面に「新しいお知らせ」が表示され、アプリを開いている端末にはリアルタイムで通知されます。アプリを閉じている人には届かないので、必要ならLINEにも送ってください。</p><div class="box"><textarea id="nt_text" data-keep rows="3" style="width:100%" placeholder="例: 明日の練習は体育館に変更です"></textarea><div class="row"><button onclick="sendNotice()">通知を送る</button><button class="line-btn" onclick="shareNoticeLine()">LINEにも送る</button></div></div><h2>送信済み</h2>${(S.notices||[]).slice().sort((a,b)=>b.ts-a.ts).map(x=>`<div class="box"><div class="sub">${fmtT(x.ts)}</div><div style="white-space:pre-wrap">${esc(x.text)}</div><button class="x" onclick="delNotice('${x.id}')">削除</button></div>`).join("")||'<p class="sub">まだありません。</p>'}`}
 async function sendNotice(){if(!adminSession)return;const f=$("nt_text"),t=f.value.trim();if(!t){alert("内容を入力してください");return}f.value="";await mutate("notices",a=>{a.unshift({id:uid(),ts:Date.now(),text:t});if(a.length>50)a.length=50});draw();toast("通知を送りました")}
 function shareNoticeLine(){const t=$("nt_text").value.trim();if(!t){alert("内容を入力してください");return}shareTxt("【お知らせ】\n"+t)}
 function delNotice(id){if(!adminSession)return;ask("この通知を削除しますか？",async()=>{await mutate("notices",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)});draw()})}
@@ -1080,7 +941,7 @@ const counts=eventCounts(event),response=event.responses&&event.responses[member
 const full=event.capacity&&counts.yes.length>=event.capacity&&response!=="yes";
 return `<div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)}${event.time?` ${esc(event.time)}`:""}</span></div><p><b>場所:</b> ${esc(event.place)}</p>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div><div class="sub">参加予定メンバー: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"まだいません"}</div>${memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":"未回答"}</p><div class="row"><button onclick="respondEvent('${esc(event.id)}','yes')" ${full?"disabled":""}>参加する</button><button class="g" onclick="respondEvent('${esc(event.id)}','no')">参加しない</button></div>${full?'<p class="sub">定員に達しています。参加回答済みの人が取り消すと選択できます。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>'}</div>`
 }
-function openProfileLogin(){S.profileMember=S.members[0]?.n||"";profileSessionName="";profileUnlockedName="";go("pf")}
+function openProfileLogin(){go("pf")}
 function respondEvent(eventId,status){
 const event=(S.events||[]).find(item=>item.id===eventId),member=profileSessionName;
 if(!event||!member||!S.members.some(item=>item.n===member)){alert("プロフィールからログインしてください");return}
@@ -1093,15 +954,11 @@ const audit=S.memberAudit||[];
 return `<h2>メンバー更新履歴</h2><p class="sub">プロフィール、自己評価、イベント参加回答の更新記録です。</p>${audit.length?audit.map(item=>`<div class="box"><div class="row" style="justify-content:space-between"><b>${memberIcon(item.member,24)} ${esc(item.member)}</b><span class="sub">${esc(item.date)}</span></div><div>${esc(item.action)}</div></div>`).join(""):'<p class="sub">更新履歴はありません。</p>'}`
 }
 function adminProfiles(){
-return `<h2>プロフィール初回PINの承認</h2><p class="sub">未設定のメンバーに個別コードを発行してください。コードは本人へ直接伝え、本人が4桁PINを設定します。</p>${S.members.map(member=>{const profile=profileData(member.n),issued=adminSetupCodeDisplay&&adminSetupCodeDisplay.name===member.n;return `<div class="box"><div class="row" style="justify-content:space-between"><b>${memberIcon(member.n,24)} ${esc(member.n)}</b><span class="sub">${profile.pinHash?"PIN設定済み":profile.setupCodeHash?"初回コード発行済み":"初回PIN未設定"}</span></div><button onclick="issueProfileSetupCode('${esc(member.n)}')" ${profile.pinHash?"disabled":""}>${profile.setupCodeHash?"初回コードを再発行":"初回設定コードを発行"}</button>${issued?`<p><b>本人へ直接渡すコード: ${esc(adminSetupCodeDisplay.code)}</b></p><p class="sub">この画面を離れるとコードは再表示されません。</p>`:""}</div>`}).join("")||'<p class="sub">先にメンバーを登録してください。</p>'}`}
+return `<h2>初回コード・PINの再設定</h2><p class="sub">メンバーに個別コードを発行し、本人へ直接伝えてください。本人がログイン画面の「はじめての方」で自分の4桁PINを決めます。PINを忘れたときも、ここで再発行します(再発行すると、そのメンバーはログアウトされます)。コードは再表示できません。</p>${S.members.map(member=>{const st=PINST[member.n]||{},issued=adminSetupCodeDisplay&&adminSetupCodeDisplay.name===member.n;return `<div class="box"><div class="row" style="justify-content:space-between"><b>${memberIcon(member.n,24)} ${esc(member.n)}</b><span class="sub">${st.pin?"PIN設定済み":st.setup?"初回コード発行済み":"未設定"}</span></div><button onclick="issueProfileSetupCode('${esc(member.n)}')">${st.pin||st.setup?"コードを再発行":"初回コードを発行"}</button>${issued?`<p><b>本人へ直接渡すコード: ${esc(adminSetupCodeDisplay.code)}</b></p><p class="sub">この画面を離れると再表示されません。</p>`:""}</div>`}).join("")||'<p class="sub">先にメンバーを登録してください。</p>'}`
+}
 async function issueProfileSetupCode(name){
-const profile=profileData(name);
-if(profile.pinHash){alert("このメンバーはすでにPIN設定済みです");return}
-const bytes=crypto.getRandomValues(new Uint8Array(4));
-const code=String(((bytes[0]<<24)|(bytes[1]<<16)|(bytes[2]<<8)|bytes[3])>>>0).padStart(10,"0").slice(-8);
-const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(byte=>byte.toString(16).padStart(2,"0")).join("");
-profile.setupSalt=salt;profile.setupCodeHash=await digestProfilePin(name,code,salt);profile.setupCodeUsed=false;
-adminSetupCodeDisplay={name,code};logMemberUpdate(name,"プロフィール初回設定コード発行");save();draw()
+try{const code=await rpc("admin_issue_code",{p_name:name});adminSetupCodeDisplay={name,code};logMemberUpdate(name,"初回設定コード発行");await loadPinStatus();draw()}
+catch(e){alert("発行できませんでした")}
 }
 function adminSettings(){return `<h2>管理者設定</h2><div class="box"><label>管理者パスワード変更</label><div class="row"><input id="new_pw" type="password" placeholder="新しいパスワード"><button onclick="changePw()">変更する</button></div></div><h2>自動バックアップ</h2><p class="sub">アプリを開いた最初の日ごとに自動で保存されます(直近7日分)。間違えて消したときは、ここから戻せます。</p><div class="box" id="bk_list"><p class="sub">読み込み中…</p></div>`}
 function financeTotals(){const records=S.financeRecords||[],total=records.reduce((sum,item)=>({income:sum.income+item.income,expense:sum.expense+item.expense,profit:sum.profit+item.profit,fee:sum.fee+item.fee}),{income:0,expense:0,profit:0,fee:0});return `<div class="box"><div class="row" style="justify-content:space-between"><span>保存件数</span><b>${records.length}件</b></div><div class="row" style="justify-content:space-between"><span>累計総収入</span><b>${total.income.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計総支出</span><b>${total.expense.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計決済手数料</span><b>${total.fee.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計差引利益</span><b>${total.profit.toLocaleString()}円</b></div></div>`}
@@ -1187,7 +1044,7 @@ const amounts=Array.from({length:501},(_,i)=>i*100);
 if(!amounts.includes(current))amounts.push(current);
 return amounts.sort((a,b)=>a-b).map(amount=>`<option value="${amount}" ${amount===current?"selected":""}>${amount.toLocaleString()}円</option>`).join("")
 }
-const adminFormIds=["dues_amount","bname","b6","b7","event_title","event_date","event_time","event_place","event_capacity","event_details","admin_kind","admin_goal","admin_audience","admin_tone","admin_level","admin_place","admin_details","admin_capacity","admin_event_date","admin_event_time","admin_prompt","admin_draft","new_pw"];
+const adminFormIds=["dues_amount","bname","b6","b7","event_title","event_date","event_time","event_place","event_capacity","event_details","admin_kind","admin_goal","admin_audience","admin_tone","admin_level","admin_place","admin_details","admin_capacity","admin_event_date","admin_event_time","admin_prompt","admin_draft"];
 function captureAdminForm(){
 const values={...(S.adminForm||{})};
 let changed=false;
@@ -1223,13 +1080,12 @@ const profit=$("bo");profit.textContent=yen(result.profit);profit.style.color=re
 $("br_per_person").textContent=yen(result.perPerson);
 $("bs").textContent=`損益分岐点: ${result.breakEven.toLocaleString()}人 / ${result.participants.toLocaleString()}人参加時の収支`;
 }
-function changePw(){const p=$("new_pw").value.trim();if(!p){alert("パスワードを入力してください");return}S.adminPw=p;save();alert("パスワードを変更しました！")}
+async function changePw(){const p=$("new_pw").value.trim();if(p.length<8){alert("8文字以上で入力してください");return}try{await rpc("admin_set_password",{p_pw:p});$("new_pw").value="";toast("パスワードを変更しました")}catch(e){alert("変更できませんでした")}}
 
-// ▼ アプリ初期化の呼び出し
+// ▼ アプリ初期化の呼び出しに変更
 initApp();
 const _d=draw;draw=function(){_d();if(tab=="bz"){calcB();calcDues()}};
 const _drawWithAdminForm=draw;draw=function(){captureAdminForm();_drawWithAdminForm();restoreAdminForm();if(tab=="bz"){calcB();calcDues()}};
 const _drawKeep=draw;draw=function(){const k=keepCap();_drawKeep();keepRes(k)};
 scheduleTournamentDayCheck();
-</script></body>
-</html>
+</script></body></html>
