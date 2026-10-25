@@ -253,6 +253,81 @@ label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-top:1
 .lvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
 .lvcard{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--sf);color:var(--ink);border:2px solid var(--ln);border-radius:18px;padding:12px 8px;box-shadow:none;font-weight:700;text-align:center}
 .lvcard:hover{border-color:var(--ac);transform:none}
+
+/* ---- Pop Style (Neubrutalism) ---- */
+button,input,select{min-height:44px}
+button.pm{width:44px;height:44px}
+.chip button.x{min-height:44px;min-width:44px}
+nav button{min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.1}
+.ni{font-size:20px;line-height:1}
+.stk{position:absolute;z-index:2;font-weight:900;font-size:12px;padding:3px 10px;border:2px solid #000;border-radius:8px;background:#FDE047;color:#000;box-shadow:2px 2px 0 #000;transform:rotate(-6deg);white-space:nowrap;left:-6px;top:-14px}
+.stk.r{left:auto;right:-6px;background:#F472B6;transform:rotate(7deg)}
+.scard{position:relative;margin-top:22px}
+.st{display:inline-block;margin-left:8px;padding:1px 8px;border:2px solid #000;border-radius:99px;background:#F472B6;color:#000;font-size:11px;font-weight:900;transform:rotate(-3deg)}
+.lvl{font-size:12px;font-weight:900;padding:2px 10px;border:2px solid #000;border-radius:99px;background:#fff;color:#000;white-space:nowrap}
+.hero{position:relative;padding:18px;margin:8px 0 14px}
+.hero h1{font-size:24px;line-height:1.35}
+.hero-btns{display:grid;gap:10px;margin-top:12px}.hero-btns button{min-height:56px;font-size:16px;width:100%}
+.hscroll{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 12px;-webkit-overflow-scrolling:touch}
+.fchip{flex:0 0 auto;min-height:44px;padding:8px 14px;background:#fff;color:#000;border:3px solid #000;box-shadow:2px 2px 0 #000;font-weight:900}
+.fchip.on{background:#F472B6}
+.wappen{position:absolute;right:-8px;bottom:-6px;min-width:34px;height:34px;padding:0 6px;display:grid;place-items:center;border:3px solid #000;border-radius:99px;background:#FDE047;color:#000;font-weight:900;font-size:13px;transform:rotate(8deg);box-shadow:2px 2px 0 #000}
+.stamp{display:inline-block;margin-top:4px;padding:2px 10px;border:2px solid #000;border-radius:8px;background:#fff;color:#000;font-weight:900;font-size:12px;transform:rotate(-2deg)}
+.ach{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 4px}
+.ach-i{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border:3px dashed var(--ln);border-radius:14px;opacity:.55;text-align:center;font-size:12px;transform:rotate(var(--rot,0deg))}
+.ach-i span{font-size:26px}.ach-i.on{opacity:1;border:3px solid #000;background:#FDE047;color:#000;box-shadow:3px 3px 0 #000}
+.scgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scc{position:relative;display:flex;flex-direction:column;gap:8px;align-items:stretch;padding:12px 8px;border:3px solid var(--ln);border-radius:16px;background:var(--sf);text-align:center}
+.scc.srv{border-color:#000;background:#FEF9C3;color:#000;box-shadow:4px 4px 0 #000}
+.scn{text-align:center;font-weight:900;width:100%}
+.scn-big{font-size:84px;line-height:1;font-weight:900;font-variant-numeric:tabular-nums;text-shadow:4px 4px 0 #FDE047}
+.scc.srv .scn-big{text-shadow:4px 4px 0 #F472B6}
+.serve{font-weight:900;padding:4px 8px;border:3px solid #000;border-radius:99px;background:#34D399;color:#000;animation:pulse 1.1s infinite}
+.recv{font-weight:700;color:var(--mu);padding:4px 8px}
+.rally{min-height:56px;font-size:15px}
+@keyframes pulse{50%{transform:scale(1.06)}}
+@keyframes cf{0%{transform:translateY(-10vh) rotate(0)}100%{transform:translateY(105vh) rotate(720deg)}}
+.cf{position:fixed;top:0;font-size:26px;animation:cf 2.6s linear forwards;z-index:95;pointer-events:none}
+.winov{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+.winov .box{max-width:360px;width:100%;text-align:center;background:#FDE047;color:#000;border:4px solid #000;box-shadow:6px 6px 0 #000}
+.winov h2{justify-content:center;font-size:34px;color:#000}
+.demo-ov{position:fixed;inset:0;z-index:80;background:var(--bg);overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 16px) 14px 24px}
+.brwrap{display:flex;gap:26px;overflow-x:auto;padding:12px 4px 18px}
+.brc{display:flex;flex-direction:column;justify-content:space-around;gap:14px;min-width:210px}
+.brt{font-weight:900;text-align:center;padding:2px 8px;background:#000;color:#FDE047;border-radius:8px}
+.brm{position:relative;padding:8px;border:3px solid #000;border-radius:12px;background:#fff;color:#000;box-shadow:3px 3px 0 #000}
+.brc:not(:last-child) .brm::after{content:"";position:absolute;right:-29px;top:50%;width:26px;border-top:4px solid #000}
+.brl{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:4px 2px;border-bottom:2px solid #ddd;font-size:13px}.brl:last-child{border:0}
+.brl.win{background:#FDE047;font-weight:900;border-radius:6px}
+.brm input.sc{width:46px;font-size:16px;color:#000}
+body.hc{--mu:var(--ink);--ln:var(--ink)}
+body.hc .box,body.hc .court{border-width:3px}
+body.pop h1{color:#000;background:none;-webkit-text-fill-color:#000;font-weight:900;text-transform:uppercase}
+body.pop h2{font-weight:900;text-transform:uppercase}
+body.pop h2::before{background:#000;border-radius:0;transform:rotate(-8deg)}
+body.pop .box,body.pop .court{border:3px solid #000;box-shadow:4px 4px 0 #000;background:#fff;color:#000}
+body.pop .box .sub,body.pop .court .sub{color:#334155}
+body.pop button{border:3px solid #000;box-shadow:3px 3px 0 #000;color:#000;background:var(--ac);font-weight:900}
+body.pop button:hover{transform:none;filter:none}
+body.pop button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+body.pop button.g{background:#fff;color:#000;border:3px solid #000;box-shadow:3px 3px 0 #000}
+body.pop button.x{background:transparent;border:0;box-shadow:none;color:#BE123C}
+body.pop button.line-btn{background:#4ADE80;color:#000}
+body.pop button.pm{background:#fff;color:#000}
+body.pop input,body.pop select,body.pop textarea{border:3px solid #000;background:#fff;color:#000}
+body.pop .badge{background:#F472B6;color:#000;border:2px solid #000;box-shadow:2px 2px 0 #000;transform:rotate(-3deg);text-transform:uppercase;font-weight:900}
+body.pop nav{border-top:4px solid #000;background:#fff}
+body.pop nav button{border:0;box-shadow:none;background:transparent;color:#000;border-top:4px solid transparent;border-radius:0}
+body.pop nav button[aria-selected=true]{background:#FDE047;border-top-color:#000}
+body.pop .chip{border:2px solid #000;background:#fff;color:#000}
+body.pop .court .t{background:#000;color:#FDE047}
+body.pop th{color:#000}body.pop td,body.pop th{border-bottom:2px solid #000}
+body.pop #ts{background:#FDE047;color:#000;border:3px solid #000;box-shadow:4px 4px 0 #000}
+body.pop .bub{border:2px solid #000;background:#fff;color:#000}
+body.pop .msg.me .bub{background:#FDE047;color:#000}
+body.pop .scn-big{color:#000}
+body.pop .big{color:#000}
+@media (prefers-reduced-motion:reduce){.serve,.cf{animation:none}}
 </style>
 </head>
 <body>
@@ -264,14 +339,14 @@ const SUPABASE_URL = 'https://slhfhxwddtxhqarkyldk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_6ai48uMR372DwW-K6Looxw_MIWT91mp';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const TABS=[["ev","大会"],["events","イベント"],["bd","掲示板"],["cl","メンバー"],["mo","その他"]];
-const MORE=[["nt","通知"],["pf","プロフィール"],["pr","練習"],["eq","貸出"],["rules","ルール"],["lv","レベル一覧"],["th","見た目"]];
-let tab="pf",S={players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[],feedbacks:[]};
+const TABS=[["hm","<span class=ni>🏠</span>ホーム"],["ev","<span class=ni>🏓</span>対戦表"],["sc","<span class=ni>🎯</span>スコア"],["events","<span class=ni>📅</span>イベント"],["bd","<span class=ni>💬</span>掲示板"],["mo","<span class=ni>☰</span>その他"]];
+const MORE=[["cl","メンバー"],["nt","通知"],["pf","プロフィール"],["pr","練習"],["eq","貸出"],["rules","ルール"],["lv","レベル一覧"],["th","見た目"]];
+let tab="hm",S={players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[],feedbacks:[]};
 
 // データの保存（Supabaseに書き込み ＆ localStorageにも一時保存）
 const defaultS=()=>({players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[]});
 let loaded=false,saveQ=Promise.resolve(),pending=0,TOKEN=localStorage.getItem("ph_tok")||"",ROLE="",ME="",bdRows=[],dmRows=[],PINST={},pollKey="",pollTimer=null;
-const LOCAL_KEYS=["profileMember","levelMember","radarCompareIndex","rentalMember","adminSheet","adminEventEdit"];
+const LOCAL_KEYS=["profileMember","levelMember","radarCompareIndex","rentalMember","adminSheet","adminEventEdit","duesEvent"];
 function relogin(msg){TOKEN="";ROLE="";ME="";loaded=false;try{localStorage.removeItem("ph_tok")}catch(e){}showLogin(msg)}
 async function rpc(fn,args={}){const{data,error}=await supabaseClient.rpc(fn,{p_token:TOKEN,...args});if(error){if(String(error.message).includes("unauthorized"))relogin("ログインの有効期限が切れました。もう一度ログインしてください。");throw error}return data}
 async function rpc0(fn,args){const{data,error}=await supabaseClient.rpc(fn,args);if(error)throw error;return data}
@@ -332,7 +407,7 @@ async function showLogin(msg="",invite=""){
   const old=document.getElementById("login");if(old)old.remove();
   const d=document.createElement("div");d.id="login";
   d.style.cssText="position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 24px) 16px 24px";
-  d.innerHTML=`<main><span class="badge">PICKLE HUB</span><h1>ログイン</h1><p class="sub">クラブメンバー専用です。${esc(msg)}</p>
+  d.innerHTML=`<main>${heroBlock()}<h2>ログイン</h2><p class="sub">クラブメンバー専用です。${esc(msg)}</p>
 <div class="box"><b>ログイン</b><label>会員番号（または登録名）</label><input id="lg_name" autocomplete="username" style="width:100%" placeholder="例: 101" value="${esc(localStorage.getItem("ph_name")||"")}">
 <label>4桁のPIN</label><input id="lg_pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" style="width:100%" onkeydown="if(event.key==='Enter')doMemberLogin()">
 <div class="row"><button onclick="doMemberLogin()" style="flex:1">ログイン</button></div></div>
@@ -384,7 +459,7 @@ function showCopy(t){const d=document.createElement("div");d.id="dg";d.innerHTML
 function go(t){if(tab==="bz"&&t!=="bz")adminSetupCodeDisplay=null;if(t!=="pf")profilePhotoDraft="";tab=t;draw()}
 function draw(){
 checkTournamentDay();
-$("app").innerHTML=noticeBanner()+({ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th})[tab]();
+$("app").innerHTML=noticeBanner()+({hm:homeTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th})[tab]();
 if(tab=="pr")showT();
 if(tab=="bz")calcB();
 if(tab=="bz"&&S.adminSheet==="settings")loadBackups();
@@ -393,7 +468,7 @@ if(tab=="bd")markSeen("bd");
 if(tab=="pf"&&profileSessionName)markSeen("dm");
 if(tab=="nt")markSeen("nt");
 const u=unread(),dot=' <span style="color:var(--dg)" aria-label="未読あり">●</span>';
-$("nav").innerHTML=TABS.map(([k,n])=>`<button role="tab" aria-selected="${k==tab||(k==='mo'&&MORE.some(m=>m[0]===tab))}" onclick="go('${k}')">${n}${(k==="bd"&&u.bd)||(k==="mo"&&(u.dm||u.nt))?dot:""}</button>`).join("")+(ROLE==="admin"?`<button role="tab" aria-selected="${tab==="bz"}" onclick="go('bz')" style="font-size:12px;">管理</button>`:"");
+$("nav").innerHTML=TABS.map(([k,n])=>`<button role="tab" aria-selected="${k==tab||(k==='mo'&&MORE.some(m=>m[0]===tab))}" onclick="go('${k}')">${n}${(k==="bd"&&u.bd)||(k==="mo"&&(u.dm||u.nt))?dot:""}</button>`).join("");
 if(lastTab!=tab){window.scrollTo(0,0);lastTab=tab}}
 
 
@@ -402,7 +477,7 @@ function modSc(ri,mi,k,d){const m=S.rounds[ri].m[mi],c=m[k]===""?0:m[k];m[k]=Mat
 function addRental(){const item=$("ri").value.trim(),member=$("rh").value;if(!item||!member){alert("用具名とメンバーを選択してください");return}S.rentals=S.rentals||[];S.rentals.push({item,holder:member});save();draw()}
 
 /* ---------- 大会 ---------- */
-function ev(){
+function evRot(){
 return `<span class="badge">TOURNAMENT</span><h1>PICKLE HUB</h1><p class="sub">楽しくスマートに大会・練習を管理しよう！</p>
 <div class="row"><label style="margin:0">大会形式 <select id="tournament_format" onchange="setTournamentFormat(this.value)"><option value="doubles" ${(S.tournamentFormat||"doubles")==="doubles"?"selected":""}>ダブルス</option><option value="singles" ${S.tournamentFormat==="singles"?"selected":""}>シングルス</option></select></label></div>
 <h2>参加者 (${S.players.length}人)</h2>
@@ -521,7 +596,7 @@ S.rounds.push({m:matches,bye});save();draw()}
 function teamLabel(team){return team.map(i=>P(i)).join("・")}
 function round(r,ri){const b=(k,mi,d)=>`<button class="g pm" aria-label="${k=="sa"?"左":"右"}チーム得点${d>0?"+1":"-1"}" onclick="modSc(${ri},${mi},'${k}',${d})">${d>0?"+":"−"}</button>`;
 const inp=(k,mi,v)=>`<input class="sc" inputmode="numeric" aria-label="${k=="sa"?"左":"右"}チーム得点" value="${v}" onchange="setSc(${ri},${mi},'${k}',this.value)">`;
-return `<h2>ラウンド ${ri+1}</h2>${r.m.map((m,mi)=>`<div class="court"><div class="t">コート ${mi+1}</div>
+return `<h2>ラウンド ${ri+1}</h2>${r.m.map((m,mi)=>`<div class="court"><div class="t">コート ${mi+1}<span class="st">${(m.sa!==""&&m.sb!==""&&m.sa!==m.sb)?"FINISHED 🏁":(ri===S.rounds.length-1?"LIVE 🔴":"—")}</span></div>
 <div class="m"><div class="${wn(m)==1?"win":""}">${teamLabel(m.a)}</div>
 <div>${b("sa",mi,-1)}${inp("sa",mi,m.sa)}${b("sa",mi,1)}<span class="sub" style="margin:0">:</span>${b("sb",mi,-1)}${inp("sb",mi,m.sb)}${b("sb",mi,1)}</div>
 <div class="${wn(m)==2?"win":""}">${teamLabel(m.b)}</div></div></div>`).join("")}
@@ -629,8 +704,10 @@ return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(name)
 }
 function profileCard(name,compact=false,noRadar=false){
 const profile=profileData(name),answers=S.levelAnswers&&S.levelAnswers[name];
-const avatar=profile.avatar?`<img src="${esc(profile.avatar)}" alt="${esc(name)}のプロフィール画像" style="width:76px;height:76px;object-fit:cover;border-radius:50%;border:2px solid var(--ln)">`:`<div aria-label="プロフィール画像なし" style="width:76px;height:76px;border-radius:50%;border:2px solid var(--ln);display:grid;place-items:center;background:var(--sf2);font-size:26px">${esc((name||"?").slice(0,1))}</div>`;
-return `<div class="row" style="align-items:center">${avatar}<div><b>${esc(name)}</b><div class="sub">${S.rt&&S.rt[name]!=null?`レベル ${Number(S.rt[name]).toFixed(1)}`:"レベル未評価"}</div></div></div>${profile.bio?`<p style="white-space:pre-wrap">${esc(profile.bio)}</p>`:'<p class="sub">自己紹介はまだ登録されていません。</p>'}${noRadar?"":`<div style="display:flex;justify-content:center">${radarSvg(name,answers,compact?190:280)}</div>`}`
+const lvv=S.rt&&S.rt[name]!=null?Number(S.rt[name]):null;
+const avatar0=profile.avatar?`<img src="${esc(profile.avatar)}" alt="${esc(name)}のプロフィール画像" style="width:76px;height:76px;object-fit:cover;border-radius:50%;border:2px solid var(--ln)">`:`<div aria-label="プロフィール画像なし" style="width:76px;height:76px;border-radius:50%;border:2px solid var(--ln);display:grid;place-items:center;background:var(--sf2);font-size:26px">${esc((name||"?").slice(0,1))}</div>`;
+const avatar=`<div style="position:relative;display:inline-block">${avatar0}${lvv!=null?`<span class="wappen">LV ${lvv.toFixed(1)}</span>`:""}</div>`;
+return `<div class="row" style="align-items:center">${avatar}<div><b>${esc(name)}</b><div class="sub" style="margin:0">${lvv!=null?`レベル ${lvv.toFixed(1)}（自己評価）`:"レベル未評価"}</div>${lvv!=null?`<span class="stamp">${levelStamp(lvv)}</span>`:""}</div></div>${achGrid(name)}${profile.bio?`<p style="white-space:pre-wrap">${esc(profile.bio)}</p>`:'<p class="sub">自己紹介はまだ登録されていません。</p>'}${noRadar?"":`<div style="display:flex;justify-content:center">${radarSvg(name,answers,compact?190:280)}</div>`}`
 }
 
 /* ---------- プロフィール画面（ご意見・要望送信フォームを追加） ---------- */
@@ -845,7 +922,7 @@ ${who?`<div class="row"><textarea id="bd_text" data-keep rows="2" style="flex:1"
 async function bdSend(){const f=$("bd_text"),t=f.value.trim();if(!t)return;f.value="";try{await rpc("board_post",{p_c:bch,p_text:t});await refreshRows(false);draw()}catch(e){alert("投稿できませんでした")}}
 function bdEdit(id){const x=bdRows.find(y=>y.id===id);if(!x||x.n!==whoAmI())return;editDlg(x.t,async v=>{try{await rpc("board_edit",{p_id:id,p_text:v});await refreshRows(false);draw()}catch(e){alert("編集できませんでした")}})}
 function bdDel(id){ask("この投稿を削除しますか？",async()=>{try{await rpc("board_delete",{p_id:id});await refreshRows(false);draw()}catch(e){alert("削除できませんでした")}})}
-function mo(){return `<span class="badge">MORE</span><h1>その他</h1><p class="sub">プロフィール・練習・貸出・ルールはこちらです。</p>${MORE.map(([k,l])=>`<div class="box"><button onclick="go('${k}')" style="width:100%">${l}</button></div>`).join("")}<div class="box"><button class="g" onclick="doLogout()" style="width:100%">ログアウト</button></div>`}
+function mo(){return `<span class="badge">MORE</span><h1>その他</h1><p class="sub">プロフィール・練習・貸出・ルールはこちらです。</p>${MORE.map(([k,l])=>`<div class="box"><button onclick="go('${k}')" style="width:100%">${l}</button></div>`).join("")}${ROLE==="admin"?'<div class="box"><button onclick="go(\'bz\')" style="width:100%">🔒 管理者ページ</button></div>':""}<div class="box"><button class="g" onclick="doLogout()" style="width:100%">ログアウト</button></div>`}
 function keepCap(){const v={},a=document.activeElement,sc={};document.querySelectorAll("[data-keep]").forEach(e=>{v[e.id]=e.value});["bd_log","dm_log"].forEach(i=>{const l=$(i);if(l)sc[i]=l.scrollHeight-l.scrollTop-l.clientHeight<60});return{v,sc,f:a&&a.dataset&&a.dataset.keep!==undefined?a.id:"",s:a&&a.selectionStart}}
 function keepRes(k){Object.entries(k.v).forEach(([id,val])=>{const e=$(id);if(e&&(!e.value||e.hasAttribute("data-always")))e.value=val});if(k.f&&$(k.f)){const e=$(k.f);e.focus();try{e.setSelectionRange(k.s,k.s)}catch(x){}}["bd_log","dm_log"].forEach(i=>{const l=$(i);if(l&&k.sc[i]!==false)l.scrollTop=l.scrollHeight})}
 
@@ -869,7 +946,7 @@ function markSeen(k){try{const o=JSON.parse(localStorage.getItem("ph_seen")||"{}
 try{if(!localStorage.getItem("ph_seen")){const n=Date.now();localStorage.setItem("ph_seen",JSON.stringify({bd:n,dm:n,nt:n}))}}catch(e){}
 function unread(){const me=whoAmI();return{bd:bdRows.some(x=>x.ts>seenGet("bd")&&x.n!==me),dm:ROLE!=="admin"&&dmRows.some(x=>x.f==="a"&&x.ts>seenGet("dm")),nt:(S.notices||[]).some(x=>x.ts>seenGet("nt"))}}
 function noticeBanner(){if(tab==="nt"||tab==="bz")return"";const s=seenGet("nt"),l=(S.notices||[]).filter(x=>x.ts>s).sort((a,b)=>b.ts-a.ts);if(!l.length)return"";return `<div class="box" style="border-color:var(--ac)"><b>📢 新しいお知らせ</b>${l.slice(0,3).map(x=>`<p style="white-space:pre-wrap;margin:8px 0 0">${esc(x.text)}</p>`).join("")}<div class="row"><button onclick="markSeen('nt');draw()" style="font-size:12px;padding:8px 14px">既読にする</button></div></div>`}
-function nt(){const list=(S.notices||[]).slice().sort((a,b)=>b.ts-a.ts),perm="Notification" in window?Notification.permission:"unsupported";
+function nt(){const list=(S.notices||[]).filter(x=>x.ts>=Date.now()-30*864e5).slice().sort((a,b)=>b.ts-a.ts),perm="Notification" in window?Notification.permission:"unsupported";
 return `<span class="badge">NOTICE</span><h1>通知</h1><p class="sub">管理者からのお知らせです。</p>
 <div class="box"><b>この端末の通知</b> <span class="ok">${notifyOn()?"ON":"OFF"}</span><p class="sub">${perm==="denied"?"ブラウザの設定で通知がブロックされています。":notifyOn()?"オンです。アプリを開いたまま別の画面や別のタブにいる間も、新着をお知らせします。アプリを閉じている間は届きません。":"オフです。新着の知らせは表示されません（未読の印は付きます）。"}</p><div class="row"><button class="${notifyOn()?"g":""}" onclick="setNotify(${!notifyOn()})">${notifyOn()?"通知をオフにする":"通知をオンにする"}</button>${perm==="default"&&notifyOn()?'<button onclick="askNotify()">ブラウザの通知を許可する</button>':""}</div></div>
 ${list.map(x=>`<div class="box"><div class="sub">${fmtT(x.ts)}</div><div style="white-space:pre-wrap;font-weight:700">${esc(x.text)}</div></div>`).join("")||'<p class="sub">お知らせはありません。</p>'}`}
@@ -878,12 +955,14 @@ function setNotify(on){try{localStorage.setItem("ph_notify",on?"on":"off")}catch
 async function askNotify(){try{await Notification.requestPermission()}catch(e){}setNotify(true)}
 function pushNote(t,b){if(!notifyOn())return;const m=b.length>60?b.slice(0,60)+"…":b;if(!document.hidden)toast(t+"："+m);else if("Notification" in window&&Notification.permission==="granted"){try{new Notification(t,{body:m})}catch(e){}}}
 function notifyDiff(o,n){if(ROLE==="admin")return;const on=new Set((o.notices||[]).map(x=>x.id)),oe=new Set((o.events||[]).map(x=>x.id));(n.notices||[]).forEach(x=>{if(!on.has(x.id))pushNote("お知らせ",x.text)});(n.events||[]).forEach(x=>{if(!oe.has(x.id))pushNote("新しいイベント",x.title)})}
-function adminNotify(){return `<h2>全員に通知を送る</h2><p class="sub">送信すると、メンバーの画面に「新しいお知らせ」が表示され、アプリを開いている端末にはリアルタイムで通知されます。アプリを閉じている人には届かないので、必要ならLINEにも送ってください。</p><div class="box"><textarea id="nt_text" data-keep rows="3" style="width:100%" placeholder="例: 明日の練習は体育館に変更です"></textarea><div class="row"><button onclick="sendNotice()">通知を送る</button><button class="line-btn" onclick="shareNoticeLine()">LINEにも送る</button></div></div><h2>送信済み</h2>${(S.notices||[]).slice().sort((a,b)=>b.ts-a.ts).map(x=>`<div class="box"><div class="sub">${fmtT(x.ts)}</div><div style="white-space:pre-wrap">${esc(x.text)}</div><button class="x" onclick="delNotice('${x.id}')">削除</button></div>`).join("")||'<p class="sub">まだありません。</p>'}`}
+function adminNotify(){return `<h2>全員に通知を送る</h2><p class="sub">送信すると、メンバーの画面に「新しいお知らせ」が表示され、アプリを開いている端末にはリアルタイムで通知されます。アプリを閉じている人には届かないので、必要ならLINEにも送ってください。</p><div class="box"><textarea id="nt_text" data-keep rows="3" style="width:100%" placeholder="例: 明日の練習は体育館に変更です"></textarea><div class="row"><button onclick="sendNotice()">通知を送る</button><button class="line-btn" onclick="shareNoticeLine()">LINEにも送る</button></div></div><h2>送信済み</h2>${(S.notices||[]).filter(x=>x.ts>=Date.now()-30*864e5).slice().sort((a,b)=>b.ts-a.ts).map(x=>`<div class="box"><div class="sub">${fmtT(x.ts)}</div><div style="white-space:pre-wrap">${esc(x.text)}</div><button class="x" onclick="delNotice('${x.id}')">削除</button></div>`).join("")||'<p class="sub">まだありません。</p>'}`}
 async function sendNotice(){if(!adminSession)return;const f=$("nt_text"),t=f.value.trim();if(!t){alert("内容を入力してください");return}f.value="";await mutate("notices",a=>{a.unshift({id:uid(),ts:Date.now(),text:t});if(a.length>50)a.length=50});draw();toast("通知を送りました")}
 function shareNoticeLine(){const t=$("nt_text").value.trim();if(!t){alert("内容を入力してください");return}shareTxt("【お知らせ】\n"+t)}
 function delNotice(id){if(!adminSession)return;ask("この通知を削除しますか？",async()=>{await mutate("notices",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)});draw()})}
 function adminMembers(){return `<h2>メンバーを追加</h2><div class="box"><div class="row"><input id="mn" placeholder="メンバー名（20文字まで）" onkeydown="if(event.key=='Enter')addM()"><button onclick="addM()">追加</button></div><p class="sub">追加したら「PIN承認」で招待リンクを発行して、本人に送ります。</p></div>
-<h2>メンバー一覧（${S.members.length}人）</h2>${S.members.map((m,i)=>`<div class="box"><div class="row" style="justify-content:space-between;margin:0"><b>${memberIcon(m.n,24)} ${esc(m.n)}</b><div class="row" style="margin:0"><button class="g" onclick="renameMember(${i})" style="font-size:12px;padding:6px 10px">名前変更</button><button class="x" onclick="removeM(${i})">削除</button></div></div></div>`).join("")||'<p class="sub">メンバーがいません。</p>'}`}
+<h2>メンバー一覧（${S.members.length}人）</h2>${S.members.map((m,i)=>`<div class="box"><div class="row" style="justify-content:space-between;margin:0"><b>${memberIcon(m.n,24)} ${esc(m.n)}</b><div class="row" style="margin:0"><button class="g" onclick="renameMember(${i})" style="font-size:12px;padding:6px 10px">名前変更</button><button class="g" onclick="clearMemberProfile(${i},'avatar')" style="font-size:12px;padding:6px 10px">画像を削除</button><button class="g" onclick="clearMemberProfile(${i},'bio')" style="font-size:12px;padding:6px 10px">自己紹介を削除</button><button class="g" onclick="purgePosts(${i})" style="font-size:12px;padding:6px 10px">掲示板の投稿を削除</button><button class="x" onclick="removeM(${i})">削除</button></div></div></div>`).join("")||'<p class="sub">メンバーがいません。</p>'}`}
+function clearMemberProfile(i,field){const m=S.members[i];if(!m)return;const label=field==="avatar"?"プロフィール画像":"自己紹介";ask(`${m.n}さんの${label}を削除します。よろしいですか？`,()=>{profileData(m.n)[field]="";logMemberUpdate(m.n,"管理者が"+label+"を削除");save();draw();toast("削除しました")})}
+function purgePosts(i){const m=S.members[i];if(!m)return;ask(`${m.n}さんの掲示板の投稿をすべて削除します。よろしいですか？`,async()=>{try{await rpc("admin_purge_member_posts",{p_name:m.n});await refreshRows(false);draw();toast("削除しました")}catch(e){alert("削除できませんでした")}})}
 function renameMember(i){const m=S.members[i];if(!m)return;editDlg(m.n,async v=>{try{await save();await rpc("admin_rename_member",{p_old:m.n,p_new:v});await reloadState(false);await loadPinStatus();draw();toast("名前を変更しました")}catch(e){alert(String(e.message||"").includes("exists")?"その名前はすでに使われています":"変更できませんでした")}},"新しい名前")}
 function adminFinance(){return `<h2>大会収支</h2><div class="box">
 <label>大会名</label><input id="bname" value="${esc(S.adminForm&&S.adminForm.bname||"")}" oninput="captureAdminForm()" placeholder="例: 週末クラブ大会" style="width:100%">
@@ -896,7 +975,31 @@ function adminFinance(){return `<h2>大会収支</h2><div class="box">
 <label>決済手数料 (%)</label><input id="b5" type="number" min="0" max="100" step="0.1" value="${B(5)}" oninput="calcB()" style="width:100%">
 <h3 style="font-size:14px;margin-top:20px">集計</h3><div class="row" style="justify-content:space-between"><span>参加費収入</span><b id="br_ticket">0円</b></div><div class="row" style="justify-content:space-between"><span>協賛金</span><b id="br_sponsor">0円</b></div><div class="row" style="justify-content:space-between"><span>その他収入</span><b id="br_other_income">0円</b></div><div class="row" style="justify-content:space-between"><span>総収入</span><b id="br_income">0円</b></div><div class="row" style="justify-content:space-between"><span>大会費用</span><b id="br_cost">0円</b></div><div class="row" style="justify-content:space-between"><span>その他支出</span><b id="br_other_cost">0円</b></div><div class="row" style="justify-content:space-between"><span>決済手数料</span><b id="br_fee">0円</b></div><div class="row" style="justify-content:space-between"><span>総支出</span><b id="br_expense">0円</b></div><div class="row" style="justify-content:space-between"><span>差引利益</span><b id="bo" class="big" style="font-size:28px">0円</b></div><div id="bs" class="sub"></div><div class="row" style="justify-content:space-between"><span>一人あたり差引</span><b id="br_per_person">0円</b></div><button onclick="saveFinanceRecord()">この収支を保存</button></div>
 <h2>保存済み収支の総計</h2>${financeTotals()}<h2>保存履歴</h2>${(S.financeRecords||[]).map((record,index)=>`<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(record.name||"大会")}</b><span class="sub">${esc(record.date)}</span></div><div class="row" style="justify-content:space-between"><span>収入 ${record.income.toLocaleString()}円</span><b>${record.profit.toLocaleString()}円</b></div><div class="row"><button class="g" onclick="loadFinanceRecord(${index})">読み込む</button><button class="x" onclick="deleteFinanceRecord(${index})">削除</button></div></div>`).join("")||'<p class="sub">保存された収支はありません。</p>'}`}
-function adminDues(){return `<h2>会費の回収</h2><div class="box"><label>1人あたりの会費 (円)</label><select id="dues_amount" oninput="calcDues()" style="width:100%">${duesOptions()}</select><div class="row" style="justify-content:space-between"><span>対象人数</span><b>${S.members.length}人</b></div><div class="row" style="justify-content:space-between"><span>回収済み</span><b id="dues_collected">0円</b></div><div class="row" style="justify-content:space-between"><span>未回収</span><b id="dues_remaining">0円</b></div><div class="row"><button class="g" onclick="shareDues()">未納者に案内を共有</button></div>${S.members.map((m,i)=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--ln);padding:8px 0"><span><b>${memberIcon(m.n,24)} ${esc(m.n)}</b><span class="sub" style="margin-left:8px">${m.paid?"入金済み":"未納"}</span></span><button class="${m.paid?"g":""}" onclick="toggleDues(${i})" style="font-size:12px;padding:6px 10px">${m.paid?"未納に戻す":"入金済みにする"}</button></div>`).join("")||'<p class="sub">先にクラブ画面でメンバーを登録してください。</p>'}</div>`}
+const evTime=e=>e.time?(e.endTime?`${e.time}〜${e.endTime}`:e.time):"";
+function goDues(id){S.duesEvent=id;S.adminSheet="dues";go("bz")}
+function duesOf(e){e.dues=e.dues||{amount:0,paid:{}};e.dues.paid=e.dues.paid||{};return e.dues}
+function setEventDues(id,v){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;duesOf(e).amount=Math.max(0,parseInt(v,10)||0);save();draw()}
+function toggleEventDues(id,i){const e=(S.events||[]).find(x=>x.id===id),m=S.members[i];if(!e||!m)return;const d=duesOf(e);if(d.paid[m.n])delete d.paid[m.n];else d.paid[m.n]=Date.now();save();draw()}
+function shareEventDues(id){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const d=e.dues||{amount:0,paid:{}},un=eventCounts(e).yes.filter(m=>!(d.paid||{})[m.n]).map(m=>m.n);if(!un.length){alert("未納のメンバーはいません");return}
+shareTxt(`【会費のお知らせ】\n${e.title}（${e.date}）\n会費: ${(+d.amount||0).toLocaleString()}円\n未納: ${un.join("、")}\nご確認をお願いします。`)}
+const duesNote=(e,n,r)=>{const d=e.dues;if(!d||!(+d.amount>0)||r!=="yes")return"";const p=d.paid&&d.paid[n];return `<p class="sub">会費 ${Number(d.amount).toLocaleString()}円：${p?"支払い済み":"未払い（管理者にお渡しください）"}</p>`};
+function adminDues(){return adminDuesEvent()+adminDuesClub()}
+function adminDuesEvent(){
+const evs=(S.events||[]).slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+if(!evs.length)return `<h2>イベントごとの会費</h2><p class="sub">先に「イベント」シートでイベントを登録してください。</p>`;
+const t=localDateKey(),e=evs.find(x=>x.id===S.duesEvent)||evs.slice().reverse().find(x=>(x.date||"")>=t)||evs[0];
+const d=e.dues||{amount:0,paid:{}},paid=d.paid||{},yes=eventCounts(e).yes,amt=+d.amount||0,paidYes=yes.filter(m=>paid[m.n]).length;
+const order=[...yes,...S.members.filter(m=>!yes.includes(m))];
+return `<h2>イベントごとの会費</h2><div class="box"><label style="margin-top:0">対象のイベント</label><select onchange="S.duesEvent=this.value;draw()" style="width:100%">${evs.map(x=>`<option value="${esc(x.id)}" ${x.id===e.id?"selected":""}>${esc(x.date)} ${esc(x.title)}</option>`).join("")}</select>
+<p style="margin:10px 0 0"><b>${esc(e.title)}</b><br><span class="sub">${esc(e.date)} ${esc(evTime(e))} ／ ${esc(e.place||"")}</span></p>
+<label>1人あたりの会費（円）</label><input type="number" min="0" step="100" value="${amt}" onchange="setEventDues('${esc(e.id)}',this.value)" style="width:100%">
+<div class="row" style="justify-content:space-between"><span>参加予定</span><b>${yes.length}人</b></div>
+<div class="row" style="justify-content:space-between"><span>回収済み</span><b>${paidYes}人 / ${(paidYes*amt).toLocaleString()}円</b></div>
+<div class="row" style="justify-content:space-between"><span>未回収</span><b>${yes.length-paidYes}人 / ${((yes.length-paidYes)*amt).toLocaleString()}円</b></div>
+<div class="row"><button class="g" onclick="shareEventDues('${esc(e.id)}')">未納者に案内を共有</button></div>
+${order.map(m=>{const r=e.responses&&e.responses[m.n],i=S.members.indexOf(m),p=!!paid[m.n];return `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--ln);padding:8px 0"><span><b>${memberIcon(m.n,24)} ${esc(m.n)}</b><span class="sub" style="margin-left:8px">${r==="yes"?"参加":r==="no"?"不参加":"未回答"} ／ ${p?"入金済み":"未納"}</span></span><button class="${p?"g":""}" onclick="toggleEventDues('${esc(e.id)}',${i})" style="font-size:12px;padding:6px 10px">${p?"未納に戻す":"入金済みにする"}</button></div>`}).join("")}</div>
+<h2>イベント別の回収状況</h2>${evs.map(x=>{const dd=x.dues||{amount:0,paid:{}},y=eventCounts(x).yes,pd=y.filter(m=>(dd.paid||{})[m.n]).length;return `<div class="box" onclick="S.duesEvent='${esc(x.id)}';draw()" style="cursor:pointer"><div class="row" style="justify-content:space-between;margin:0"><b>${esc(x.title)}</b><span class="sub">${esc(x.date)}</span></div><div class="sub" style="margin:4px 0 0">会費 ${(+dd.amount||0).toLocaleString()}円 ／ 回収 ${pd}/${y.length}人 ／ ${(pd*(+dd.amount||0)).toLocaleString()}円</div></div>`}).join("")}`}
+function adminDuesClub(){return `<h2>クラブ全体の会費（月会費・年会費など）</h2><div class="box"><label>1人あたりの会費 (円)</label><select id="dues_amount" oninput="calcDues()" style="width:100%">${duesOptions()}</select><div class="row" style="justify-content:space-between"><span>対象人数</span><b>${S.members.length}人</b></div><div class="row" style="justify-content:space-between"><span>回収済み</span><b id="dues_collected">0円</b></div><div class="row" style="justify-content:space-between"><span>未回収</span><b id="dues_remaining">0円</b></div><div class="row"><button class="g" onclick="shareDues()">未納者に案内を共有</button></div>${S.members.map((m,i)=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--ln);padding:8px 0"><span><b>${memberIcon(m.n,24)} ${esc(m.n)}</b><span class="sub" style="margin-left:8px">${m.paid?"入金済み":"未納"}</span></span><button class="${m.paid?"g":""}" onclick="toggleDues(${i})" style="font-size:12px;padding:6px 10px">${m.paid?"未納に戻す":"入金済みにする"}</button></div>`).join("")||'<p class="sub">先にクラブ画面でメンバーを登録してください。</p>'}</div>`}
 function adminPosts(){return `<h2>募集・お知らせを作成</h2><div class="box">
 <label>投稿の種類</label><select id="admin_kind" style="width:100%"><option value="recruit">練習・イベントの募集</option><option value="news">クラブのお知らせ</option></select><label>投稿の目的</label><select id="admin_goal" style="width:100%"><option>通常の参加募集</option><option>初心者向け体験会</option><option>大会・イベント告知</option><option>直前の追加募集</option><option>日時・場所の変更案内</option><option>中止・延期のお知らせ</option><option>会費・手続きの案内</option><option>お礼・活動報告</option><option>練習日程のお知らせ</option></select><label>届けたい相手</label><select id="admin_audience" style="width:100%"><option>初心者・初参加の人</option><option>クラブメンバー</option><option>経験者・中級者</option><option>家族や友人を含む地域の人</option><option>大会参加者</option><option>幅広いレベルの人</option></select><label>文体</label><select id="admin_tone" style="width:100%"><option>親しみやすく気軽</option><option>明るく元気</option><option>丁寧で落ち着いた</option><option>短く要点重視</option><option>初参加でも安心できる</option><option>スポーツらしく熱意のある</option></select><label>募集レベル</label><select id="admin_level" style="width:100%"><option>初心者歓迎</option><option>中級</option><option>上級</option></select><label>場所</label><input id="admin_place" list="admin_place_options" placeholder="例: 中央公園テニスコート" style="width:100%"><datalist id="admin_place_options">${adminSuggestionOptions("place")}</datalist><label>追加情報（持ち物など）</label><textarea id="admin_details" rows="3" style="width:100%"></textarea><label>開催日</label><input id="admin_event_date" type="date" style="width:100%"><label>開催時刻</label><select id="admin_event_time" style="width:100%">${adminTimeOptions()}</select><div class="row"><label style="margin:0">募集人数 <input id="admin_capacity" type="number" min="1" max="99" value="4" style="width:76px"></label></div><div class="row"><button onclick="askAdminAI()">GeminiでAI案を作る</button><button class="g" onclick="copyAdminPrompt()">依頼文をコピー</button></div><label>AIへの依頼文</label><textarea id="admin_prompt" rows="5" readonly style="width:100%"></textarea><label>公開する文章</label><textarea id="admin_draft" rows="5" style="width:100%"></textarea><button onclick="publishAdminContent()">この内容を公開</button></div>
 <h2>募集の管理</h2>${(S.posts||[]).map((p,i)=>`<div class="box"><div class="row" style="justify-content:space-between"><span style="white-space:pre-wrap;flex:1">${esc(p.w)}</span><button class="x" onclick="deleteAdminPost(${i})">削除</button></div></div>`).join("")||'<p class="sub">公開中の募集はありません。</p>'}<h2>お知らせの管理</h2>${(S.news||[]).map((n,i)=>`<div class="box"><div class="row" style="justify-content:space-between"><span style="white-space:pre-wrap;flex:1">${esc(n)}</span><button class="x" onclick="deleteAdminNews(${i})">削除</button></div></div>`).join("")||'<p class="sub">公開中のお知らせはありません。</p>'}`}
@@ -904,9 +1007,9 @@ function adminEvents(){
 const editing=(S.events||[]).find(event=>event.id===S.adminEventEdit);
 const draft=S.adminForm||{};
 const dateValue=editing?.date||draft.event_date||"";
-const timeValue=editing?.time||draft.event_time||"";
+const timeValue=editing?.time||draft.event_time||"",endValue=editing?.endTime||draft.event_end||"";
 const sorted=(S.events||[]).map((event,index)=>({event,index})).sort((a,b)=>(a.event.date||"").localeCompare(b.event.date||""));
-return `<h2>${editing?"イベントを編集":"イベント日程を登録"}</h2><div class="box"><label>イベント名</label><input id="event_title" value="${esc(editing?.title||draft.event_title||"")}" placeholder="例: 週末ピックルボール練習会" style="width:100%"><label>開催日 <span class="sub">必須</span></label><input id="event_date" type="date" value="${esc(dateValue)}" style="width:100%"><label>開催時刻</label><select id="event_time" style="width:100%">${eventTimeOptions(timeValue)}</select><label>場所 <span class="sub">必須</span></label><input id="event_place" value="${esc(editing?.place||draft.event_place||"")}" list="event_place_options" placeholder="例: 中央公園テニスコート" style="width:100%"><datalist id="event_place_options">${adminSuggestionOptions("place")}</datalist><label>募集人数（0は定員なし）</label><input id="event_capacity" type="number" min="0" max="999" value="${editing?.capacity??draft.event_capacity??0}" style="width:100%"><label>内容・持ち物など</label><textarea id="event_details" rows="4" style="width:100%">${esc(editing?.details||draft.event_details||"")}</textarea><div class="row"><button onclick="saveEvent()">${editing?"変更を保存":"イベントを公開"}</button>${editing?'<button class="g" onclick="cancelEditEvent()">編集をやめる</button>':""}</div></div>
+return `<h2>${editing?"イベントを編集":"イベント日程を登録"}</h2><div class="box"><label>イベント名</label><input id="event_title" value="${esc(editing?.title||draft.event_title||"")}" placeholder="例: 週末ピックルボール練習会" style="width:100%"><label>開催日 <span class="sub">必須</span></label><input id="event_date" type="date" value="${esc(dateValue)}" style="width:100%"><label>開始時刻</label><select id="event_time" style="width:100%">${eventTimeOptions(timeValue)}</select><label>終了時刻</label><select id="event_end" style="width:100%">${eventTimeOptions(endValue)}</select><label>場所 <span class="sub">必須</span></label><input id="event_place" value="${esc(editing?.place||draft.event_place||"")}" list="event_place_options" placeholder="例: 中央公園テニスコート" style="width:100%"><datalist id="event_place_options">${adminSuggestionOptions("place")}</datalist><label>対象レベル</label><select id="event_level" style="width:100%">${[["all","全レベル"],["b","🌱 初心者歓迎"],["i","⚡ 中級"],["a","🔥 上級"]].map(([k,l])=>`<option value="${k}" ${(editing?.level||draft.event_level||"all")===k?"selected":""}>${l}</option>`).join("")}</select><label>募集人数（0は定員なし）</label><input id="event_capacity" type="number" min="0" max="999" value="${editing?.capacity??draft.event_capacity??0}" style="width:100%"><label>内容・持ち物など</label><textarea id="event_details" rows="4" style="width:100%">${esc(editing?.details||draft.event_details||"")}</textarea><div class="row"><button onclick="saveEvent()">${editing?"変更を保存":"イベントを公開"}</button>${editing?'<button class="g" onclick="cancelEditEvent()">編集をやめる</button>':""}</div></div>
 <h2>イベント一覧・参加状況</h2>${sorted.map(({event,index})=>eventAdminCard(event,index)).join("")||'<p class="sub">登録済みイベントはありません。</p>'}`
 }
 function eventTimeOptions(selected=""){
@@ -920,18 +1023,19 @@ return {yes,no,unanswered,remaining:event.capacity?Math.max(0,event.capacity-yes
 }
 function eventAdminCard(event,index){
 const counts=eventCounts(event);
-return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${esc(event.date)}${event.time?` ${esc(event.time)}`:""}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="row"><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div></div>`
+return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="row"><button onclick="goDues('${esc(event.id)}')">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div></div>`
 }
 function saveEvent(){
 const title=$("event_title").value.trim(),date=$("event_date").value,place=$("event_place").value.trim();
 if(!title){alert("イベント名を入力してください");return}
 if(!date){alert("開催日を選択してください");return}
 if(!place){alert("開催場所を入力してください");return}
-const event={id:S.adminEventEdit||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,title,date,time:$("event_time").value,place,capacity:Math.max(0,parseInt($("event_capacity").value,10)||0),details:$("event_details").value.trim(),responses:{}};
+if($("event_time").value&&$("event_end").value&&$("event_end").value<=$("event_time").value){alert("終了時刻は開始時刻より後にしてください");return}
+const event={id:S.adminEventEdit||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,title,date,level:$("event_level").value,time:$("event_time").value,endTime:$("event_end").value,place,capacity:Math.max(0,parseInt($("event_capacity").value,10)||0),details:$("event_details").value.trim(),responses:{}};
 S.events=S.events||[];
 const index=S.events.findIndex(item=>item.id===event.id);
-if(index>=0){event.responses=S.events[index].responses||{};S.events[index]=event}else S.events.push(event);
-rememberAdminSuggestion("place");S.adminEventEdit="";["event_title","event_date","event_time","event_place","event_capacity","event_details"].forEach(id=>{if(S.adminForm)delete S.adminForm[id]});save();draw();toast("イベントを公開しました")
+if(index>=0){event.responses=S.events[index].responses||{};if(S.events[index].dues)event.dues=S.events[index].dues;S.events[index]=event}else S.events.push(event);
+rememberAdminSuggestion("place");S.adminEventEdit="";["event_title","event_date","event_time","event_end","event_level","event_place","event_capacity","event_details"].forEach(id=>{if(S.adminForm)delete S.adminForm[id]});save();draw();toast("イベントを公開しました")
 }
 function editEvent(index){const event=S.events[index];if(!event)return;S.adminEventEdit=event.id;save();draw()}
 function cancelEditEvent(){S.adminEventEdit="";draw()}
@@ -944,15 +1048,13 @@ return `<span class="badge">CLUB EVENTS</span><h1>イベント</h1><p class="sub
 function eventMemberCard(event,memberName){
 const counts=eventCounts(event),response=event.responses&&event.responses[memberName];
 const full=event.capacity&&counts.yes.length>=event.capacity&&response!=="yes";
-return `<div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)}${event.time?` ${esc(event.time)}`:""}</span></div><p><b>場所:</b> ${esc(event.place)}</p>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div><div class="sub">参加予定メンバー: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"まだいません"}</div>${memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":"未回答"}</p><div class="row"><button onclick="respondEvent('${esc(event.id)}','yes')" ${full?"disabled":""}>参加する</button><button class="g" onclick="respondEvent('${esc(event.id)}','no')">参加しない</button></div>${full?'<p class="sub">定員に達しています。参加回答済みの人が取り消すと選択できます。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>'}</div>`
+return `<div class="box"${ROLE==="admin"?` onclick="goDues('${esc(event.id)}')" style="cursor:pointer"`:""}><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div>${ROLE==="admin"?'<p class="sub">タップすると、このイベントの会費の回収状況を開きます。</p>':""}<p><b>場所:</b> ${esc(event.place)}</p>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div><div class="sub">参加予定メンバー: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"まだいません"}</div>${memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":"未回答"}</p>${duesNote(event,memberName,response)}<div class="row"><button onclick="respondEvent('${esc(event.id)}','yes')" ${full?"disabled":""}>参加する</button><button class="g" onclick="respondEvent('${esc(event.id)}','no')">参加しない</button></div>${full?'<p class="sub">定員に達しています。参加回答済みの人が取り消すと選択できます。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>'}</div>`
 }
 function openProfileLogin(){go("pf")}
-function respondEvent(eventId,status){
-const event=(S.events||[]).find(item=>item.id===eventId),member=profileSessionName;
-if(!event||!member||!S.members.some(item=>item.n===member)){alert("プロフィールからログインしてください");return}
-const counts=eventCounts(event);
-if(status==="yes"&&event.capacity&&counts.yes.length>=event.capacity&&event.responses?.[member]!=="yes"){alert("このイベントは定員に達しています");return}
-event.responses=event.responses||{};event.responses[member]=status;logMemberUpdate(member,status==="yes"?`イベント参加回答: ${event.title}`:`イベント不参加回答: ${event.title}`);save();draw();toast(status==="yes"?"参加で回答しました":"不参加で回答しました")
+async function respondEvent(eventId,status){
+const event=(S.events||[]).find(i=>i.id===eventId);if(!event||!profileSessionName){alert("ログインし直してください");return}
+try{await rpc("event_respond",{p_event:eventId,p_status:status});logMemberUpdate(profileSessionName,(status==="yes"?"イベント参加回答: ":"イベント不参加回答: ")+event.title);await reloadState();toast(status==="yes"?"参加で回答しました":"不参加で回答しました")}
+catch(e){alert(String(e.message||"").includes("full")?"このイベントは定員に達しています":"回答できませんでした")}
 }
 function adminUpdates(){
 const audit=S.memberAudit||[];
@@ -1052,7 +1154,7 @@ const amounts=Array.from({length:501},(_,i)=>i*100);
 if(!amounts.includes(current))amounts.push(current);
 return amounts.sort((a,b)=>a-b).map(amount=>`<option value="${amount}" ${amount===current?"selected":""}>${amount.toLocaleString()}円</option>`).join("")
 }
-const adminFormIds=["dues_amount","bname","b6","b7","event_title","event_date","event_time","event_place","event_capacity","event_details","admin_kind","admin_goal","admin_audience","admin_tone","admin_level","admin_place","admin_details","admin_capacity","admin_event_date","admin_event_time","admin_prompt","admin_draft"];
+const adminFormIds=["dues_amount","bname","b6","b7","event_title","event_date","event_time","event_end","event_level","event_place","event_capacity","event_details","admin_kind","admin_goal","admin_audience","admin_tone","admin_level","admin_place","admin_details","admin_capacity","admin_event_date","admin_event_time","admin_prompt","admin_draft"];
 function captureAdminForm(){
 const values={...(S.adminForm||{})};
 let changed=false;
@@ -1090,8 +1192,105 @@ $("bs").textContent=`損益分岐点: ${result.breakEven.toLocaleString()}人 / 
 }
 async function changePw(){const p=$("new_pw").value.trim();if(p.length<8){alert("8文字以上で入力してください");return}try{await rpc("admin_set_password",{p_pw:p});$("new_pw").value="";toast("パスワードを変更しました")}catch(e){alert("変更できませんでした")}}
 
+/* ---------- Pop Style：ホーム・ルールQ&A・デモ・スコア記録・ブラケット・実績 ---------- */
+const LVL_LABEL={all:"全レベル",b:"🌱 BEGINNER",i:"⚡ INTERMEDIATE",a:"🔥 ADVANCED"};
+const levelStamp=r=>r<3?"🌱 BEGINNER":r<4?"⚡ INTERMEDIATE":"🔥 ADVANCED";
+let HF={d:"all",l:"all",o:false};
+function heroBlock(){return `<div class="box hero"><span class="badge">PICKLE HUB</span><h1>ピックルボールをもっと楽しく、もっと身近に 🎾</h1><p class="sub">はじめてでも大丈夫。まずは気軽に触ってみよう！</p><div class="hero-btns"><button onclick="openRules()">📖 10秒でわかるルール</button><button class="g" onclick="openDemo()">🎮 お試しデモを見る</button><button class="g" onclick="findCourt()">📍 近くのコートを探す</button></div></div>`}
+function findCourt(){window.open("https://www.google.com/maps/search/"+encodeURIComponent("ピックルボール コート 近く"),"_blank")}
+function sessionCard(e,me){const c=eventCounts(e),cap=+e.capacity||0,left=cap?Math.max(0,cap-c.yes.length):null,r=e.responses&&e.responses[me],lv=e.level||"all",full=cap&&left===0&&r!=="yes",fee=e.dues&&+e.dues.amount>0?+e.dues.amount:0;
+const stk=(left!=null&&left>0&&left<=2?`<span class="stk">✦ 残り${left}枠！</span>`:"")+(lv==="b"?`<span class="stk r">初参加大歓迎 🌱</span>`:"")+(full?`<span class="stk">満員 🈵</span>`:"");
+return `<div class="box scard">${stk}<div class="row" style="justify-content:space-between;margin:0"><h2 style="margin:0">${esc(e.title)}</h2><span class="lvl">${LVL_LABEL[lv]||""}</span></div>
+<p class="sub" style="margin:8px 0">📅 ${esc(e.date)} ${esc(evTime(e))}<br>📍 ${esc(e.place||"")}${fee?`<br>💴 会費 ${fee.toLocaleString()}円`:""}</p>
+<div class="row" style="justify-content:space-between;margin:0"><b>👥 ${c.yes.length}${cap?`/${cap}`:""}人</b>${me?(r==="yes"?'<span class="ok">参加予定 ✔</span>':`<button onclick="respondEvent('${esc(e.id)}','yes')" ${full?"disabled":""}>参加予約</button>`):""}</div></div>`}
+function homeTab(){
+const t=localDateKey(),wk=new Date();wk.setDate(wk.getDate()+7);const wkk=localDateKey(wk);
+let evs=(S.events||[]).filter(e=>(e.date||"")>=t).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||"").localeCompare(b.time||""));
+if(HF.d==="today")evs=evs.filter(e=>e.date===t);if(HF.d==="week")evs=evs.filter(e=>e.date<=wkk);
+if(HF.l!=="all")evs=evs.filter(e=>(e.level||"all")==="all"||e.level===HF.l);
+if(HF.o)evs=evs.filter(e=>!(+e.capacity)||eventCounts(e).remaining>0);
+const chip=(l,on,fn)=>`<button class="fchip ${on?"on":""}" aria-pressed="${on}" onclick="${fn};draw()">${l}</button>`;
+return `${heroBlock()}<h2>練習・イベント</h2><div class="hscroll">${[["all","すべて"],["today","今日"],["week","今週"]].map(([k,l])=>chip("📅 "+l,HF.d===k,`HF.d='${k}'`)).join("")}${[["all","すべて"],["b","🌱 BEGINNER"],["i","⚡ INTERMEDIATE"],["a","🔥 ADVANCED"]].map(([k,l])=>chip(l,HF.l===k,`HF.l='${k}'`)).join("")}${chip("🟢 空きあり",HF.o,"HF.o=!HF.o")}</div>
+${evs.map(e=>sessionCard(e,ROLE==="admin"?"":ME)).join("")||'<p class="sub">条件に合うイベントはありません。</p>'}`}
+/* ルールQ&A（ポップなモーダル） */
+const QA=[
+["🍳 キッチン（ノンボレーゾーン）って何？","ネットの両側7フィート（約2.1m）にある、ボレー禁止のエリアです。バウンドした球なら、中に入って打ってもOK。ラインに触れても「中」扱いです。",`<svg viewBox="0 0 200 150" role="img" aria-label="コート図" style="width:100%;max-width:260px"><rect x="10" y="10" width="180" height="130" fill="#fff" stroke="#000" stroke-width="4"/><rect x="10" y="40" width="180" height="35" fill="#F472B6" stroke="#000" stroke-width="3"/><rect x="10" y="75" width="180" height="35" fill="#F472B6" stroke="#000" stroke-width="3"/><line x1="10" y1="75" x2="190" y2="75" stroke="#000" stroke-width="6"/><text x="100" y="62" text-anchor="middle" font-size="13" font-weight="900" fill="#000">KITCHEN</text><text x="100" y="98" text-anchor="middle" font-size="13" font-weight="900" fill="#000">KITCHEN</text><text x="100" y="135" text-anchor="middle" font-size="11" fill="#000">ここがベースライン側</text></svg>`],
+["📊 DUPRって何？","世界で使われている実力レーティング（2.0〜8.0）で、試合結果から自動で更新されます。このアプリの「レベル」は、自己評価の目安で、公式のDUPRとは別のものです。目安: 3.0未満=BEGINNER、3.0〜3.9=INTERMEDIATE、4.0以上=ADVANCED。",""],
+["2️⃣ ツーバウンスルールって？","サーブを受ける側は1回バウンドさせてから返し、サーブした側も、返ってきた球を1回バウンドさせてから打ちます。その後は、ボレー（バウンド前に打つ）もOKです。",""],
+["🎾 サーブのやり方は？","ベースラインの後ろから、対角のサービスコートへ。ボレーサーブは、腰より下で、下から上へ打ちます。ネットを越えて、キッチンの外に落とします。",""],
+["🔢 点数の数え方は？","サーブ側だけが得点できる「サイドアウト方式」。ふつうは11点先取・2点差で勝ち。ダブルスのスコアコールは「自分たち-相手-サーバー番号」（例: 3-5-2）です。",""],
+["🚫 よくあるフォルトは？","サーブのアウト、ツーバウンス前のボレー、キッチンの中でのボレー、ボールがアウト、ネットを越えない、などです。",""]];
+function openRules(){const d=document.createElement("div");d.id="dg";d.style.zIndex="85";
+d.innerHTML=`<div class="box" style="max-height:88vh;overflow:auto"><h2 style="margin-top:0">📖 10秒でわかるルール</h2><p class="sub">タップすると答えが開きます。</p>${QA.map((q,i)=>`<details class="box" style="margin:8px 0;padding:12px"><summary style="font-weight:900;cursor:pointer;min-height:32px">${q[0]}</summary><p style="margin:8px 0">${q[1]}</p>${q[2]?`<div style="text-align:center">${q[2]}</div>`:""}</details>`).join("")}<p class="sub">※やさしい要約です。大会では、主催者が指定する公式ルールを確認してください。</p><div class="row"><button id="c" style="width:100%">とじる</button></div></div>`;
+document.body.appendChild(d);d.querySelector("#c").onclick=()=>d.remove();d.onclick=e=>{if(e.target===d)d.remove()}}
+/* スコア記録（サーブ権・スコアコール自動） */
+let SCS={t:11,mode:"d",sc:[0,0],srv:0,no:2,done:-1,hist:[],names:["TEAM A","TEAM B"],mi:-1},SC_DEMO=false;
+function scReset(){SCS.sc=[0,0];SCS.srv=0;SCS.no=SCS.mode==="d"?2:1;SCS.done=-1;SCS.hist=[]}
+function scSnap(){SCS.hist.push(JSON.stringify({sc:SCS.sc,srv:SCS.srv,no:SCS.no,done:SCS.done}))}
+function scCheck(){const[a,b]=SCS.sc,t=SCS.t;SCS.done=a>=t&&a-b>=2?0:b>=t&&b-a>=2?1:-1}
+function scRally(w){if(SCS.done>=0)return;scSnap();if(w===SCS.srv)SCS.sc[w]++;else if(SCS.mode==="d"&&SCS.no===1)SCS.no=2;else{SCS.srv=1-SCS.srv;SCS.no=1}scCheck();scDraw()}
+function scAdj(t,d){if(SCS.done>=0&&d>0)return;scSnap();SCS.sc[t]=Math.max(0,SCS.sc[t]+d);scCheck();scDraw()}
+function scUndo(){const h=SCS.hist.pop();if(!h)return;Object.assign(SCS,JSON.parse(h));scDraw()}
+function scAsk(){ask("スコアを0-0に戻します。よろしいですか？",()=>{scReset();scDraw()})}
+function scDraw(){document.querySelectorAll(".sc_root").forEach(r=>{r.innerHTML=scBody()})}
+const teamPlain=t=>t.map(i=>S.players[i]).join("・");
+function scPick(v){SCS.mi=+v;const lr=S.rounds[S.rounds.length-1];if(SCS.mi>=0&&lr&&lr.m[SCS.mi]){const m=lr.m[SCS.mi];SCS.names=[teamPlain(m.a),teamPlain(m.b)];SCS.mode=m.a.length>1?"d":"s"}scReset();scDraw()}
+function scApply(){const lr=S.rounds[S.rounds.length-1],m=lr&&lr.m[SCS.mi];if(!m){alert("反映する試合を選んでください");return}m.sa=SCS.sc[0];m.sb=SCS.sc[1];save();toast("対戦表に反映しました")}
+function scShare(){shareTxt(`【スコア】\n${SCS.names[0]} ${SCS.sc[0]} - ${SCS.sc[1]} ${SCS.names[1]}`)}
+function scWin(){const w=SCS.done,em=["🎉","🎊","⭐","🏆","✨","🎾"];
+return `${Array.from({length:28},(_,i)=>`<span class="cf" style="left:${Math.round(Math.random()*96)}vw;animation-delay:${(Math.random()*1.2).toFixed(2)}s">${em[i%em.length]}</span>`).join("")}<div class="winov"><div class="box"><h2>WINNER! 🏆</h2><p class="big" style="font-size:30px;margin:6px 0">${esc(SCS.names[w])}</p><p style="font-size:26px;font-weight:900;margin:4px 0">${SCS.sc[0]} - ${SCS.sc[1]}</p><div class="row" style="justify-content:center"><button class="line-btn" onclick="scShare()">LINEで共有</button>${!SC_DEMO&&SCS.mi>=0?'<button onclick="scApply()">対戦表に反映</button>':""}<button class="g" onclick="scReset();scDraw()">もう一度</button><button class="g" onclick="scUndo()">↩ 戻す</button></div></div></div>`}
+function scBody(){const q=SCS,col=i=>`<div class="scc ${q.srv===i?"srv":""}"><input class="scn" value="${esc(q.names[i])}" onchange="SCS.names[${i}]=this.value;scDraw()" aria-label="チーム名">
+<div class="scn-big" aria-label="得点">${q.sc[i]}</div>${q.srv===i?`<div class="serve">🎾 SERVE${q.mode==="d"?` · Server ${q.no}`:""}</div>`:'<div class="recv">RECEIVE</div>'}
+<button class="rally" onclick="scRally(${i})">${i?"B":"A"} がラリーを取った</button><div class="row" style="justify-content:center;margin:0"><button class="g" onclick="scAdj(${i},-1)" aria-label="${i?"B":"A"}を1点減らす">−1</button><button class="g" onclick="scAdj(${i},1)" aria-label="${i?"B":"A"}を1点増やす">＋1</button></div></div>`;
+const lr=!SC_DEMO&&S.rounds&&S.rounds[S.rounds.length-1],sel=lr?`<label>対戦表の試合を選ぶ（任意）</label><select onchange="scPick(this.value)" style="width:100%"><option value="-1">手入力</option>${lr.m.map((m,i)=>`<option value="${i}" ${q.mi===i?"selected":""}>コート${i+1}: ${esc(teamPlain(m.a))} vs ${esc(teamPlain(m.b))}</option>`).join("")}</select>`:"";
+return `<div class="scgrid">${col(0)}${col(1)}</div><p class="sub" style="text-align:center;margin-top:12px">スコアコール <b style="font-size:20px">${q.sc[q.srv]}-${q.sc[1-q.srv]}${q.mode==="d"?"-"+q.no:""}</b><br>${esc(q.names[q.srv])} が${q.sc[q.srv]%2===0?"右":"左"}からサーブ</p>
+<div class="row" style="justify-content:center"><button class="g" onclick="scUndo()">↩ 元に戻す</button><button class="g" onclick="scAsk()">🔄 リセット</button></div>
+<div class="box"><div class="row" style="margin:0"><label style="margin:0">形式 <select onchange="SCS.mode=this.value;scReset();scDraw()"><option value="d" ${q.mode==="d"?"selected":""}>ダブルス</option><option value="s" ${q.mode==="s"?"selected":""}>シングルス</option></select></label><label style="margin:0">先取点 <select onchange="SCS.t=+this.value;scCheck();scDraw()">${[7,11,15,21].map(n=>`<option ${n===q.t?"selected":""}>${n}</option>`).join("")}</select></label></div>${sel}</div>${q.done>=0?scWin():""}`}
+function scoreTab(){SC_DEMO=false;return `<span class="badge">SCORE</span><h1>スコア記録</h1><p class="sub">ラリーを取ったチームのボタンを押すだけ。サーブ権とスコアコールは自動です。</p><div class="sc_root">${scBody()}</div>`}
+function openDemo(){SC_DEMO=true;SCS={t:11,mode:"d",sc:[0,0],srv:0,no:2,done:-1,hist:[],names:["TEAM A","TEAM B"],mi:-1};const d=document.createElement("div");d.id="demo";d.className="demo-ov";
+d.innerHTML=`<main><div class="row" style="justify-content:space-between"><span class="badge">DEMO</span><button class="g" id="c">✕ とじる</button></div><h1>お試しデモ</h1><p class="sub">ログイン不要のお試しです。記録は保存されません。ラリーを取ったチームのボタンを押してみてください。</p><div class="sc_root">${scBody()}</div></main>`;
+document.body.appendChild(d);d.querySelector("#c").onclick=()=>{SC_DEMO=false;d.remove()}}
+/* トーナメントブラケット */
+let EVV="rot";
+function ev(){return `<div class="row" role="tablist">${[["rot","🔁 ローテーション"],["br","🏆 トーナメント"]].map(([k,l])=>`<button class="${EVV===k?"":"g"}" role="tab" aria-selected="${EVV===k}" onclick="EVV='${k}';draw()">${l}</button>`).join("")}</div>`+(EVV==="br"?brView():evRot())}
+const brName=i=>S.br.teams[i].join("・");
+function brModel(){const b=S.br;if(!b||!b.teams||!b.teams.length)return null;const n=b.teams.length,p=b.size;let o=[0];while(o.length<p){const k=o.length*2;o=o.flatMap(x=>[x,k-1-x])}
+let prev=o.map(i=>i<n?i:null),r=0;const rounds=[];
+while(prev.length>1){const ms=[],next=[];for(let m=0;m<prev.length/2;m++){const a=prev[2*m],c=prev[2*m+1],sc=(b.sc||{})[r+"-"+m]||["",""];let w=null;
+if(a!=null&&c==null)w=a;else if(a==null&&c!=null)w=c;else if(a!=null&&c!=null&&sc[0]!==""&&sc[1]!==""&&sc[0]!==sc[1])w=sc[0]>sc[1]?a:c;
+ms.push({a,b:c,sc,w,bye:(a==null)!==(c==null)});next.push(w)}rounds.push(ms);prev=next;r++}
+return rounds}
+function brView(){const m=brModel(),admin=ROLE==="admin";
+const head=`<span class="badge">BRACKET</span><h1>トーナメント</h1><p class="sub">勝ち上がり式の対戦表です。${admin?"今の参加者から自動で組みます。スコアは管理者が入力します。":"管理者が作成すると表示されます。"}</p>${admin?`<div class="row"><button onclick="brAsk()">${m?"組み直す":"今の参加者でブラケットを作成"}</button>${m?'<button class="g" onclick="brClear()">削除</button>':""}</div>`:""}`;
+if(!m)return head+'<p class="sub">まだブラケットはありません。</p>';
+const R=m.length,label=r=>r===R-1?"決勝 👑":r===R-2?"準決勝":r===R-3?"準々決勝":`${r+1}回戦`;let first=true;
+const nm=i=>i==null?'<span class="sub" style="margin:0">（未定）</span>':esc(brName(i));
+const col=m.map((ms,r)=>`<div class="brc"><div class="brt">${label(r)}</div>${ms.map((x,i)=>{
+const st=x.bye?"BYE":x.w!=null?"FINISHED 🏁":(x.a!=null&&x.b!=null)?(first?(first=false,"LIVE 🔴"):"NEXT ⏳"):"WAITING";
+const inp=k=>x.bye||x.a==null||x.b==null?"":admin?`<input class="sc" inputmode="numeric" aria-label="スコア" value="${x.sc[k]}" onchange="brScore(${r},${i},${k},this.value)">`:`<b>${x.sc[k]===""?"-":x.sc[k]}</b>`;
+return `<div class="brm"><span class="st" style="margin:0 0 4px">${st}</span><div class="brl ${x.w!=null&&x.w===x.a?"win":""}"><span>${nm(x.a)}</span>${inp(0)}</div><div class="brl ${x.w!=null&&x.w===x.b?"win":""}"><span>${nm(x.b)}</span>${inp(1)}</div></div>`}).join("")}</div>`).join("");
+const champ=m[R-1][0].w;
+return head+`<div class="brwrap">${col}</div>${champ!=null?`<div class="box" style="text-align:center"><h2 style="justify-content:center">🏆 CHAMPION</h2><div class="big" style="font-size:26px">${esc(brName(champ))}</div></div>`:""}`}
+function brCreate(){if(ROLE!=="admin"){alert("ブラケットの作成は管理者のみです");return}
+const singles=S.tournamentFormat==="singles",n=S.players.length;if(n<(singles?3:6)){alert(singles?"3人以上の参加者が必要です":"6人以上（3ペア以上）の参加者が必要です");return}
+const R=i=>(S.rt&&S.rt[S.players[i]])||3;let teams;
+if(singles)teams=S.players.map((_,i)=>[i]);else{const saved=S.tournamentTeams;teams=makeTournamentTeams(tournamentPlayers());S.tournamentTeams=saved||[]}
+teams.sort((a,b)=>b.reduce((x,i)=>x+R(i),0)-a.reduce((x,i)=>x+R(i),0));
+let p=2;while(p<teams.length)p*=2;
+S.br={teams:teams.map(t=>t.map(i=>S.players[i])),size:p,sc:{},ts:Date.now()};save();draw()}
+function brAsk(){S.br?ask("今の参加者でブラケットを組み直します。入力済みのスコアは消えます。",brCreate):brCreate()}
+function brClear(){ask("ブラケットを削除します。よろしいですか？",()=>{S.br=null;save();draw()})}
+function brScore(r,i,k,v){if(ROLE!=="admin")return;S.br.sc=S.br.sc||{};const key=r+"-"+i,cur=(S.br.sc[key]||["",""]).slice();cur[k]=v===""?"":+v;S.br.sc[key]=cur;save();draw()}
+/* 実績（ゲーミフィケーション） */
+function matchLog(){const out=[],push=(names,rounds)=>(rounds||[]).forEach(r=>r.m.forEach(m=>{if(m.sa===""||m.sb===""||m.sa===m.sb)return;const w=m.sa>m.sb?m.a:m.b,l=m.sa>m.sb?m.b:m.a;w.forEach(i=>out.push([names[i],1]));l.forEach(i=>out.push([names[i],0]))}));
+(S.hist||[]).slice().reverse().forEach(h=>push(h.p||[],h.r));push(S.players,S.rounds);return out}
+function playerStat(name){let w=0,g=0,st=0,best=0;matchLog().forEach(([n,r])=>{if(n!==name)return;g++;if(r){w++;st++;best=Math.max(best,st)}else st=0});return{w,g,best}}
+function achievements(name){const s=playerStat(name),posts=bdRows.filter(x=>x.n===name).length,ev=(S.events||[]).filter(e=>e.responses&&e.responses[name]==="yes").length,h=(S.levelHistory&&S.levelHistory[name])||[],up=h.length>0&&S.rt&&S.rt[name]>h[h.length-1].rating;
+return [["初勝利","🏆",s.w>=1],["3連勝","🔥",s.best>=3],["ラリー王","👑",s.g>=10],["ムードメーカー","🌟",posts>=5],["常連さん","📅",ev>=3],["成長の証","🌱",!!up]]}
+const achGrid=name=>`<div class="ach" aria-label="獲得した実績">${achievements(name).map(([t,e,ok],i)=>`<div class="ach-i ${ok?"on":""}" style="--rot:${i%2?3:-3}deg"><span>${ok?e:"🔒"}</span><b>${t}</b></div>`).join("")}</div>`;
 /* ---------- 見た目のカスタマイズ（この端末だけに保存） ---------- */
 const THEMES={
+pop:{n:"ポップ（標準）",bg:"#FFFBEB",sf:"#FFFFFF",sf2:"#FEF3C7",ink:"#000000",mu:"#334155",ln:"#000000",ac:"#FDE047",ac2:"#F472B6",on:"#000000"},
 forest:{n:"フォレスト",bg:"#171D19",sf:"#202923",sf2:"#29352D",ink:"#E5EAE5",mu:"#9AA79C",ln:"#39473D",ac:"#83B394",ac2:"#8BC6A0",on:"#18221B"},
 night:{n:"ミッドナイト",bg:"#0E1220",sf:"#171C30",sf2:"#20263F",ink:"#E8ECFA",mu:"#98A2C4",ln:"#2D3556",ac:"#7C9CFF",ac2:"#5ED3C2",on:"#0B1022"},
 neon:{n:"ネオンブラック",bg:"#08090C",sf:"#12141A",sf2:"#1B1E27",ink:"#F4F5F7",mu:"#9AA0AE",ln:"#2A2E3B",ac:"#C6F432",ac2:"#38E8C6",on:"#10130A"},
@@ -1115,7 +1314,7 @@ dela:["ポップ太字","Dela Gothic One","Dela+Gothic+One"],
 rampart:["ロゴ風","Rampart One","Rampart+One"],
 sys:["システム標準","system-ui",""]
 };
-const THEME_DEF={theme:"forest",ac:"",font:"zen",fs:15,rad:20,bg:"solid",img:"",fw:400,lh:1.6};
+const THEME_DEF={hc:false,theme:"pop",ac:"",font:"zen",fs:15,rad:20,bg:"solid",img:"",fw:400,lh:1.6};
 const themeGet=()=>{try{return Object.assign({},THEME_DEF,JSON.parse(localStorage.getItem("ph_theme")||"{}"))}catch(e){return Object.assign({},THEME_DEF)}};
 function themeSet(p){const t=Object.assign(themeGet(),p);try{localStorage.setItem("ph_theme",JSON.stringify(t))}catch(e){alert("この設定は保存できませんでした（画像が大きすぎるかもしれません）")}applyTheme()}
 function themeReset(){try{localStorage.removeItem("ph_theme")}catch(e){}applyTheme();draw()}
@@ -1124,7 +1323,7 @@ const lumOf=h=>{const[r,g,b]=hex2rgb(h);return(0.299*r+0.587*g+0.114*b)/255};
 function loadFont(k){const F=FONTS[k];if(!F||!F[2]||document.getElementById("font_"+k))return;const l=document.createElement("link");l.id="font_"+k;l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family="+F[2]+"&display=swap";document.head.appendChild(l)}
 function applyTheme(){
 const t=themeGet(),T=THEMES[t.theme]||THEMES.forest,F=FONTS[t.font]||FONTS.zen,ac=t.ac||T.ac,on=t.ac?(lumOf(ac)>0.6?"#18221B":"#FFFFFF"):T.on,[r,g,b]=hex2rgb(ac);
-loadFont(t.font);
+loadFont(t.font);document.body.classList.toggle("pop",t.theme==="pop");document.body.classList.toggle("hc",!!t.hc);
 let st=document.getElementById("theme_css");if(!st){st=document.createElement("style");st.id="theme_css";document.head.appendChild(st)}
 const light=lumOf(T.bg)>0.6;
 const bgs={solid:"background:var(--bg)",grad:"background:linear-gradient(160deg,var(--sf2),var(--bg) 55%) fixed",dots:"background:radial-gradient(var(--ln) 1.3px,transparent 1.3px) 0 0/20px 20px,var(--bg)",stripes:"background:repeating-linear-gradient(135deg,var(--sf) 0 14px,var(--bg) 14px 28px) fixed",grid:"background:linear-gradient(var(--ln) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(90deg,var(--ln) 1px,transparent 1px) 0 0/28px 28px,var(--bg)",court:"background:linear-gradient(90deg,transparent calc(50% - 1px),rgba(255,255,255,.2) calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px)),linear-gradient(transparent calc(30% - 1px),rgba(255,255,255,.14) calc(30% - 1px) calc(30% + 1px),transparent calc(30% + 1px)),var(--bg) fixed"};
@@ -1152,7 +1351,7 @@ return `<span class="badge">STYLE</span><h1>見た目の設定</h1><p class="sub
 <div class="box"><label style="margin-top:0">背景にする画像（写真から選べます）</label><input type="file" accept="image/*" onchange="loadBgImage(this)" style="width:100%">${t.img?'<div class="row"><button class="g" onclick="themeSet({img:\'\',bg:\'solid\'});draw()">画像を消す</button></div>':""}</div>
 <h2>フォント</h2><select onchange="themeSet({font:this.value});draw()" style="width:100%">${Object.entries(FONTS).map(([k,v])=>`<option value="${k}" ${t.font===k?"selected":""}>${v[0]}</option>`).join("")}</select>
 <div class="box" style="font-family:'${(FONTS[t.font]||FONTS.zen)[1]}',sans-serif">ピックルボール 大会 Pickle Hub 0123456789<br>あいうえお かきくけこ さしすせそ</div>
-<h2>文字・形</h2><div class="box"><label style="margin-top:0">文字の大きさ</label><input type="range" min="13" max="20" step="1" value="${t.fs}" oninput="themeSet({fs:+this.value})" style="width:100%">
+<h2>見やすさ</h2><div class="box"><label style="margin-top:0"><input type="checkbox" ${t.hc?"checked":""} onchange="themeSet({hc:this.checked})" style="min-height:24px;width:24px;vertical-align:middle"> ハイコントラスト表示（屋外の日差しでも見やすく）</label></div><h2>文字・形</h2><div class="box"><label style="margin-top:0">文字の大きさ</label><input type="range" min="13" max="20" step="1" value="${t.fs}" oninput="themeSet({fs:+this.value})" style="width:100%">
 <label>文字の太さ</label><select onchange="themeSet({fw:+this.value})" style="width:100%">${opt([[400,"ふつう"],[500,"やや太い"],[700,"太い"]],t.fw)}</select>
 <label>行の間隔</label><input type="range" min="1.3" max="2.1" step="0.1" value="${t.lh}" oninput="themeSet({lh:+this.value})" style="width:100%">
 <label>角の丸み</label><input type="range" min="0" max="32" step="1" value="${t.rad}" oninput="themeSet({rad:+this.value})" style="width:100%"></div>
