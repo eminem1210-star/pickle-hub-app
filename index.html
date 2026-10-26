@@ -327,6 +327,15 @@ body.pop .bub{border:2px solid #000;background:#fff;color:#000}
 body.pop .msg.me .bub{background:#FDE047;color:#000}
 body.pop .scn-big{color:#000}
 body.pop .big{color:#000}
+.steps{display:grid;gap:14px;margin:6px 0 18px}
+.step{display:flex;align-items:center;gap:12px;width:100%;min-height:92px;padding:14px;text-align:left;font-size:18px;border:4px solid #000;border-radius:18px;box-shadow:6px 6px 0 #000;color:#000}
+.step small{font-weight:700;font-size:13px}.step-e{font-size:38px;line-height:1}
+.slot{min-height:64px;width:100%;display:flex;align-items:center;gap:8px;justify-content:flex-start;padding:6px 10px;background:#fff;color:#000;border:3px dashed #000;box-shadow:none;font-weight:700;font-size:13px}
+.slot.on{border-style:solid;background:#FEF9C3}
+.vs{font-size:26px;font-weight:900;text-align:center}
+.awd{position:relative;margin:18px 0;padding:14px;border:4px solid #000;border-radius:16px;box-shadow:5px 5px 0 #000;color:#000;text-align:center}
+.awd .stk{left:50%;margin-left:-60px}
+.medal{font-size:22px}
 @media (prefers-reduced-motion:reduce){.serve,.cf{animation:none}}
 </style>
 </head>
@@ -339,8 +348,8 @@ const SUPABASE_URL = 'https://slhfhxwddtxhqarkyldk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_6ai48uMR372DwW-K6Looxw_MIWT91mp';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const TABS=[["hm","<span class=ni>🏠</span>ホーム"],["ev","<span class=ni>🏓</span>対戦表"],["sc","<span class=ni>🎯</span>スコア"],["events","<span class=ni>📅</span>イベント"],["bd","<span class=ni>💬</span>掲示板"],["mo","<span class=ni>☰</span>その他"]];
-const MORE=[["cl","メンバー"],["nt","通知"],["pf","プロフィール"],["pr","練習"],["eq","貸出"],["rules","ルール"],["lv","レベル一覧"],["th","見た目"]];
+const TABS=[["hm","<span class=ni>🏠</span>ホーム"],["se","<span class=ni>🎲</span>セッション"],["events","<span class=ni>📅</span>イベント"],["bd","<span class=ni>💬</span>掲示板"],["mo","<span class=ni>☰</span>その他"]];
+const MORE=[["ev","🏆 大会モード（トーナメントなど）"],["sc","🎯 スコア記録（リアルタイム）"],["cl","メンバー"],["nt","通知"],["pf","プロフィール"],["pr","練習"],["eq","貸出"],["rules","ルール"],["lv","レベル一覧"],["th","見た目"]];
 let tab="hm",S={players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[],feedbacks:[]};
 
 // データの保存（Supabaseに書き込み ＆ localStorageにも一時保存）
@@ -459,7 +468,7 @@ function showCopy(t){const d=document.createElement("div");d.id="dg";d.innerHTML
 function go(t){if(tab==="bz"&&t!=="bz")adminSetupCodeDisplay=null;if(t!=="pf")profilePhotoDraft="";tab=t;draw()}
 function draw(){
 checkTournamentDay();
-$("app").innerHTML=noticeBanner()+({hm:homeTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th})[tab]();
+$("app").innerHTML=noticeBanner()+({hm:homeTab,se:sessionTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th})[tab]();
 if(tab=="pr")showT();
 if(tab=="bz")calcB();
 if(tab=="bz"&&S.adminSheet==="settings")loadBackups();
@@ -517,8 +526,8 @@ function setAttendance(i){S.members[i].at=!S.members[i].at;syncClubPlayers();dra
 function stats(){
 const g=S.players.map(()=>0),pc={},oc={};
 S.rounds.forEach(r=>r.m.forEach(m=>{[...m.a,...m.b].forEach(i=>g[i]++);
-[m.a,m.b].forEach(t=>{const k=t.slice().sort()+"";pc[k]=(pc[k]||0)+1});
-m.a.forEach(x=>m.b.forEach(y=>{const k=[x,y].sort()+"";oc[k]=(oc[k]||0)+1}))}));
+[m.a,m.b].forEach(t=>{const k=t.slice().sort((p,q)=>p-q).join(":");pc[k]=(pc[k]||0)+1});
+m.a.forEach(x=>m.b.forEach(y=>{const k=[x,y].sort((p,q)=>p-q).join(":");oc[k]=(oc[k]||0)+1}))}));
 return{g,pc,oc}}
 function makeTournamentTeams(roster=tournamentPlayers()){
 const ranked=roster.slice().sort((a,b)=>((S.rt&&S.rt[S.players[b]])||3)-((S.rt&&S.rt[S.players[a]])||3));
@@ -596,7 +605,7 @@ S.rounds.push({m:matches,bye});save();draw()}
 function teamLabel(team){return team.map(i=>P(i)).join("・")}
 function round(r,ri){const b=(k,mi,d)=>`<button class="g pm" aria-label="${k=="sa"?"左":"右"}チーム得点${d>0?"+1":"-1"}" onclick="modSc(${ri},${mi},'${k}',${d})">${d>0?"+":"−"}</button>`;
 const inp=(k,mi,v)=>`<input class="sc" inputmode="numeric" aria-label="${k=="sa"?"左":"右"}チーム得点" value="${v}" onchange="setSc(${ri},${mi},'${k}',this.value)">`;
-return `<h2>ラウンド ${ri+1}</h2>${r.m.map((m,mi)=>`<div class="court"><div class="t">コート ${mi+1}<span class="st">${(m.sa!==""&&m.sb!==""&&m.sa!==m.sb)?"FINISHED 🏁":(ri===S.rounds.length-1?"LIVE 🔴":"—")}</span></div>
+return `<h2>ラウンド ${ri+1}</h2>${r.m.map((m,mi)=>`<div class="court"><div class="t">コート ${m.court||mi+1}<span class="st">${(m.sa!==""&&m.sb!==""&&m.sa!==m.sb)?"FINISHED 🏁":(ri===S.rounds.length-1?"LIVE 🔴":"—")}</span></div>
 <div class="m"><div class="${wn(m)==1?"win":""}">${teamLabel(m.a)}</div>
 <div>${b("sa",mi,-1)}${inp("sa",mi,m.sa)}${b("sa",mi,1)}<span class="sub" style="margin:0">:</span>${b("sb",mi,-1)}${inp("sb",mi,m.sb)}${b("sb",mi,1)}</div>
 <div class="${wn(m)==2?"win":""}">${teamLabel(m.b)}</div></div></div>`).join("")}
@@ -1192,11 +1201,96 @@ $("bs").textContent=`損益分岐点: ${result.breakEven.toLocaleString()}人 / 
 }
 async function changePw(){const p=$("new_pw").value.trim();if(p.length<8){alert("8文字以上で入力してください");return}try{await rpc("admin_set_password",{p_pw:p});$("new_pw").value="";toast("パスワードを変更しました")}catch(e){alert("変更できませんでした")}}
 
+/* ---------- セッション進行（登録 → ペア → 結果集計 → 表彰） ---------- */
+let SEV=1,SES={a:[null,null],b:[null,null],court:1,lv:"b",size:2};
+const POPC=["#FDE047","#F472B6","#67E8F9","#6EE7B7","#C4B5FD","#FDBA74"],LVN={b:2.5,i:3.5,a:4.5},LVT={b:"🌱 BEGINNER",i:"⚡ INTERMEDIATE",a:"🔥 ADVANCED"};
+const isMember=n=>S.members.some(m=>m.n===n);
+const lvOf=n=>{const r=S.rt&&S.rt[n];return r==null||r<3?"b":r<4?"i":"a"};
+function popAvatar(name,size=36){const p=S.profiles&&S.profiles[name];if(p&&p.avatar)return `<img src="${esc(p.avatar)}" alt="" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:50%;border:3px solid #000;vertical-align:middle">`;let h=0;for(const c of String(name))h=(h*31+c.codePointAt(0))>>>0;
+return `<span aria-hidden="true" style="display:inline-grid;place-items:center;width:${size}px;height:${size}px;border-radius:50%;border:3px solid #000;background:${POPC[h%POPC.length]};color:#000;font-weight:900;font-size:${Math.round(size*.45)}px;vertical-align:middle;transform:rotate(${(h%7)-3}deg)">${esc(String(name||"?").slice(0,1))}</span>`}
+const popName=i=>`<span style="display:inline-flex;align-items:center;gap:6px">${popAvatar(S.players[i],26)}<b>${esc(S.players[i])}</b></span>`;
+const teamPop=t=>t.map(popName).join("<br>");
+function sessionTab(){const steps=[[1,"👥","メンバー"],[2,"⚔️","対戦ペア"],[3,"📊","結果・集計"]];
+return `<span class="badge">SESSION</span><h1>今日のセッション</h1><div class="hscroll" role="tablist">${steps.map(([k,e,l])=>`<button class="fchip ${SEV===k?"on":""}" role="tab" aria-selected="${SEV===k}" onclick="SEV=${k};draw()">${e} ${k}. ${l}</button>`).join("")}</div>${SEV===1?sesStep1():SEV===2?sesStep2():sesStep3()}`}
+/* 1. メンバー登録 */
+function sesStep1(){return `<p class="sub">その場にいる人の名前（ニックネーム）を入れて「追加」。メンバー画面で「出席」にした人は、自動で入ります。</p>
+<div class="box"><div class="row"><input id="ses_name" data-keep maxlength="20" placeholder="なまえ" onkeydown="if(event.key==='Enter')sesAdd()" style="flex:1"><button onclick="sesAdd()">＋ 追加</button></div>
+<div class="row" role="radiogroup" aria-label="レベル">${["b","i","a"].map(k=>`<button class="fchip ${SES.lv===k?"on":""}" role="radio" aria-checked="${SES.lv===k}" onclick="SES.lv='${k}';draw()">${LVT[k]}</button>`).join("")}</div></div>
+<h2>参加メンバー（${S.players.length}人）</h2>
+${S.players.map((n,i)=>`<div class="box" style="display:flex;align-items:center;gap:10px;margin:8px 0;padding:10px"><span>${popAvatar(n,40)}</span><b style="flex:1;word-break:break-all">${esc(n)}</b><button class="g" onclick="sesLv(${i})" aria-label="レベルを切り替え">${LVT[lvOf(n)]}</button><button class="x" onclick="sesDel(${i})" aria-label="${esc(n)}を削除">✕</button></div>`).join("")||'<p class="sub">まだ誰もいません。上のフォームから追加しましょう！</p>'}
+${S.players.length>=2?'<div class="row"><button onclick="SEV=2;draw()" style="width:100%">次へ：対戦ペアをつくる ➡️</button></div>':""}`}
+function sesAdd(){const n=($("ses_name").value||"").trim();if(!n){alert("名前を入れてください");return}
+if(S.players.some(p=>normName(p)===normName(n))){alert("同じ名前の人がすでにいます");return}
+S.players.push(n);if(!isMember(n)){S.rt=S.rt||{};S.rt[n]=LVN[SES.lv]}
+$("ses_name").value="";save();draw();const f=$("ses_name");if(f)f.focus()}
+function sesLv(i){const n=S.players[i];if(isMember(n)){alert("メンバーのレベルは、プロフィールの自己評価が使われます");return}const o=["b","i","a"],k=o[(o.indexOf(lvOf(n))+1)%3];S.rt=S.rt||{};S.rt[n]=LVN[k];save();draw()}
+function sesDel(i){const n=S.players[i];if(n==null)return;ask(`${n}さんを外します。この人の試合も消えます。よろしいですか？`,()=>{
+const f=j=>j>i?j-1:j;
+S.rounds=S.rounds.map(r=>({...r,m:r.m.filter(x=>![...x.a,...x.b].includes(i)).map(x=>({...x,a:x.a.map(f),b:x.b.map(f)})),bye:(r.bye||[]).filter(j=>j!==i).map(f)})).filter(r=>r.m.length);
+S.players.splice(i,1);S.tournamentTeams=[];if(!isMember(n)&&S.rt)delete S.rt[n];SES.a=[null,null];SES.b=[null,null];save();draw()})}
+/* 2. 対戦ペア作成 */
+function sesSlots(){return SES.size===2?[["a",0],["a",1],["b",0],["b",1]]:[["a",0],["b",0]]}
+function sesPick(i){const e=sesSlots().find(([t,k])=>SES[t][k]==null);if(!e){alert("枠がいっぱいです。「この対戦を追加」を押すか、枠をタップして外してください");return}SES[e[0]][e[1]]=i;draw()}
+function sesClear(t,k){SES[t][k]=null;draw()}
+function sesAddMatch(){const sl=sesSlots();if(sl.some(([t,k])=>SES[t][k]==null)){alert("すべての枠に人を入れてください");return}
+const a=SES.a.filter(x=>x!=null),b=SES.b.filter(x=>x!=null);S.rounds.push({m:[{a:SES.size===2?a:[a[0]],b:SES.size===2?b:[b[0]],sa:"",sb:"",court:SES.court,manual:true}],bye:[]});
+SES.a=[null,null];SES.b=[null,null];save();draw();toast("対戦を追加しました")}
+function sesAuto(){const n=S.players.length;if(n<4){alert("4人以上いると、おまかせでペアを作れます");return}
+const{g,pc,oc}=stats(),R=i=>(S.rt&&S.rt[S.players[i]])||3,K=(u,v)=>[u,v].sort((x,y)=>x-y).join(":"),byeC=S.players.map(()=>0);
+S.rounds.forEach(r=>(r.bye||[]).forEach(i=>{if(byeC[i]!=null)byeC[i]++}));
+const cap=Math.min(Math.max(1,S.courts),Math.floor(n/4))*4,play=[...Array(n).keys()].sort((a,b)=>g[a]-g[b]||byeC[b]-byeC[a]||Math.random()-.5).slice(0,cap),bye=[...Array(n).keys()].filter(i=>!play.includes(i));
+let best=null,bs=Infinity;
+for(let t=0;t<500;t++){const sh=play.slice().sort(()=>Math.random()-.5);let sc=0;const ms=[];
+for(let i=0;i<sh.length;i+=4){const[a,b,x,y]=sh.slice(i,i+4);sc+=25*((pc[K(a,b)]||0)**2+(pc[K(x,y)]||0)**2);[[a,x],[a,y],[b,x],[b,y]].forEach(([u,v])=>sc+=(oc[K(u,v)]||0)**2*5);sc+=Math.abs(R(a)+R(b)-R(x)-R(y))*4;ms.push({a:[a,b],b:[x,y],sa:"",sb:"",court:i/4+1,manual:true})}
+if(sc<bs){bs=sc;best=ms}}
+S.rounds.push({m:best,bye});save();draw();toast("おまかせでペアを作りました 🎲")}
+function sesDelMatch(r,m){ask("この対戦を削除します。よろしいですか？",()=>{const rd=S.rounds[r];if(!rd)return;rd.m.splice(m,1);if(!rd.m.length)S.rounds.splice(r,1);save();draw()})}
+function matchList(){const o=[];S.rounds.forEach((r,ri)=>r.m.forEach((m,mi)=>o.push({r:ri,m:mi,x:m})));return o}
+const isDone=x=>x.sa!==""&&x.sb!==""&&x.sa!==x.sb;
+function sesStep2(){const used=new Set([...SES.a,...SES.b].filter(x=>x!=null)),list=matchList();
+const slot=(t,k)=>{const i=SES[t][k];return `<button class="slot ${i!=null?"on":""}" onclick="${i!=null?`sesClear('${t}',${k})`:"void 0"}" aria-label="${i!=null?S.players[i]+"を外す":"空き枠"}">${i!=null?popName(i)+" ✕":"（空き）"}</button>`};
+return `<p class="sub">下の名前をタップして、チームA・Bに入れましょう。迷ったら「おまかせ」！</p>
+<div class="row"><button style="flex:1" onclick="sesAuto()">🎲 おまかせペア作成</button></div>
+<div class="box"><div class="row" style="margin:0 0 8px"><label style="margin:0">人数 <select onchange="SES.size=+this.value;SES.a=[null,null];SES.b=[null,null];draw()"><option value="2" ${SES.size===2?"selected":""}>2人 vs 2人</option><option value="1" ${SES.size===1?"selected":""}>1人 vs 1人</option></select></label><label style="margin:0">コート <select onchange="SES.court=+this.value">${Array.from({length:Math.max(1,S.courts)},(_,i)=>`<option ${SES.court===i+1?"selected":""}>${i+1}</option>`).join("")}</select></label></div>
+<div class="scgrid"><div><b>🟡 TEAM A</b>${slot("a",0)}${SES.size===2?slot("a",1):""}</div><div><b>🩷 TEAM B</b>${slot("b",0)}${SES.size===2?slot("b",1):""}</div></div>
+<div class="hscroll" style="flex-wrap:wrap;overflow:visible">${S.players.map((n,i)=>`<button class="fchip" ${used.has(i)?"disabled":""} onclick="sesPick(${i})">${popAvatar(n,24)} ${esc(n)}</button>`).join("")||'<span class="sub">先にメンバーを登録してください</span>'}</div>
+<div class="row"><button onclick="sesAddMatch()" style="width:100%">⚔️ この対戦を追加</button></div></div>
+<h2>今日の対戦カード（${list.length}）</h2>
+${list.map(o=>`<div class="box scard"><span class="stk ${isDone(o.x)?"":"r"}">${isDone(o.x)?"FINISHED 🏁":"結果待ち ⏳"}</span><div class="row" style="justify-content:space-between;margin:0"><b>COURT ${o.x.court||o.m+1}</b><button class="x" onclick="sesDelMatch(${o.r},${o.m})" aria-label="削除">✕</button></div><div class="scgrid" style="align-items:center"><div>${teamPop(o.x.a)}</div><div style="text-align:right">${teamPop(o.x.b)}</div></div></div>`).join("")||'<p class="sub">まだ対戦がありません。</p>'}
+${list.length?'<div class="row"><button onclick="SEV=3;draw()" style="width:100%">次へ：結果を入力する ➡️</button></div>':""}`}
+/* 3. 結果入力・集計 */
+function sesRank(){const t=table().filter(r=>r.g>0).map(r=>({...r,n:S.players[r.i],rate:r.w/r.g}));return t.sort((a,b)=>b.rate-a.rate||b.w-a.w||b.d-a.d)}
+function sesResult(r,m){const a=$(`ra_${r}_${m}`).value.trim(),b=$(`rb_${r}_${m}`).value.trim();
+if(a===""||b===""||isNaN(+a)||isNaN(+b)||+a<0||+b<0){alert("両チームの点数を入れてください（例: 11 と 8）");return}
+if(+a===+b){alert("同点は入力できません。勝ったチームが上回るようにしてください");return}
+const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;x.sa=+a;x.sb=+b;save();draw();
+const all=matchList();if(all.length&&all.every(o=>isDone(o.x)))toast("全試合終了！表彰を見てみよう 🏆")}
+function sesStep3(){const list=matchList();
+if(!list.length)return '<p class="sub">まだ対戦がありません。</p><div class="row"><button onclick="SEV=2;draw()">⚔️ 対戦ペアをつくる</button></div>';
+const fin=list.filter(o=>isDone(o.x)),rank=sesRank(),maxW=rank.length?Math.max(...rank.map(r=>r.w)):0,top=rank.filter(r=>r.w===maxW&&maxW>0).map(r=>r.n),allDone=fin.length===list.length;
+const medal=["🥇","🥈","🥉"];
+return `<div class="scgrid" style="margin-top:12px"><div class="box scard"><span class="stk">総試合数</span><div class="big" style="text-align:center">${fin.length}<small style="font-size:14px">/${list.length}</small></div></div><div class="box scard"><span class="stk r">本日の最多勝 👑</span><div style="text-align:center;font-weight:900;font-size:18px;word-break:break-all">${top.length?esc(top.join("・")):"—"}</div><div class="sub" style="text-align:center;margin:0">${maxW?maxW+"勝":""}</div></div></div>
+<h2>勝率ランキング</h2>${rank.length?`<table><tr><th>順位</th><th>名前</th><th>勝-敗</th><th>勝率</th><th>得失点</th></tr>${rank.map((r,k)=>`<tr><td class="medal">${medal[k]||"#"+(k+1)}</td><td>${popAvatar(r.n,26)} <b>${esc(r.n)}</b></td><td>${r.w}-${r.l}</td><td><b>${Math.round(r.rate*100)}%</b></td><td>${r.d>0?"+":""}${r.d}</td></tr>`).join("")}</table>`:'<p class="sub">結果を入力すると、ここに順位が出ます。</p>'}
+<div class="row"><button style="width:100%;${allDone?"background:#F472B6":""}" onclick="openAwards()" ${fin.length?"":"disabled"}>${allDone?"🎉 全試合終了！表彰を見る 🏆":"🏆 表彰を見る"}</button></div>
+<h2>結果を入力</h2>${list.map(o=>{const x=o.x,d=isDone(x),wa=d&&x.sa>x.sb,wb=d&&x.sb>x.sa;return `<div class="box scard"><span class="stk ${d?"":"r"}">${d?"FINISHED 🏁":"結果待ち ⏳"}</span><b>COURT ${x.court||o.m+1}</b>
+<div class="scgrid" style="align-items:center;margin:8px 0"><div>${wa?"🏆 ":""}${teamPop(x.a)}</div><div style="text-align:right">${wb?"🏆 ":""}${teamPop(x.b)}</div></div>
+<div class="row" style="justify-content:center"><input id="ra_${o.r}_${o.m}" class="sc" inputmode="numeric" value="${x.sa}" aria-label="チームAの点数" placeholder="A"><b>-</b><input id="rb_${o.r}_${o.m}" class="sc" inputmode="numeric" value="${x.sb}" aria-label="チームBの点数" placeholder="B"><button onclick="sesResult(${o.r},${o.m})">${d?"修正":"保存"}</button></div></div>`}).join("")}`}
+/* 表彰 */
+function confettiHtml(){const em=["🎉","🎊","⭐","🏆","✨","🎾"];return Array.from({length:28},(_,i)=>`<span class="cf" style="left:${Math.round(Math.random()*96)}vw;animation-delay:${(Math.random()*1.2).toFixed(2)}s">${em[i%em.length]}</span>`).join("")}
+function awardsData(){const rank=sesRank();if(!rank.length)return[];const out=[],mvp=rank[0];out.push(["本日のMVP 🏆",[mvp.n],`${mvp.w}勝${mvp.l}敗（勝率${Math.round(mvp.rate*100)}%）`,"#FDE047"]);
+const maxW=Math.max(...rank.map(r=>r.w));if(maxW>0)out.push(["最多勝 👑",rank.filter(r=>r.w===maxW).map(r=>r.n),maxW+"勝","#F472B6"]);
+const perfect=rank.filter(r=>r.l===0&&r.g>=2);if(perfect.length)out.push(["全勝賞 🌟",perfect.map(r=>r.n),perfect[0].g+"戦全勝！","#67E8F9"]);
+const maxG=Math.max(...rank.map(r=>r.g));out.push(["皆勤賞（いちばん遊んだ人）💪",rank.filter(r=>r.g===maxG).map(r=>r.n),maxG+"試合","#6EE7B7"]);return out}
+function awardsText(){return "【今日のピックルボール 表彰】\n"+awardsData().map(([t,n,d])=>`${t}：${n.join("・")}（${d}）`).join("\n")}
+function openAwards(){const aw=awardsData();if(!aw.length){alert("結果を入力すると表彰が出ます");return}
+const d=document.createElement("div");d.id="dg";d.style.zIndex="85";
+d.innerHTML=confettiHtml()+`<div class="box" style="max-height:90vh;overflow:auto;background:#fff;color:#000"><h2 style="margin-top:0;justify-content:center">🎉 今日の表彰 🎉</h2>${aw.map(([t,n,desc,c],i)=>`<div class="awd" style="background:${c};transform:rotate(${i%2?1.5:-1.5}deg)"><span class="stk">${t}</span><div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:10px">${n.map(x=>popAvatar(x,44)).join("")}</div><div style="font-size:22px;font-weight:900;margin-top:6px;word-break:break-all">${esc(n.join("・"))}</div><div style="font-weight:700">${esc(desc)}</div></div>`).join("")}<p class="sub" style="text-align:center">📸 スクリーンショットして、グループに送ろう！</p><div class="row"><button class="line-btn" id="s" style="flex:1">LINEで共有</button><button class="g" id="c" style="flex:1">とじる</button></div></div>`;
+document.body.appendChild(d);d.querySelector("#c").onclick=()=>d.remove();d.querySelector("#s").onclick=()=>shareTxt(awardsText());d.onclick=e=>{if(e.target===d)d.remove()}}
 /* ---------- Pop Style：ホーム・ルールQ&A・デモ・スコア記録・ブラケット・実績 ---------- */
 const LVL_LABEL={all:"全レベル",b:"🌱 BEGINNER",i:"⚡ INTERMEDIATE",a:"🔥 ADVANCED"};
 const levelStamp=r=>r<3?"🌱 BEGINNER":r<4?"⚡ INTERMEDIATE":"🔥 ADVANCED";
 let HF={d:"all",l:"all",o:false};
-function heroBlock(){return `<div class="box hero"><span class="badge">PICKLE HUB</span><h1>ピックルボールをもっと楽しく、もっと身近に 🎾</h1><p class="sub">はじめてでも大丈夫。まずは気軽に触ってみよう！</p><div class="hero-btns"><button onclick="openRules()">📖 10秒でわかるルール</button><button class="g" onclick="openDemo()">🎮 お試しデモを見る</button><button class="g" onclick="findCourt()">📍 近くのコートを探す</button></div></div>`}
+function heroBlock(){return `<div class="box hero"><span class="badge">PICKLE HUB</span><h1>集まって、名前を入れて、打つだけ！🎾<br>今日のピックルボールをもっと楽しく</h1><div class="hero-btns"><button class="g" onclick="openRules()">📖 ルールガイド（キッチン・ディンクって何？）</button></div></div>`}
 function findCourt(){window.open("https://www.google.com/maps/search/"+encodeURIComponent("ピックルボール コート 近く"),"_blank")}
 function sessionCard(e,me){const c=eventCounts(e),cap=+e.capacity||0,left=cap?Math.max(0,cap-c.yes.length):null,r=e.responses&&e.responses[me],lv=e.level||"all",full=cap&&left===0&&r!=="yes",fee=e.dues&&+e.dues.amount>0?+e.dues.amount:0;
 const stk=(left!=null&&left>0&&left<=2?`<span class="stk">✦ 残り${left}枠！</span>`:"")+(lv==="b"?`<span class="stk r">初参加大歓迎 🌱</span>`:"")+(full?`<span class="stk">満員 🈵</span>`:"");
@@ -1210,11 +1304,14 @@ if(HF.d==="today")evs=evs.filter(e=>e.date===t);if(HF.d==="week")evs=evs.filter(
 if(HF.l!=="all")evs=evs.filter(e=>(e.level||"all")==="all"||e.level===HF.l);
 if(HF.o)evs=evs.filter(e=>!(+e.capacity)||eventCounts(e).remaining>0);
 const chip=(l,on,fn)=>`<button class="fchip ${on?"on":""}" aria-pressed="${on}" onclick="${fn};draw()">${l}</button>`;
-return `${heroBlock()}<h2>練習・イベント</h2><div class="hscroll">${[["all","すべて"],["today","今日"],["week","今週"]].map(([k,l])=>chip("📅 "+l,HF.d===k,`HF.d='${k}'`)).join("")}${[["all","すべて"],["b","🌱 BEGINNER"],["i","⚡ INTERMEDIATE"],["a","🔥 ADVANCED"]].map(([k,l])=>chip(l,HF.l===k,`HF.l='${k}'`)).join("")}${chip("🟢 空きあり",HF.o,"HF.o=!HF.o")}</div>
+const steps=[[1,"👥","1. メンバーを登録","名前を入れるだけ","#FDE047"],[2,"⚔️","2. 対戦ペアをつくる","メンバーから選ぶだけ","#F472B6"],[3,"📊","3. 結果を入力・集計","勝敗とスコアを入れるだけ","#67E8F9"]];
+return `${heroBlock()}<div class="steps">${steps.map(([k,e,ti,d,c],i)=>`<button class="step" style="background:${c};transform:rotate(${i%2?1.2:-1.2}deg)" onclick="SEV=${k};go('se')"><span class="step-e" aria-hidden="true">${e}</span><span style="flex:1"><b>${ti}</b><br><small>${d}</small></span><span aria-hidden="true">➡️</span></button>`).join("")}</div>
+<h2>📅 これからのイベント</h2><div class="hscroll">${[["all","すべて"],["today","今日"],["week","今週"]].map(([k,l])=>chip("📅 "+l,HF.d===k,`HF.d='${k}'`)).join("")}${[["all","すべて"],["b","🌱 BEGINNER"],["i","⚡ INTERMEDIATE"],["a","🔥 ADVANCED"]].map(([k,l])=>chip(l,HF.l===k,`HF.l='${k}'`)).join("")}${chip("🟢 空きあり",HF.o,"HF.o=!HF.o")}</div>
 ${evs.map(e=>sessionCard(e,ROLE==="admin"?"":ME)).join("")||'<p class="sub">条件に合うイベントはありません。</p>'}`}
 /* ルールQ&A（ポップなモーダル） */
 const QA=[
 ["🍳 キッチン（ノンボレーゾーン）って何？","ネットの両側7フィート（約2.1m）にある、ボレー禁止のエリアです。バウンドした球なら、中に入って打ってもOK。ラインに触れても「中」扱いです。",`<svg viewBox="0 0 200 150" role="img" aria-label="コート図" style="width:100%;max-width:260px"><rect x="10" y="10" width="180" height="130" fill="#fff" stroke="#000" stroke-width="4"/><rect x="10" y="40" width="180" height="35" fill="#F472B6" stroke="#000" stroke-width="3"/><rect x="10" y="75" width="180" height="35" fill="#F472B6" stroke="#000" stroke-width="3"/><line x1="10" y1="75" x2="190" y2="75" stroke="#000" stroke-width="6"/><text x="100" y="62" text-anchor="middle" font-size="13" font-weight="900" fill="#000">KITCHEN</text><text x="100" y="98" text-anchor="middle" font-size="13" font-weight="900" fill="#000">KITCHEN</text><text x="100" y="135" text-anchor="middle" font-size="11" fill="#000">ここがベースライン側</text></svg>`],
+["🏓 ディンクって何？","キッチンのそばから、ネットぎりぎりに「ポトン」と落とす、やわらかいショットです。相手に強く打たせない・ミスを誘うための基本技で、ピックルボールの面白さの一つです。",""],
 ["📊 DUPRって何？","世界で使われている実力レーティング（2.0〜8.0）で、試合結果から自動で更新されます。このアプリの「レベル」は、自己評価の目安で、公式のDUPRとは別のものです。目安: 3.0未満=BEGINNER、3.0〜3.9=INTERMEDIATE、4.0以上=ADVANCED。",""],
 ["2️⃣ ツーバウンスルールって？","サーブを受ける側は1回バウンドさせてから返し、サーブした側も、返ってきた球を1回バウンドさせてから打ちます。その後は、ボレー（バウンド前に打つ）もOKです。",""],
 ["🎾 サーブのやり方は？","ベースラインの後ろから、対角のサービスコートへ。ボレーサーブは、腰より下で、下から上へ打ちます。ネットを越えて、キッチンの外に落とします。",""],
