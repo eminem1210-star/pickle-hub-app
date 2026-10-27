@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PICKLE HUB - Pop Style</title>
+<title>PICKLE HUB｜ピックルボール仲間のセッション・イベント管理アプリ</title>
+<meta name="description" content="PICKLE HUB（ピックルハブ）は、ピックルボールの対戦ペアづくり・結果集計・イベント募集・メンバー管理ができる、クラブ向けアプリです。">
+<meta property="og:title" content="PICKLE HUB｜ピックルボール仲間のアプリ">
+<meta property="og:description" content="集まって、名前を入れて、打つだけ！対戦ペアづくり・結果集計・イベント募集・メンバー管理。">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -366,6 +369,12 @@ body.pop .big{color:#000}
 .mon-bob{animation:bob 1.8s ease-in-out infinite}.mon-hop{animation:hop 1.1s ease-in-out infinite}.mon-wiggle{animation:wiggle 1.2s ease-in-out infinite}.mon-float{animation:float 3s ease-in-out infinite}.mon-spin{animation:spin 4s ease-in-out infinite}.mon-none{animation:none}
 .mon-tap{animation:hop2 .6s ease-out 1!important}
 @media (prefers-reduced-motion:reduce){.mon-img,.h1-mon,#runner{animation:none!important}}
+.logo{font-size:44px;line-height:1;font-weight:900;letter-spacing:.01em;text-transform:uppercase;color:#000;text-shadow:3px 3px 0 #F472B6;margin:2px 0 8px}
+.logo small{display:block;margin-top:6px;font-size:13px;letter-spacing:.2em;text-shadow:none;color:var(--mu);font-weight:700}
+.lead{margin:6px 0 10px;font-size:15px;line-height:1.7}
+.feat{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.feat span{padding:4px 10px;border:2px solid #000;border-radius:99px;background:#FEF9C3;color:#000;font-size:12px;font-weight:900}
+.catch{margin:4px 0 10px;font-size:20px;font-weight:900;line-height:1.5;text-align:center}
 </style>
 </head>
 <body>
@@ -1343,7 +1352,11 @@ document.body.appendChild(d);d.querySelector("#c").onclick=()=>d.remove();d.quer
 const LVL_LABEL={all:"全レベル",b:"🌱 BEGINNER",i:"⚡ INTERMEDIATE",a:"🔥 ADVANCED"};
 const levelStamp=r=>r<3?"🌱 BEGINNER":r<4?"⚡ INTERMEDIATE":"🔥 ADVANCED";
 let HF={d:"all",l:"all",o:false};
-function heroBlock(){return `<div class="box hero">${monScene()}<span class="badge">PICKLE HUB</span><h1>集まって、名前を入れて、打つだけ！🎾<br>今日のピックルボールをもっと楽しく</h1><div class="hero-btns"><button class="g" onclick="openRules()">📖 ルールガイド（キッチン・ディンクって何？）</button></div></div>`}
+function heroBlock(){return `<div class="box hero"><div class="logo" role="heading" aria-level="1">PICKLE HUB<small>ピックルハブ</small></div>
+<p class="lead">ピックルボール仲間と遊ぶための、<b>セッション進行・イベント・メンバー管理</b>アプリです。</p>
+<div class="feat"><span>🎲 対戦ペアづくり・結果集計</span><span>📅 イベントの募集・出欠</span><span>💬 掲示板・連絡</span><span>🏆 勝率ランキング・表彰</span></div>
+${monScene()}<p class="catch">集まって、名前を入れて、打つだけ！🎾<br>今日のピックルボールをもっと楽しく</p>
+<div class="hero-btns"><button class="g" onclick="openRules()">📖 ルールガイド（キッチン・ディンクって何？）</button></div></div>`}
 function findCourt(){window.open("https://www.google.com/maps/search/"+encodeURIComponent("ピックルボール コート 近く"),"_blank")}
 function sessionCard(e,me){const c=eventCounts(e),cap=+e.capacity||0,left=cap?Math.max(0,cap-c.yes.length):null,r=e.responses&&e.responses[me],lv=e.level||"all",full=cap&&left===0&&r!=="yes",fee=e.dues&&+e.dues.amount>0?+e.dues.amount:0;
 const stk=(left!=null&&left>0&&left<=2?`<span class="stk">✦ 残り${left}枠！</span>`:"")+(lv==="b"?`<span class="stk r">初参加大歓迎 🌱</span>`:"")+(full?`<span class="stk">満員 🈵</span>`:"");
