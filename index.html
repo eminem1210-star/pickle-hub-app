@@ -1434,12 +1434,16 @@ d.innerHTML=`<div class="box" style="max-height:88vh;overflow:auto"><h2 style="m
 document.body.appendChild(d);d.querySelector("#c").onclick=()=>d.remove();d.onclick=e=>{if(e.target===d)d.remove()}}
 /* スコア記録（サーブ権・スコアコール自動） */
 let SCS={t:11,mode:"d",sc:[0,0],srv:0,no:2,done:-1,hist:[],names:["TEAM A","TEAM B"],mi:-1},SC_DEMO=false;
-function scReset(){SCS.sc=[0,0];SCS.srv=0;SCS.no=SCS.mode==="d"?2:1;SCS.done=-1;SCS.hist=[]}
+function scReset(){SCS.msg="";SCS.sc=[0,0];SCS.srv=0;SCS.no=SCS.mode==="d"?2:1;SCS.done=-1;SCS.hist=[]}
 function scSnap(){SCS.hist.push(JSON.stringify({sc:SCS.sc,srv:SCS.srv,no:SCS.no,done:SCS.done}))}
 function scCheck(){const[a,b]=SCS.sc,t=SCS.t;SCS.done=a>=t&&a-b>=2?0:b>=t&&b-a>=2?1:-1}
-function scRally(w){if(SCS.done>=0)return;scSnap();if(w===SCS.srv)SCS.sc[w]++;else if(SCS.mode==="d"&&SCS.no===1)SCS.no=2;else{SCS.srv=1-SCS.srv;SCS.no=1}scCheck();scDraw()}
+function scRally(w){if(SCS.done>=0)return;scSnap();const n=SCS.names;
+if(w===SCS.srv){SCS.sc[w]++;SCS.msg=`${n[w]} が得点！（サーブ側がラリーを取ったので、1点。サーブは続けます）`}
+else if(SCS.mode==="d"&&SCS.no===1){SCS.no=2;SCS.msg="レシーブ側がラリーを取りました。点は入らず、サーブは同じチームの相方（Server 2）へ。"}
+else{SCS.srv=1-SCS.srv;SCS.no=1;SCS.msg=`サイドアウト！ラリーを取った ${n[SCS.srv]} にサーブ権が移ります（点は入りません）。`}
+scCheck();scDraw()}
 function scAdj(t,d){if(SCS.done>=0&&d>0)return;scSnap();SCS.sc[t]=Math.max(0,SCS.sc[t]+d);scCheck();scDraw()}
-function scUndo(){const h=SCS.hist.pop();if(!h)return;Object.assign(SCS,JSON.parse(h));scDraw()}
+function scUndo(){const h=SCS.hist.pop();if(!h)return;Object.assign(SCS,JSON.parse(h));SCS.msg="";scDraw()}
 function scAsk(){ask("スコアを0-0に戻します。よろしいですか？",()=>{scReset();scDraw()})}
 function scDraw(){document.querySelectorAll(".sc_root").forEach(r=>{r.innerHTML=scBody()})}
 const teamPlain=t=>t.map(i=>S.players[i]).join("・");
@@ -1452,10 +1456,10 @@ function scBody(){const q=SCS,col=i=>`<div class="scc ${q.srv===i?"srv":""}"><in
 <div class="scn-big" aria-label="得点">${q.sc[i]}</div>${q.srv===i?`<div class="serve">🎾 SERVE${q.mode==="d"?` · Server ${q.no}`:""}</div>`:'<div class="recv">RECEIVE</div>'}
 <button class="rally" onclick="scRally(${i})">${i?"B":"A"} がラリーを取った</button><div class="row" style="justify-content:center;margin:0"><button class="g" onclick="scAdj(${i},-1)" aria-label="${i?"B":"A"}を1点減らす">−1</button><button class="g" onclick="scAdj(${i},1)" aria-label="${i?"B":"A"}を1点増やす">＋1</button></div></div>`;
 const lr=!SC_DEMO&&S.rounds&&S.rounds[S.rounds.length-1],sel=lr?`<label>対戦表の試合を選ぶ（任意）</label><select onchange="scPick(this.value)" style="width:100%"><option value="-1">手入力</option>${lr.m.map((m,i)=>`<option value="${i}" ${q.mi===i?"selected":""}>コート${i+1}: ${esc(teamPlain(m.a))} vs ${esc(teamPlain(m.b))}</option>`).join("")}</select>`:"";
-return `<div class="scgrid">${col(0)}${col(1)}</div><p class="sub" style="text-align:center;margin-top:12px">スコアコール <b style="font-size:20px">${q.sc[q.srv]}-${q.sc[1-q.srv]}${q.mode==="d"?"-"+q.no:""}</b><br>${esc(q.names[q.srv])} が${q.sc[q.srv]%2===0?"右":"左"}からサーブ</p>
+return `<div class="scgrid">${col(0)}${col(1)}</div><p class="sub" style="text-align:center;margin-top:12px">スコアコール <b style="font-size:20px">${q.sc[q.srv]}-${q.sc[1-q.srv]}${q.mode==="d"?"-"+q.no:""}</b><br>${esc(q.names[q.srv])} が${q.sc[q.srv]%2===0?"右":"左"}からサーブ</p>${q.msg?`<p class="box" style="padding:10px;margin:8px 0;font-weight:700;text-align:center" role="status">${esc(q.msg)}</p>`:""}
 <div class="row" style="justify-content:center"><button class="g" onclick="scUndo()">↩ 元に戻す</button><button class="g" onclick="scAsk()">🔄 リセット</button></div>
 <div class="box"><div class="row" style="margin:0"><label style="margin:0">形式 <select onchange="SCS.mode=this.value;scReset();scDraw()"><option value="d" ${q.mode==="d"?"selected":""}>ダブルス</option><option value="s" ${q.mode==="s"?"selected":""}>シングルス</option></select></label><label style="margin:0">先取点 <select onchange="SCS.t=+this.value;scCheck();scDraw()">${[7,11,15,21].map(n=>`<option ${n===q.t?"selected":""}>${n}</option>`).join("")}</select></label></div>${sel}</div>${q.done>=0?scWin():""}`}
-function scoreTab(){SC_DEMO=false;return `<span class="badge">SCORE</span><h1>スコア記録</h1><p class="sub">ラリーを取ったチームのボタンを押すだけ。サーブ権とスコアコールは自動です。</p><div class="sc_root">${scBody()}</div>`}
+function scoreTab(){SC_DEMO=false;return `<span class="badge">SCORE</span><h1>スコア記録</h1><p class="sub">ラリーを取ったチームのボタンを押すだけ。<b>サーブ側が取ると1点、レシーブ側が取ると点は入らずサーブ交代</b>（ダブルスは、1人目→相方→相手チームの順）。スコアコールも自動です。</p><div class="sc_root">${scBody()}</div>`}
 function openDemo(){SC_DEMO=true;SCS={t:11,mode:"d",sc:[0,0],srv:0,no:2,done:-1,hist:[],names:["TEAM A","TEAM B"],mi:-1};const d=document.createElement("div");d.id="demo";d.className="demo-ov";
 d.innerHTML=`<main><div class="row" style="justify-content:space-between"><span class="badge">DEMO</span><button class="g" id="c">✕ とじる</button></div><h1>お試しデモ</h1><p class="sub">ログイン不要のお試しです。記録は保存されません。ラリーを取ったチームのボタンを押してみてください。</p><div class="sc_root">${scBody()}</div></main>`;
 document.body.appendChild(d);d.querySelector("#c").onclick=()=>{SC_DEMO=false;d.remove()}}
