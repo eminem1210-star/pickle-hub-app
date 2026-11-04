@@ -14,6 +14,24 @@
 <meta property="og:title" content="PICKLE HUB｜ピックルボール仲間のアプリ">
 <meta property="og:description" content="集まって、名前を入れて、打つだけ！対戦ペアづくり・結果集計・イベント募集・メンバー管理。">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XYRGB8F6NW"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  // 招待リンクの ?invite=…（本人専用コード）などは Google に送らない。utm_* や igshid はそのまま残す（流入元の集計に必要）
+  (function () {
+    try {
+      var u = new URL(location.href);
+      ['invite', 'token', 'code'].forEach(function (k) { u.searchParams.delete(k); });
+      window.__gaLoc = u.toString();
+    } catch (e) { window.__gaLoc = location.href.split('#')[0]; }
+  })();
+  // 最初のページ表示は、下の page_view で1回だけ送る（二重計測を防ぐため send_page_view を止める）
+  gtag('config', 'G-XYRGB8F6NW', { send_page_view: false });
+  gtag('event', 'page_view', { page_location: window.__gaLoc, page_title: document.title });
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -428,7 +446,7 @@ function relogin(msg){TOKEN="";ROLE="";ME="";loaded=false;try{localStorage.remov
 let syncCh=null;
 const READ_RE=/^(get_|session|board_list|dm_list|gear_list|admin_list|admin_member|invite|member_login|admin_login|member_setup|logout)/;
 function syncPing(){try{if(syncCh)syncCh.send({type:"broadcast",event:"chg",payload:{t:Date.now()}})}catch(e){}}
-function syncStart(){if(syncCh||!supabaseClient.channel)return;try{syncCh=supabaseClient.channel("ph-sync",{config:{broadcast:{self:false}}}).on("broadcast",{event:"chg"},()=>{Object.keys(STATS).forEach(k=>delete STATS[k]);LB.v=null;clearTimeout(syncStart.t);syncStart.t=setTimeout(poll,150)}).subscribe()}catch(e){syncCh=null}}
+function syncStart(){if(syncCh||!supabaseClient.channel)return;try{syncCh=supabaseClient.channel("ph-sync",{config:{broadcast:{self:false}}}).on("broadcast",{event:"chg"},()=>{Object.keys(STATS).forEach(k=>delete STATS[k]);LB.v=null;PEND.t=0;clearTimeout(syncStart.t);syncStart.t=setTimeout(poll,150)}).subscribe()}catch(e){syncCh=null}}
 async function rpc(fn,args={}){const{data,error}=await supabaseClient.rpc(fn,{p_token:TOKEN,...args});if(error){if(String(error.message).includes("unauthorized"))relogin("ログインの有効期限が切れました。もう一度ログインしてください。");throw error}if(!READ_RE.test(fn))syncPing();return data}
 async function rpc0(fn,args){const{data,error}=await supabaseClient.rpc(fn,args);if(error)throw error;return data}
 async function reloadState(redraw=true,notify=false){const st=await rpc("get_state"),keep={};LOCAL_KEYS.forEach(k=>{if(S[k]!==undefined)keep[k]=S[k]});const old=S;S=Object.assign(defaultS(),st,keep);if(notify){try{notifyDiff(old,S)}catch(e){}}if(redraw)draw()}
@@ -467,7 +485,7 @@ async function startApp(){
   profileSessionName=ME;profileUnlockedName=ME;adminSession=ROLE==="admin";
   try{await refreshRows(false)}catch(e){console.error(e)}
   syncClubPlayers();draw();
-  syncStart();
+  ga("login",{method:ROLE==="admin"?"admin":"member"});trackPage();syncStart();
   if(!pollTimer){pollTimer=setInterval(poll,5000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()})}
 }
 async function refreshRows(notify){
@@ -498,6 +516,7 @@ async function showLogin(msg="",invite=""){
 <label>招待コード</label><input id="lg_code" autocapitalize="characters" style="width:100%" value="${esc(invite)}">
 <label>これから使う4桁のPIN</label><input id="lg_new" type="password" inputmode="numeric" maxlength="4" style="width:100%" onkeydown="if(event.key==='Enter')doSetup()">
 <div class="row"><button onclick="doSetup()" style="flex:1">PINを決めてログイン</button></div></div>
+<p class="sub" style="margin:12px 0 0">このアプリは、利用状況の把握のため Google アナリティクス（GA4）を使っています。閲覧した画面や流入元などを Google に送信しますが、お名前・PIN・会員番号・投稿内容は送信しません。</p>
 <details class="box"><summary>管理者の方</summary><label>管理者パスワード</label><input id="lg_apw" type="password" style="width:100%" onkeydown="if(event.key==='Enter')doAdminLogin()">
 <div class="row"><button onclick="doAdminLogin()">管理者ログイン</button></div></details></main>`;
   document.body.appendChild(d);
@@ -539,19 +558,23 @@ function toast(m){let t=$("ts");if(!t){t=document.createElement("div");t.id="ts"
 window.alert=toast;
 function ask(m,f){const d=document.createElement("div");d.id="dg";d.innerHTML='<div class="box"><p style="font-weight:700;font-size:16px;margin-bottom:16px;">'+esc(m)+'</p><div class="row"><button id="y">はい</button><button class="g" id="n">やめる</button></div></div>';document.body.appendChild(d);d.querySelector("#y").onclick=()=>{d.remove();f()};d.querySelector("#n").onclick=()=>d.remove()}
 function showCopy(t){const d=document.createElement("div");d.id="dg";d.innerHTML='<div class="box"><p style="font-weight:700;">下の文章をコピーしてください</p><textarea rows="6" style="width:100%"></textarea><div class="row" style="margin-top:12px;"><button>閉じる</button></div></div>';const a=d.querySelector("textarea");a.value=t;d.querySelector("button").onclick=()=>d.remove();document.body.appendChild(d);a.select()}
+let _gaLast="";
+function ga(n,p){try{if(window.gtag)gtag("event",n,p||{})}catch(e){}}
+function trackPage(){if(_gaLast===tab)return;_gaLast=tab;const base=(window.__gaLoc||location.href).split("?")[0].split("#")[0];
+ga("page_view",{page_title:(TITLES[tab]||ROOTN[tab]||"ホーム")+" | PICKLE HUB",page_path:"/"+tab,page_location:base+"#/"+tab})}
 const MAIN=["hm","se","events","bd","mo"];
-const TITLES={ev:"大会モード",sc:"スコア記録",cl:"メンバー",nt:"通知",pf:"プロフィール",pr:"練習ドリル",eq:"用具の貸出",rules:"ルール",lv:"ランキング・レベル",th:"見た目の設定",bz:"管理者",gr:"マイギア"};
+const TITLES={ev:"大会モード",sc:"スコア記録",cl:"メンバー",nt:"通知",pf:"プロフィール",pr:"練習ドリル",eq:"用具の貸出",rules:"ルール",lv:"ランキング・レベル",ap:"試合の承認",rh:"レーティングのしくみ",th:"見た目の設定",bz:"管理者",gr:"マイギア"};
 const ROOTN={hm:"ホーム",se:"セッション",events:"イベント",bd:"掲示板",mo:"メニュー"};
 let ROOT="hm";
 function go(t){if(t===tab)return;if(tab==="bz"&&t!=="bz")adminSetupCodeDisplay=null;if(t!=="pf")profilePhotoDraft="";
 ROOT=MAIN.includes(t)?t:(MAIN.includes(tab)?tab:ROOT);tab=t;
-try{history.pushState({t,root:ROOT,d:((history.state&&history.state.d)||0)+1},"")}catch(e){}draw()}
+try{history.pushState({t,root:ROOT,d:((history.state&&history.state.d)||0)+1},"")}catch(e){}trackPage();draw()}
 function navBack(){if(history.state&&history.state.d>0){history.back();return}tab=MAIN.includes(ROOT)?ROOT:"hm";draw()}
-window.addEventListener("popstate",e=>{const st=e.state;if(st&&st.t){tab=st.t;ROOT=st.root||"hm";draw()}});
+window.addEventListener("popstate",e=>{const st=e.state;if(st&&st.t){tab=st.t;ROOT=st.root||"hm";trackPage();draw()}});
 try{history.replaceState({t:tab,root:"hm",d:0},"")}catch(e){}
 function draw(){
 checkTournamentDay();
-$("app").innerHTML=topBar()+noticeBanner()+({hm:homeTab,se:sessionTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th,gr})[tab]();
+$("app").innerHTML=topBar()+noticeBanner()+({hm:homeTab,se:sessionTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th,gr,ap,rh})[tab]();
 if(tab=="pr")showT();
 addTabMon();
 fillStats();fillGear();
@@ -566,7 +589,7 @@ $("nav").innerHTML=TABS.map(([k,n])=>`<button role="tab" aria-selected="${k===(M
 if(lastTab!=tab){window.scrollTo(0,0);lastTab=tab}}
 
 
-function shareTxt(t){if(navigator.share){navigator.share({text:t}).catch(e=>{if(e&&e.name!=="AbortError")showCopy(t)})}else{const w=window.open("https://line.me/R/share?text="+encodeURIComponent(t),"_blank");if(!w)showCopy(t)}}
+function shareTxt(t){ga("share",{method:navigator.share?"web_share":"line",content_type:"text"});if(navigator.share){navigator.share({text:t}).catch(e=>{if(e&&e.name!=="AbortError")showCopy(t)})}else{const w=window.open("https://line.me/R/share?text="+encodeURIComponent(t),"_blank");if(!w)showCopy(t)}}
 function modSc(ri,mi,k,d){const m=S.rounds[ri].m[mi],c=m[k]===""?0:m[k];m[k]=Math.max(0,c+d);maybeRecord(m);save();draw()}
 function addRental(){const item=$("ri").value.trim(),member=$("rh").value;if(!item||!member){alert("用具名とメンバーを選択してください");return}S.rentals=S.rentals||[];S.rentals.push({item,holder:member});save();draw()}
 
@@ -752,7 +775,7 @@ const LEVEL_QUESTIONS=[
 ["コートの位置取り",["立ち位置や移動にまだ慣れていない","基本の位置へ移動できる","パートナーとコートを分担できる","相手の球に合わせて連携・調整できる","状況判断して連携とポジションを組み立てられる"]],
 ["ルール・スコア",["ルールやサーブ順に不安がある","基本的な進行を確認しながら行える","通常の得点・サーブ順を理解している","キッチンやフォルトを判断できる","試合進行やルールを他の人にも説明できる"]]
 ];
-function lv(){return `<span class="badge">PLAYER LEVEL</span><h1>メンバーのレベル</h1><h2>🏅 通算ランキング</h2>${lbBox()}<h2>メンバーのレベル</h2><p class="sub">カードをタップすると、成績・ギア・成長が見られます。</p><div class="lvgrid">${S.members.map((m,i)=>{const a=S.levelAnswers&&S.levelAnswers[m.n],h=S.levelHistory&&S.levelHistory[m.n]||[],pv=h[h.length-1],cr=S.rt&&S.rt[m.n],d=pv&&cr!=null?Math.round((cr-pv.rating)*10)/10:0,ok=Array.isArray(a)&&a.length===5&&a.every(v=>Number.isFinite(+v));
+function lv(){return `<span class="badge">PLAYER LEVEL</span><h1>メンバーのレベル</h1><h2>🏅 レーティングランキング（参考値）</h2>${lbBox()}<h2>メンバーのレベル</h2><p class="sub">カードをタップすると、成績・ギア・成長が見られます。</p><div class="lvgrid">${S.members.map((m,i)=>{const a=S.levelAnswers&&S.levelAnswers[m.n],h=S.levelHistory&&S.levelHistory[m.n]||[],pv=h[h.length-1],cr=S.rt&&S.rt[m.n],d=pv&&cr!=null?Math.round((cr-pv.rating)*10)/10:0,ok=Array.isArray(a)&&a.length===5&&a.every(v=>Number.isFinite(+v));
 return `<button class="lvcard" onclick="lvOpen(${i})"><span>${memberIcon(m.n,28)} ${esc(m.n)}</span>${ok?radarSvg(m.n,a,140,pv&&pv.answers):'<span class="sub" style="margin:30px 0">未評価</span>'}<span style="font-size:18px;color:var(--ac)">${cr!=null?Number(cr).toFixed(1):"-"}${d?` <small style="color:${d>0?"var(--ac2)":"var(--dg)"}">${d>0?"▲+":"▼"}${d.toFixed(1)}</small>`:""}</span></button>`}).join("")||'<p class="sub">メンバーを登録してください。</p>'}</div>`}
 function selectLevelMember(name){S.levelMember=name;levelDraft=null;save();draw()}
 function saveLevelAnswers(){
@@ -814,7 +837,7 @@ const compareIndex=Number.isInteger(S.radarCompareIndex)?S.radarCompareIndex:-1;
 const comparison=history[compareIndex];
 return `<span class="badge">MEMBER PROFILE</span><h1>メンバープロフィール</h1><p class="sub">写真と自己紹介を登録できます。編集できるのはご本人だけです。</p>
 <div class="box">${ROLE==="admin"?`<label>クラブメンバー</label><select id="profile_member" style="width:100%" onchange="selectProfileMember(this.value)"><option value="">メンバーを選択</option>${memberOptions(selected)}</select>`:`<p class="sub">あなたの会員番号: <b>${esc(String(window.MYNO||"-"))}</b>（ログインに使えます）</p>`}
-${selected?`${profileCard(selected,false,true)}<h2>📊 通算成績</h2>${statsBox(selected)}<h2>🎒 マイギア</h2>${gearBox(selected,selected===ME)}<h2>成長の記録</h2>${growthBlock(selected)}${unlocked?profileEditor(selected,profile):profileGate(selected,profile)}${unlocked?'<button class="g" onclick="logoutProfile()">ログアウト</button>':""}`:'<p class="sub">先にクラブシートでメンバーを登録してください。</p>'}</div>
+${selected?`${profileCard(selected,false,true)}<h2>📊 アプリ内レーティング（参考値）</h2>${statsBox(selected)}<h2>🎒 マイギア</h2>${gearBox(selected,selected===ME)}<h2>成長の記録</h2>${growthBlock(selected)}${unlocked?profileEditor(selected,profile):profileGate(selected,profile)}${unlocked?'<button class="g" onclick="logoutProfile()">ログアウト</button>':""}`:'<p class="sub">先にクラブシートでメンバーを登録してください。</p>'}</div>
 
 ${selected&&unlocked?dmBox(selected):(selected?'<p class="sub">管理者への連絡は、本人ログイン後に表示されます。</p>':"")}`
 }
@@ -1016,7 +1039,7 @@ ${who?`<div class="row"><textarea id="bd_text" data-keep rows="2" style="flex:1"
 async function bdSend(){const f=$("bd_text"),t=f.value.trim();if(!t)return;f.value="";try{await rpc("board_post",{p_c:bch,p_text:t});await refreshRows(false);draw()}catch(e){alert("投稿できませんでした")}}
 function bdEdit(id){const x=bdRows.find(y=>y.id===id);if(!x||x.n!==whoAmI())return;editDlg(x.t,async v=>{try{await rpc("board_edit",{p_id:id,p_text:v});await refreshRows(false);draw()}catch(e){alert("編集できませんでした")}})}
 function bdDel(id){ask("この投稿を削除しますか？",async()=>{try{await rpc("board_delete",{p_id:id});await refreshRows(false);draw()}catch(e){alert("削除できませんでした")}})}
-const MENU=[["あそぶ",[["sc","🎯","スコア記録","ラリーごとに点数を記録"],["ev","🏆","大会モード","ローテーション・トーナメント"],["lv","🏅","ランキング","通算成績・レベル一覧"]]],["あなた",[["pf","👤","プロフィール","自己紹介・レベル・成績"],["gr","🎒","マイギア","パドルを登録して飾る"],["nt","🔔","通知","お知らせ・通知の設定"]]],["クラブ",[["cl","👥","メンバー","出欠の確認"],["pr","⏱️","練習ドリル","タイマー付き"],["eq","🏓","用具の貸出","貸出・返却の記録"]]],["設定・ヘルプ",[["th","🎨","見た目","配色・フォント・キャラ"],["rules","📖","ルール","基本ルールのガイド"]]]];
+const MENU=[["あそぶ",[["sc","🎯","スコア記録","ラリーごとに点数を記録"],["ev","🏆","大会モード","ローテーション・トーナメント"],["lv","🏅","ランキング","レーティング・レベル一覧"],["ap","✅","試合の承認","結果の確認・承認"]]],["あなた",[["pf","👤","プロフィール","自己紹介・レベル・成績"],["gr","🎒","マイギア","パドルを登録して飾る"],["nt","🔔","通知","お知らせ・通知の設定"]]],["クラブ",[["cl","👥","メンバー","出欠の確認"],["pr","⏱️","練習ドリル","タイマー付き"],["eq","🏓","用具の貸出","貸出・返却の記録"]]],["設定・ヘルプ",[["th","🎨","見た目","配色・フォント・キャラ"],["rules","📖","ルール","基本ルールのガイド"],["rh","📐","レーティングのしくみ","計算方法・公式DUPRとの違い"]]]];
 function topBar(){
 if(!MAIN.includes(tab))return `<div class="topbar sub"><button class="g tb-back" onclick="navBack()" aria-label="前のページへ戻る">← 戻る</button><b class="tb-title">${TITLES[tab]||""}</b><span class="tb-path">${ROOTN[ROOT]||""}</span></div>`;
 const n=(S.notices||[]).filter(x=>x.ts>seenGet("nt")&&x.ts>=Date.now()-30*864e5).length,me=ME&&S.members.some(m=>m.n===ME)?ME:null;
@@ -1024,7 +1047,7 @@ return `<div class="topbar"><button class="tb-brand" onclick="go('hm')">🏓 PIC
 function mo(){const me=ME&&S.members.some(m=>m.n===ME)?ME:null,st=lsGet("ph_st",{n:1}),lv=me&&S.rt&&S.rt[me]!=null?Number(S.rt[me]):null;
 return `<span class="badge">MENU</span><h1>メニュー</h1>
 <div class="box" style="display:flex;gap:12px;align-items:center">${me?popAvatar(me,56):'<span style="font-size:36px">🔒</span>'}<div style="flex:1;min-width:0"><b style="font-size:18px;word-break:break-all">${esc(me||"管理者")}</b><div class="sub" style="margin:0">${me?`会員番号 ${esc(String(window.MYNO||"-"))}${lv!=null?` ／ LV ${lv.toFixed(1)}`:""} ／ 🔥${st.n||1}日連続`:"管理者としてログイン中"}</div></div>${me?'<button class="g" onclick="go(\'pf\')">編集</button>':""}</div>
-${MENU.map(([g,items])=>`<h2>${g}</h2><div class="tiles">${items.map(([k,e,t,d])=>`<button class="tile" onclick="go('${k}')"><span class="te">${e}</span><b>${t}</b><small>${d}</small></button>`).join("")}</div>`).join("")}
+${MENU.map(([g,items])=>`<h2>${g}</h2><div class="tiles">${items.map(([k,e,t,d])=>`<button class="tile" onclick="go('${k}')"><span class="te">${e}</span><b>${t}${k==="ap"&&PEND.n?` <span class="st">${PEND.n}</span>`:""}</b><small>${d}</small></button>`).join("")}</div>`).join("")}
 ${ROLE==="admin"?'<h2>管理者</h2><div class="tiles"><button class="tile" onclick="go(\'bz\')"><span class="te">🔒</span><b>管理者ページ</b><small>収支・会費・イベント・メンバー</small></button></div>':""}
 <div class="row" style="margin-top:18px"><button class="g" onclick="doLogout()" style="width:100%">🚪 ログアウト</button></div>`}
 function keepCap(){const v={},a=document.activeElement,sc={};document.querySelectorAll("[data-keep]").forEach(e=>{v[e.id]=e.value});["bd_log","dm_log"].forEach(i=>{const l=$(i);if(l)sc[i]=l.scrollHeight-l.scrollTop-l.clientHeight<60});return{v,sc,f:a&&a.dataset&&a.dataset.keep!==undefined?a.id:"",s:a&&a.selectionStart}}
@@ -1044,7 +1067,7 @@ if(prev&&cr!=null){const d=Math.round((cr-prev.rating)*10)/10;head+=`<span class
 head+="</div>";
 const chips=prev&&Array.isArray(prev.answers)?RADAR_LABELS.map((l,i)=>{const d=cur[i]-prev.answers[i];return `<span class="chip" style="color:${col(d)}">${l} ${d>0?"▲+"+d:d<0?"▼"+Math.abs(d):"±0"}</span>`}).join(""):"";
 return `${pick}${head}<div style="display:flex;justify-content:center">${radarSvg(name,cur,sel?300:250,prev?prev.answers:null)}</div><p class="sub" style="text-align:center"><span style="color:#6CA98B">● 現在</span>${prev?` <span style="color:#DEA45D">● 前回(${esc(prev.date)})</span>`:""}</p>${chips?`<div style="text-align:center">${chips}</div>`:'<p class="sub" style="text-align:center">評価を更新すると、前回との差がここに表示されます。</p>'}`}
-function lvOpen(i){const m=S.members[i];if(!m)return;const d=document.createElement("div");d.id="dg";d.innerHTML=`<div class="box" style="max-height:90vh;overflow:auto">${profileCard(m.n,true,true)}<h2>📊 通算成績</h2>${statsBox(m.n)}<h2>🎒 マイギア</h2>${gearBox(m.n,false)}${growthBlock(m.n,false)}<div class="row"><button class="g" id="c">閉じる</button></div></div>`;document.body.appendChild(d);d.querySelector("#c").onclick=()=>d.remove();d.onclick=e=>{if(e.target===d)d.remove()}}
+function lvOpen(i){const m=S.members[i];if(!m)return;const d=document.createElement("div");d.id="dg";d.innerHTML=`<div class="box" style="max-height:90vh;overflow:auto">${profileCard(m.n,true,true)}<h2>📊 アプリ内レーティング（参考値）</h2>${statsBox(m.n)}<h2>🎒 マイギア</h2>${gearBox(m.n,false)}${growthBlock(m.n,false)}<div class="row"><button class="g" id="c">閉じる</button></div></div>`;document.body.appendChild(d);d.querySelector("#c").onclick=()=>d.remove();d.onclick=e=>{if(e.target===d)d.remove()}}
 const seenGet=k=>{try{return +(JSON.parse(localStorage.getItem("ph_seen")||"{}")[k]||0)}catch(e){return 0}};
 function markSeen(k){try{const o=JSON.parse(localStorage.getItem("ph_seen")||"{}");o[k]=Date.now();localStorage.setItem("ph_seen",JSON.stringify(o))}catch(e){}}
 try{if(!localStorage.getItem("ph_seen")){const n=Date.now();localStorage.setItem("ph_seen",JSON.stringify({bd:n,dm:n,nt:n}))}}catch(e){}
@@ -1125,9 +1148,29 @@ function eventCounts(event){
 const r=event.responses||{},yes=S.members.filter(m=>r[m.n]==="yes"),no=S.members.filter(m=>r[m.n]==="no"),wait=S.members.filter(m=>String(r[m.n]||"").startsWith("wait")).sort((a,b)=>waitTs(r[a.n])-waitTs(r[b.n])),unanswered=S.members.filter(m=>!r[m.n]);
 return {yes,no,wait,unanswered,remaining:event.capacity?Math.max(0,event.capacity-yes.length):null}
 }
+let EVENT_MATCHES={},EVENT_MATCH_ACTIVE="";
+function eventMatchPanel(event){
+const rows=EVENT_MATCHES[event.id]||[],members=eventCounts(event).yes.map(m=>m.n);
+const totals={};rows.filter(m=>m.status==="completed"&&m.score_a!=null&&m.score_b!=null).forEach(m=>{const a=m.score_a,b=m.score_b;(m.team_a||[]).forEach(n=>{const t=totals[n]||(totals[n]={w:0,l:0,for:0,against:0});t.for+=a;t.against+=b;if(a>b)t.w++;else t.l++});(m.team_b||[]).forEach(n=>{const t=totals[n]||(totals[n]={w:0,l:0,for:0,against:0});t.for+=b;t.against+=a;if(b>a)t.w++;else t.l++})});
+const standings=Object.entries(totals).sort((a,b)=>b[1].w-a[1].w||(b[1].for-b[1].against)-(a[1].for-a[1].against));
+const opt=(selected="")=>'<option value="">選択</option>'+members.map(n=>`<option value="${esc(n)}" ${n===selected?"selected":""}>${esc(n)}</option>`).join("");
+return `<div class="box" style="border:2px solid var(--ink);margin-top:12px"><div class="row" style="justify-content:space-between"><b>🏟️ ${esc(event.title)}｜試合・スコア</b><button class="g" onclick="closeEventMatches()">閉じる</button></div>
+<p class="sub">参加回答が「参加」のメンバーから対戦を作成します。スコアは試合ごとに保存・修正できます。</p>
+${ROLE==="admin"?`<div class="box"><b>新しい対戦を追加（ダブルス）</b><div class="row"><label>コート <input id="em_court" type="number" min="1" max="30" value="1" style="width:76px"></label></div><div class="scgrid"><div><label>🟡 TEAM A・1</label><select id="em_a1" style="width:100%">${opt()}</select><label>TEAM A・2</label><select id="em_a2" style="width:100%">${opt()}</select></div><div><label>🩷 TEAM B・1</label><select id="em_b1" style="width:100%">${opt()}</select><label>TEAM B・2</label><select id="em_b2" style="width:100%">${opt()}</select></div></div><button style="width:100%" onclick="addEventMatch('${esc(event.id)}')">⚔️ この対戦を追加</button></div>`:""}
+<h3>イベント成績</h3>${standings.length?`<table><tr><th>順位</th><th>メンバー</th><th>勝-敗</th><th>得失点</th></tr>${standings.map(([n,t],i)=>`<tr><td>${i+1}</td><td>${esc(n)}</td><td>${t.w}-${t.l}</td><td>${t.for-t.against>0?"+":""}${t.for-t.against}</td></tr>`).join("")}</table>`:'<p class="sub">試合結果を保存すると、イベント内の成績が集計されます。</p>'}
+<h3>対戦カード（${rows.length}）</h3>
+${rows.map((m,i)=>`<div class="box scard"><div class="row" style="justify-content:space-between;margin:0"><b>COURT ${m.court_number}</b><span class="stk ${m.status==="completed"?"":"r"}">${m.status==="completed"?"FINISHED 🏁":m.status==="in_progress"?"LIVE 🔴":"NEXT ⏳"}</span></div><div class="scgrid" style="margin:8px 0"><div><b>🟡 TEAM A</b><p>${(m.team_a||[]).map(esc).join("・")}</p></div><div style="text-align:right"><b>🩷 TEAM B</b><p>${(m.team_b||[]).map(esc).join("・")}</p></div></div>
+<div class="row" style="justify-content:center">${ROLE==="admin"?`<input id="em_sa_${i}" class="sc" type="number" min="0" step="1" inputmode="numeric" value="${m.score_a??""}" placeholder="A" aria-label="チームAの点数"><b>-</b><input id="em_sb_${i}" class="sc" type="number" min="0" step="1" inputmode="numeric" value="${m.score_b??""}" placeholder="B" aria-label="チームBの点数"><button onclick="saveEventMatchScore('${esc(event.id)}','${m.id}',${i})">${m.status==="completed"?"修正保存":"スコア保存"}</button>`:`<b>${m.score_a??"-"} - ${m.score_b??"-"}</b>`}</div>
+${ROLE==="admin"?`<div class="row"><button class="g" onclick="setEventMatchLive('${esc(event.id)}','${m.id}','in_progress')">▶ 試合開始</button><button class="g" onclick="setEventMatchLive('${esc(event.id)}','${m.id}','upcoming')">待機に戻す</button></div>`:""}</div>`).join("")||'<p class="sub">まだ対戦カードがありません。</p>'}</div>`
+}
+async function openEventMatches(id){EVENT_MATCH_ACTIVE=id;try{EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw()}catch(e){EVENT_MATCH_ACTIVE="";alert("イベントの試合を読み込めませんでした。SQL追加機能が実行済みか確認してください")}}
+function closeEventMatches(){EVENT_MATCH_ACTIVE="";draw()}
+async function addEventMatch(id){const vals=["em_a1","em_a2","em_b1","em_b2"].map(k=>$(k)?.value||"");if(vals.some(v=>!v)||new Set(vals).size!==4){alert("4人を重複しないように選択してください");return}try{await rpc("save_event_match",{p_event_id:id,p_id:null,p_court_number:Math.max(1,parseInt($("em_court").value,10)||1),p_team_a:vals.slice(0,2),p_team_b:vals.slice(2),p_score_a:null,p_score_b:null,p_status:"upcoming"});EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw();toast("対戦カードを追加しました")}catch(e){console.error(e);alert("対戦カードを追加できませんでした")}}
+async function saveEventMatchScore(id,matchId,index){const a=$("em_sa_"+index)?.value.trim()??"",b=$("em_sb_"+index)?.value.trim()??"";if(a===""||b===""||!/^\d+$/.test(a)||!/^\d+$/.test(b)||+a===+b){alert("0以上の整数で、同点にならないスコアを入力してください");return}try{await rpc("save_event_match",{p_event_id:id,p_id:matchId,p_court_number:null,p_team_a:null,p_team_b:null,p_score_a:+a,p_score_b:+b,p_status:"completed"});EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw();toast("スコアを保存しました")}catch(e){console.error(e);alert("スコアを保存できませんでした")}}
+async function setEventMatchLive(id,matchId,status){try{const m=(EVENT_MATCHES[id]||[]).find(x=>x.id===matchId);if(!m)return;await rpc("save_event_match",{p_event_id:id,p_id:matchId,p_court_number:m.court_number,p_team_a:m.team_a,p_team_b:m.team_b,p_score_a:m.score_a,p_score_b:m.score_b,p_status:status});EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw()}catch(e){alert("試合状態を更新できませんでした")}}
 function eventAdminCard(event,index){
 const counts=eventCounts(event);
-return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="row"><button onclick="goDues('${esc(event.id)}')">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div></div>`
+return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="row"><button onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコア管理</button><button onclick="goDues('${esc(event.id)}')">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
 }
 function saveEvent(){
 const title=$("event_title").value.trim(),date=$("event_date").value,place=$("event_place").value.trim();
@@ -1152,7 +1195,8 @@ return `<span class="badge">CLUB EVENTS</span><h1>イベント</h1><p class="sub
 function eventMemberCard(event,memberName){
 const counts=eventCounts(event),response=event.responses&&event.responses[memberName];
 const full=event.capacity&&counts.yes.length>=event.capacity&&response!=="yes",waiting=String(response||"").startsWith("wait"),wpos=counts.wait.findIndex(m=>m.n===memberName)+1;
-return `<div class="box"${ROLE==="admin"?` onclick="goDues('${esc(event.id)}')" style="cursor:pointer"`:""}><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div>${ROLE==="admin"?'<p class="sub">タップすると、このイベントの会費の回収状況を開きます。</p>':""}<p><b>場所:</b> ${esc(event.place)}</p>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div><div class="sub">参加予定メンバー: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"まだいません"}</div>${memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":waiting?`キャンセル待ち（${wpos}番目）`:"未回答"}</p>${duesNote(event,memberName,response)}<div class="row">${waiting?"":`<button onclick="respondEvent('${esc(event.id)}','yes')">${full?"⏳ キャンセル待ちに入る":"参加する"}</button>`}<button class="g" onclick="respondEvent('${esc(event.id)}','no')">${waiting?"キャンセル待ちをやめる":"参加しない"}</button></div>${full&&!waiting?'<p class="sub">定員に達しています。「キャンセル待ち」に入ると、空きが出たとき早い順に自動で繰り上がります。</p>':""}${waiting?'<p class="sub">空きが出たら、早く並んだ順に自動で繰り上がります。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>'}</div>`
+const controls=memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":waiting?`キャンセル待ち（${wpos}番目）`:"未回答"}</p>${duesNote(event,memberName,response)}<div class="row">${waiting?"":`<button onclick="respondEvent('${esc(event.id)}','yes')">${full?"⏳ キャンセル待ちに入る":"参加する"}</button>`}<button class="g" onclick="respondEvent('${esc(event.id)}','no')">${waiting?"キャンセル待ちをやめる":"参加しない"}</button></div>${full&&!waiting?'<p class="sub">定員に達しています。「キャンセル待ち」に入ると、空きが出たとき早い順に自動で繰り上がります。</p>':""}${waiting?'<p class="sub">空きが出たら、早く並んだ順に自動で繰り上がります。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>';
+return `<div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><p><b>場所:</b> ${esc(event.place)}</p>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div><div class="sub">参加予定メンバー: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"まだいません"}</div>${controls}<div class="row"><button class="g" onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコアを見る</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
 }
 function openProfileLogin(){go("pf")}
 async function respondEvent(eventId,status){
@@ -1174,7 +1218,7 @@ async function issueProfileSetupCode(name){
 try{const r=await rpc("admin_issue_code",{p_name:name});adminSetupCodeDisplay={name,code:r.code,no:r.no};logMemberUpdate(name,"招待リンク発行");await loadPinStatus();draw()}
 catch(e){alert("発行できませんでした")}
 }
-function adminSettings(){return `<h2>管理者設定</h2><div class="box"><label>管理者パスワード変更</label><div class="row"><input id="new_pw" type="password" placeholder="新しいパスワード"><button onclick="changePw()">変更する</button></div></div><h2>自動バックアップ</h2><p class="sub">アプリを開いた最初の日ごとに自動で保存されます(直近7日分)。間違えて消したときは、ここから戻せます。</p><div class="box" id="bk_list"><p class="sub">読み込み中…</p></div>`}
+function adminSettings(){return `<h2>管理者設定</h2><div class="box"><label>管理者パスワード変更</label><div class="row"><input id="new_pw" type="password" placeholder="新しいパスワード"><button onclick="changePw()">変更する</button></div></div><h2>レーティング</h2><div class="box"><p class="sub">計算パラメータ（rating_params）を変えたあとに、全試合を最初から再計算します。</p><button onclick="rmRecalc()">全試合を再計算する</button></div><h2>自動バックアップ</h2><p class="sub">アプリを開いた最初の日ごとに自動で保存されます(直近7日分)。間違えて消したときは、ここから戻せます。</p><div class="box" id="bk_list"><p class="sub">読み込み中…</p></div>`}
 function financeTotals(){const records=S.financeRecords||[],total=records.reduce((sum,item)=>({income:sum.income+item.income,expense:sum.expense+item.expense,profit:sum.profit+item.profit,fee:sum.fee+item.fee}),{income:0,expense:0,profit:0,fee:0});return `<div class="box"><div class="row" style="justify-content:space-between"><span>保存件数</span><b>${records.length}件</b></div><div class="row" style="justify-content:space-between"><span>累計総収入</span><b>${total.income.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計総支出</span><b>${total.expense.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計決済手数料</span><b>${total.fee.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計差引利益</span><b>${total.profit.toLocaleString()}円</b></div></div>`}
 function currentFinance(){const value=id=>Math.max(0,Number($(id)?.value)||0),price=value("b1"),participants=value("b2"),feeRate=Math.min(100,value("b5")),ticket=price*participants,fee=ticket*feeRate/100,sponsor=value("b4"),otherIncome=value("b6"),courtCost=value("b3"),otherCost=value("b7"),income=ticket+sponsor+otherIncome,expense=courtCost+otherCost+fee,profit=income-expense,denominator=price*(1-feeRate/100);return {name:$("bname")?.value.trim()||"大会",price,participants,ticket,feeRate,fee,sponsor,otherIncome,courtCost,otherCost,income,expense,profit,perPerson:participants?profit/participants:0,breakEven:denominator>0?Math.max(0,Math.ceil((courtCost+otherCost-sponsor-otherIncome)/denominator)):0}}
 function saveFinanceRecord(){
@@ -1361,7 +1405,7 @@ for(let t=0;t<500;t++){const sh=play.slice().sort(()=>Math.random()-.5);let sc=0
 for(let i=0;i<sh.length;i+=4){const[a,b,x,y]=sh.slice(i,i+4);sc+=25*((pc[K(a,b)]||0)**2+(pc[K(x,y)]||0)**2);[[a,x],[a,y],[b,x],[b,y]].forEach(([u,v])=>sc+=(oc[K(u,v)]||0)**2*5);sc+=Math.abs(R(a)+R(b)-R(x)-R(y))*4;ms.push({a:[a,b],b:[x,y],sa:"",sb:"",court:i/4+1,manual:true})}
 if(sc<bs){bs=sc;best=ms}}
 S.rounds.push({m:best,bye});save();draw();toast("おまかせでペアを作りました 🎲")}
-function sesDelMatch(r,m){ask("この対戦を削除します。よろしいですか？",()=>{const rd=S.rounds[r];if(!rd)return;const dm=rd.m[m];if(dm&&dm.k)rpc("delete_result",{p_key:dm.k}).catch(()=>{});rd.m.splice(m,1);if(!rd.m.length)S.rounds.splice(r,1);save();draw()})}
+function sesDelMatch(r,m){ask("この対戦を削除します。よろしいですか？",()=>{const rd=S.rounds[r];if(!rd)return;const dm=rd.m[m];if(dm&&dm.k)rpc("void_match",{p_key:dm.k}).catch(()=>{});rd.m.splice(m,1);if(!rd.m.length)S.rounds.splice(r,1);save();draw()})}
 function matchList(){const o=[];S.rounds.forEach((r,ri)=>r.m.forEach((m,mi)=>o.push({r:ri,m:mi,x:m})));return o}
 const isDone=x=>x.sa!==""&&x.sb!==""&&x.sa!==x.sb;
 function sesStep2(){const used=new Set([...SES.a,...SES.b].filter(x=>x!=null)),list=matchList();
@@ -1373,11 +1417,28 @@ return `<p class="sub">下の名前をタップして、チームA・Bに入れ�
 <div class="hscroll" style="flex-wrap:wrap;overflow:visible">${S.players.map((n,i)=>`<button class="fchip" ${used.has(i)?"disabled":""} onclick="sesPick(${i})">${popAvatar(n,24)} ${esc(n)}</button>`).join("")||'<span class="sub">先にメンバーを登録してください</span>'}</div>
 <div class="row"><button onclick="sesAddMatch()" style="width:100%">⚔️ この対戦を追加</button></div></div>
 ${courtBoard()}<h2>今日の対戦カード（${list.length}）</h2>
-${list.map(o=>`<div class="box scard">${stkOf(o.x)}<div class="row" style="justify-content:space-between;margin:0"><b>COURT ${o.x.court||o.m+1}</b><span>${isDone(o.x)?"":`<button class="g" onclick="sesStart(${o.r},${o.m})" style="min-height:44px">${o.x.st==="in_progress"?"⏸ 待機に戻す":"▶ 開始"}</button>`}<button class="x" onclick="sesDelMatch(${o.r},${o.m})" aria-label="削除">✕</button></span></div><div class="scgrid" style="align-items:center"><div>${teamPop(o.x.a)}</div><div style="text-align:right">${teamPop(o.x.b)}</div></div></div>`).join("")||mnote("blue","まだ対戦がありません。「おまかせ」ならすぐ作れるよ！")}
+${list.map(o=>`<div class="box scard">${stkOf(o.x)}<div class="row" style="justify-content:space-between;margin:0"><b>COURT ${o.x.court||o.m+1}</b><span>${isDone(o.x)?"":`<button class="g" onclick="sesStart(${o.r},${o.m})" style="min-height:44px">${o.x.st==="in_progress"?"⏸ 待機に戻す":"▶ 開始"}</button>`}<button class="x" onclick="sesDelMatch(${o.r},${o.m})" aria-label="削除">✕</button></span></div><div class="scgrid" style="align-items:center"><div>${teamPop(o.x.a)}</div><div style="text-align:right">${teamPop(o.x.b)}</div></div>
+<div class="row" style="justify-content:center;margin-top:10px"><input id="quick_ra_${o.r}_${o.m}" class="sc" inputmode="numeric" type="number" min="0" step="1" value="${o.x.sa}" aria-label="チームAの点数" placeholder="A"><b>-</b><input id="quick_rb_${o.r}_${o.m}" class="sc" inputmode="numeric" type="number" min="0" step="1" value="${o.x.sb}" aria-label="チームBの点数" placeholder="B"><button onclick="sesQuickResult(${o.r},${o.m})">${isDone(o.x)?"スコア修正":"スコア保存"}</button></div><div class="row"><button class="g" style="width:100%" onclick="sesOpenRally(${o.r},${o.m})">🎾 ラリーごとにスコアを付ける</button></div></div>`).join("")||mnote("blue","まだ対戦がありません。「おまかせ」ならすぐ作れるよ！")}
 ${list.length?'<div class="row"><button onclick="SEV=3;draw()" style="width:100%">次へ：結果を入力する ➡️</button></div>':""}`}
+/* セッション対戦：デモと同じラリー単位のスコア入力 */
+function sesOpenRally(r,m){
+ const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;
+ SC_DEMO=false;SCS=scDef();SCS.names=[teamPlain(x.a),teamPlain(x.b)];SCS.mode=x.a.length>1?"d":"s";
+ SCS.sessionTarget={r,m};SCS.mi=-2;SCS.sc=[Number(x.sa)||0,Number(x.sb)||0];SCS.srv=0;SCS.no=SCS.mode==="d"?2:1;SCS.done=-1;SCS.hist=[];SCS.msg="既存の点数がある場合は引き継いで続けられます。";scCheck();
+ const d=document.createElement("div");d.id="ses-rally";d.className="demo-ov";
+ d.innerHTML=`<main><div class="row" style="justify-content:space-between"><span class="badge">SESSION SCORE</span><button class="g" onclick="sesCloseRally()">✕ とじる</button></div><h1>ラリーごとにスコア</h1><p class="sub">ラリーを取ったチームをタップしてください。点数・サーブ権を自動で更新します。結果は保存ボタンを押すまで確定しません。</p><div class="sc_root">${scBody()}</div></main>`;
+ document.body.appendChild(d);
+}
+function sesCloseRally(){const d=document.getElementById("ses-rally");if(d)d.remove();if(SCS)SCS.sessionTarget=null;}
+function sesScApply(){const t=SCS&&SCS.sessionTarget;if(!t)return;const x=S.rounds[t.r]&&S.rounds[t.r].m[t.m];if(!x)return;
+ if(SCS.sc[0]===SCS.sc[1]){alert("同点のままでは保存できません。勝敗が決まってから保存してください。");return;}
+ x.sa=SCS.sc[0];x.sb=SCS.sc[1];x.st="completed";maybeRecord(x);save();sesCloseRally();draw();toast("ラリーのスコアを対戦結果に保存しました！");
+}
 /* 3. 結果入力・集計 */
 function sesRank(){const t=table().filter(r=>r.g>0).map(r=>({...r,n:S.players[r.i],rate:r.w/r.g}));return t.sort((a,b)=>b.rate-a.rate||b.w-a.w||b.d-a.d)}
-function sesResult(r,m){const a=$(`ra_${r}_${m}`).value.trim(),b=$(`rb_${r}_${m}`).value.trim();
+function sesQuickResult(r,m){const a=$(`quick_ra_${r}_${m}`)?.value.trim()||"",b=$(`quick_rb_${r}_${m}`)?.value.trim()||"";sesSaveResult(r,m,a,b)}
+function sesResult(r,m){const a=$(`ra_${r}_${m}`).value.trim(),b=$(`rb_${r}_${m}`).value.trim();sesSaveResult(r,m,a,b)}
+function sesSaveResult(r,m,a,b){
 if(a===""||b===""||isNaN(+a)||isNaN(+b)||+a<0||+b<0){alert("両チームの点数を入れてください（例: 11 と 8）");return}
 if(+a===+b){alert("同点は入力できません。勝ったチームが上回るようにしてください");return}
 const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;x.sa=+a;x.sb=+b;x.st="completed";maybeRecord(x);save();draw();
@@ -1389,7 +1450,7 @@ const medal=["🥇","🥈","🥉"];
 return `<div class="scgrid" style="margin-top:12px"><div class="box scard"><span class="stk">総試合数</span><div class="big" style="text-align:center">${fin.length}<small style="font-size:14px">/${list.length}</small></div></div><div class="box scard"><span class="stk r">本日の最多勝 👑</span><div style="text-align:center;font-weight:900;font-size:18px;word-break:break-all">${top.length?esc(top.join("・")):"—"}</div><div class="sub" style="text-align:center;margin:0">${maxW?maxW+"勝":""}</div></div></div>
 <h2>勝率ランキング</h2>${rank.length?`<table><tr><th>順位</th><th>名前</th><th>勝-敗</th><th>勝率</th><th>得失点</th></tr>${rank.map((r,k)=>`<tr><td class="medal">${medal[k]||"#"+(k+1)}</td><td>${popAvatar(r.n,26)} <b>${esc(r.n)}</b></td><td>${r.w}-${r.l}</td><td><b>${Math.round(r.rate*100)}%</b></td><td>${r.d>0?"+":""}${r.d}</td></tr>`).join("")}</table>`:'<p class="sub">結果を入力すると、ここに順位が出ます。</p>'}
 <div class="row"><button style="width:100%;${allDone?"background:#F472B6":""}" onclick="openAwards()" ${fin.length?"":"disabled"}>${allDone?"🎉 全試合終了！表彰を見る 🏆":"🏆 表彰を見る"}</button></div>
-<h2>結果を入力</h2>${list.map(o=>{const x=o.x,d=isDone(x),wa=d&&x.sa>x.sb,wb=d&&x.sb>x.sa;return `<div class="box scard">${stkOf(x)}<b>COURT ${x.court||o.m+1}</b>
+<h2>結果を入力</h2><p class="sub">保存した結果は、<b>出場者全員が「承認」</b>するとアプリ内レーティング（参考値）に反映されます（メニュー → 試合の承認）。運営者は確認だけで反映できます。</p>${list.map(o=>{const x=o.x,d=isDone(x),wa=d&&x.sa>x.sb,wb=d&&x.sb>x.sa;return `<div class="box scard">${stkOf(x)}<b>COURT ${x.court||o.m+1}</b>
 <div class="scgrid" style="align-items:center;margin:8px 0"><div>${wa?"🏆 ":""}${teamPop(x.a)}</div><div style="text-align:right">${wb?"🏆 ":""}${teamPop(x.b)}</div></div>
 <div class="row" style="justify-content:center"><input id="ra_${o.r}_${o.m}" class="sc" inputmode="numeric" value="${x.sa}" aria-label="チームAの点数" placeholder="A"><b>-</b><input id="rb_${o.r}_${o.m}" class="sc" inputmode="numeric" value="${x.sb}" aria-label="チームBの点数" placeholder="B"><button onclick="sesResult(${o.r},${o.m})">${d?"修正":"保存"}</button></div></div>`}).join("")}`}
 /* 表彰 */
@@ -1418,7 +1479,7 @@ if([3,7,14,30,100].includes(o.n))setTimeout(()=>{toast(`🔥 ${o.n}日連続で�
 function celebrate(){const d=document.createElement("div");d.innerHTML=confettiHtml();document.body.appendChild(d);setTimeout(()=>d.remove(),3500)}
 function topRefresh(){document.querySelectorAll(".topx").forEach(e=>{e.innerHTML=topInner()})}
 function msToggle(){const t=localDateKey();let a=lsGet("ph_ms",[]);if(a.includes(t))a=a.filter(x=>x!==t);else{a.push(t);a=a.slice(-60);celebrate()}lsSet("ph_ms",a);topRefresh()}
-function qzAns(k){QZ.a.push(k);if(QZ.i<QUIZ.length-1){QZ.i++}else{const c={};QZ.a.forEach(x=>c[x]=(c[x]||0)+1);const r=QK.slice().sort((x,y)=>(c[y]||0)-(c[x]||0)||QZ.a.indexOf(x)-QZ.a.indexOf(y))[0];lsSet("ph_quiz",r);QZ={i:0,a:[],done:true};celebrate()}topRefresh()}
+function qzAns(k){QZ.a.push(k);if(QZ.i<QUIZ.length-1){QZ.i++}else{const c={};QZ.a.forEach(x=>c[x]=(c[x]||0)+1);const r=QK.slice().sort((x,y)=>(c[y]||0)-(c[x]||0)||QZ.a.indexOf(x)-QZ.a.indexOf(y))[0];lsSet("ph_quiz",r);ga("quiz_complete",{result:r});QZ={i:0,a:[],done:true};celebrate()}topRefresh()}
 function qzReset(){QZ={i:0,a:[]};lsSet("ph_quiz",null);topRefresh()}
 const siteUrl=()=>location.origin+location.pathname;
 function qzShare(){const r=lsGet("ph_quiz",null);if(!r)return;const m=MONINFO[r];shareTxt(`【PICKLE HUB モンスター診断】\n私は「${m.n}（${m.t}）」タイプ！\nあなたはどのモンスター？ 4つの質問でわかるよ👇\n${siteUrl()}`)}
@@ -1445,21 +1506,85 @@ function sesStart(r,m){const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;x.st=x
 function courtBoard(){const list=matchList();if(!list.length)return"";const n=Math.max(1,S.courts||1);
 return `<h2>🏟️ コートボード</h2><div class="scgrid">${Array.from({length:n},(_,i)=>{const c=i+1,on=list.filter(o=>(o.x.court||o.m+1)===c&&!isDone(o.x)),live=on.find(o=>o.x.st==="in_progress"),nx=on.find(o=>o.x.st!=="in_progress");
 return `<div class="box scard" style="margin:12px 0 4px"><span class="stk ${live?"r":""}">COURT ${c}</span>${live?`<div style="font-size:12px"><b>🔴 LIVE</b><br>${teamPop(live.x.a)}<br><b>vs</b><br>${teamPop(live.x.b)}</div>`:`<div class="sub" style="margin:0">🟢 空きコート</div>`}${nx?`<div class="sub" style="margin:6px 0 0">次: ${esc(nx.x.a.map(i=>S.players[i]).join("・"))} vs ${esc(nx.x.b.map(i=>S.players[i]).join("・"))}</div>`:""}</div>`}).join("")}</div>`}
+/* ---------- アプリ内レーティング（参考値）：試合の登録・承認・戦績・グラフ・しくみ ---------- */
+// ※公式DUPRではありません。計算はすべてサーバー側（Supabase）で行い、この画面は表示と登録・承認の操作だけです。
+let RFMT="doubles",LBF="doubles";const PEND={t:0,v:[],n:0};let INFO=null;
+const FJ={singles:"シングルス",doubles:"ダブルス"};
+const r3=v=>v==null?"NR":Number(v).toFixed(3);
+const sg3=v=>(Number(v)>=0?"+":"")+Number(v).toFixed(3);
+const RS={up_win:"相手の強さから予想される得点割合を上回ったため、評価が上がりました",up_loss:"負けましたが、予想される得点割合を上回ったため、評価が上がりました",down_win:"勝利しましたが、予想される得点割合を下回ったため、評価が下がりました",down_loss:"予想される得点割合を下回ったため、評価が下がりました",flat:"予想どおりの得点割合だったため、評価はほとんど変わりませんでした",clamped:"評価の上限・下限（2.000〜8.000）のため、変動が制限されました"};
+const RMERR=[["tie","同点・引き分けは登録できません"],["duplicate","同じ人が重複しています"],["invalid played_at","試合日時が正しくありません（未来の日時は登録できません）"],["invalid score","点数は0以上の整数で入力してください"],["invalid games","ゲームの点数が正しくありません"],["invalid teams","人数が正しくありません（シングルスは1対1、ダブルスは2対2）"],["match is void","取消済みの試合です"],["already decided","すでに確定した試合です"],["not a participant","この試合の出場者ではありません"],["forbidden","この操作の権限がありません"]];
+const rmErr=e=>{const m=String((e&&e.message)||""),h=RMERR.find(([k])=>m.includes(k));return h?h[1]:"処理に失敗しました。もう一度お試しください"};
+function clearRM(){Object.keys(STATS).forEach(k=>delete STATS[k]);LB.v=null;PEND.t=0}
+/* 試合結果を送信（サーバーが検証・承認管理・再計算する。同じ内容の再送は二重反映されない） */
 function maybeRecord(x){if(!isDone(x))return;const A=x.a.map(i=>S.players[i]),B=x.b.map(i=>S.players[i]);if(A.concat(B).some(n=>!n))return;
-const sig=x.sa+"-"+x.sb+"|"+A.join(",")+"|"+B.join(",");if(x.rk===sig)return;x.k=x.k||(uid()+uid());x.rk=sig;
-rpc("record_result",{p_key:x.k,p_event:null,p_team_a:A,p_team_b:B,p_score_a:x.sa,p_score_b:x.sb}).then(()=>{Object.keys(STATS).forEach(k=>delete STATS[k]);LB.v=null}).catch(e=>{console.error(e);x.rk=""})}
-async function statsFor(n){const c=STATS[n];if(c&&Date.now()-c.t<30000)return c.v;const v=await rpc("get_player_stats",{p_name:n});STATS[n]={t:Date.now(),v};return v}
-function statsHtml(v){if(!v||!v.total)return '<p class="sub">まだ記録された試合がありません。結果を保存すると、ここに戦績が出ます。</p>';
-const d=(v.points_for||0)-(v.points_against||0);
-return `<div class="statgrid"><div class="box stat"><small>レーティング（非公式）</small><b>${Number(v.rating).toFixed(2)}</b></div><div class="box stat"><small>勝率</small><b>${v.win_rate}%</b><div class="bar"><i style="width:${Math.min(100,v.win_rate)}%"></i></div></div><div class="box stat"><small>勝 - 敗</small><b>${v.wins} - ${v.losses}</b></div><div class="box stat"><small>総試合数 / 得失点</small><b>${v.total} <small style="display:inline">/ ${d>0?"+":""}${d}</small></b></div></div>
-<p style="text-align:center;margin:10px 0 0"><small class="sub">直近</small> ${(v.recent||[]).map(r=>`<span class="dot ${r.won?"w":"l"}" title="${r.sf}-${r.sa}">${r.won?"勝":"負"}</span>`).join("")}</p>`}
-function statsBox(n){const c=STATS[n];return `<div class="statsx" data-n="${esc(n)}">${c?statsHtml(c.v):'<p class="sub">読み込み中…</p>'}</div>`}
-async function lbFor(){if(LB.v&&Date.now()-LB.t<30000)return LB.v;const v=await rpc("get_leaderboard",{p_limit:10});LB.v=v;LB.t=Date.now();return v}
-function lbHtml(l){if(!l||!l.length)return '<p class="sub">まだ集計できる試合がありません。</p>';const md=["🥇","🥈","🥉"];
-return `<table><tr><th>順位</th><th>名前</th><th>レーティング</th><th>勝率</th><th>試合</th></tr>${l.map((r,i)=>`<tr><td class="medal">${md[i]||"#"+(i+1)}</td><td>${popAvatar(r.name,24)} <b>${esc(r.name)}</b></td><td><b>${Number(r.rating).toFixed(2)}</b></td><td>${r.win_rate}%</td><td>${r.total}</td></tr>`).join("")}</table><p class="sub">※ レーティングは、このクラブの試合結果から計算する非公式の目安です。</p>`}
-const lbBox=()=>`<div class="lbx">${LB.v?lbHtml(LB.v):'<p class="sub">読み込み中…</p>'}</div>`;
-function fillStats(){document.querySelectorAll(".statsx").forEach(async el=>{try{const v=await statsFor(el.dataset.n);if(el.isConnected)el.innerHTML=statsHtml(v)}catch(e){if(el.isConnected)el.innerHTML='<p class="sub">成績を読み込めませんでした。</p>'}});
-const lb=document.querySelector(".lbx");if(lb)lbFor().then(v=>{if(lb.isConnected)lb.innerHTML=lbHtml(v)}).catch(()=>{if(lb.isConnected)lb.innerHTML='<p class="sub">ランキングを読み込めませんでした。</p>'})}
+const sig=x.sa+"-"+x.sb+"|"+A.join(",")+"|"+B.join(",");if(x.rk===sig)return;x.k=x.k||(uid()+uid());x.rk=sig;x.pa=x.pa||new Date().toISOString();
+rpc("submit_match",{p_key:x.k,p_team_a:A,p_team_b:B,p_games:[[x.sa,x.sb]],p_rules:{target:(typeof SCS!=="undefined"&&SCS.t)||11,win_by:(typeof SCS!=="undefined"&&SCS.w2===false)?1:2},p_played_at:x.pa,p_outcome:"completed"})
+.then(r=>{clearRM();if(r&&r.status==="pending")toast("結果を登録しました。出場者全員の承認後に、レーティングへ反映されます（メニュー → 試合の承認）")}).catch(e=>{console.error(e);x.rk="";toast(rmErr(e))})}
+async function cardFor(n){const c=STATS[n];if(c&&Date.now()-c.t<30000)return c.v;const[card,ms]=await Promise.all([rpc("get_rating_card",{p_name:n}),rpc("get_matches",{p_name:n,p_limit:10})]);STATS[n]={t:Date.now(),v:{card,ms:ms||[]}};return STATS[n].v}
+function chart(h){if(!h||h.length<2)return '<p class="sub">評価対象の試合が2件以上になると、推移のグラフが出ます。</p>';
+const v=h.map(x=>+x.after),mn=Math.min(...v)-.05,mx=Math.max(...v)+.05,W=300,H=110,P=14,pts=v.map((x,i)=>[P+i*(W-2*P)/(v.length-1),H-P-((x-mn)/(mx-mn))*(H-2*P)]);
+return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="アプリ内レーティングの推移（${r3(v[0])}から${r3(v[v.length-1])}）"><polyline points="${pts.map(p=>p.join(",")).join(" ")}" fill="none" stroke="#000" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><polyline points="${pts.map(p=>p.join(",")).join(" ")}" fill="none" stroke="#F472B6" stroke-width="2.5" stroke-linejoin="round"/>${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#FDE047" stroke="#000" stroke-width="2"/>`).join("")}<text x="${P}" y="12" font-size="10" fill="currentColor">${r3(Math.max(...v))}</text><text x="${P}" y="${H-2}" font-size="10" fill="currentColor">${r3(Math.min(...v))}</text></svg>`}
+function matchRow(m,name){const me=(m.changes||[]).find(x=>x.player===name),inA=m.team_a.includes(name),won=inA?m.total_a>m.total_b:m.total_b>m.total_a,sc=m.games.map(g=>g.join("-")).join(" / "),dt=new Date(m.played_at).toLocaleDateString("ja-JP");
+const st=m.status==="approved"?'<span class="ok">承認済み</span>':m.status==="void"?'<span class="sub" style="margin:0">取消済み</span>':'<span style="color:#BE123C;font-weight:900">承認待ち</span>';
+return `<div class="box" style="padding:12px;margin:8px 0"><div class="row" style="justify-content:space-between;margin:0"><b>${dt}　${FJ[m.format]}</b>${st}</div><div style="margin:6px 0">${esc(m.team_a.join("・"))} <b>${sc}</b> ${esc(m.team_b.join("・"))}　<b>${m.status==="void"?"":won?"🏆 勝ち":"負け"}</b></div>
+${me?`<div>${r3(me.before)} → <b>${r3(me.after)}</b>（${sg3(me.delta)}）</div><p class="sub" style="margin:4px 0 0">${esc(RS[me.reason]||"")}<br>期待得点割合 ${(me.expected*100).toFixed(1)}% ／ 実際の得点割合 ${(me.actual*100).toFixed(1)}%（勝率ではありません）／ K=${me.k}・重み=${me.w}</p>`:`<p class="sub" style="margin:4px 0 0">${esc(m.non_rated_reason||"評価対象外です")}</p>`}</div>`}
+function ratingHtml(v,name){const c=v.card,f=c[RFMT]||{},nr=f.rating==null,conf=f.confidence||{score:0,count:0,opp:0,rec:0},own=name===ME,off=(c.official||[]).find(o=>o.format===RFMT);
+const tabs=`<div class="row" role="tablist">${["doubles","singles"].map(k=>`<button class="fchip ${RFMT===k?"on":""}" role="tab" aria-selected="${RFMT===k}" onclick="RFMT='${k}';draw()">${FJ[k]}</button>`).join("")}</div>`;
+const badge=nr?'<span class="st" style="margin:0">NR（未評価）</span>':f.provisional?'<span class="st" style="margin:0">暫定</span>':'<span class="st" style="margin:0;background:#4ADE80">評価対象5試合以上</span>';
+const ms=(v.ms||[]).filter(m=>m.format===RFMT);
+return `<div class="box"><p class="sub" style="margin:0 0 6px"><b>アプリ内レーティング（参考値）</b>です。<b>公式DUPRではありません。</b> <a href="#" onclick="go('rh');return false">計算のしくみ ›</a></p>${tabs}
+<div style="text-align:center;margin:8px 0"><div class="big" style="font-size:44px">${r3(f.rating)}</div>${badge}</div>
+<div class="statgrid"><div class="box stat"><small>評価対象の試合数</small><b>${f.rated||0}</b></div><div class="box stat"><small>参考信頼度（0〜100）</small><b>${conf.score}</b><div class="bar"><i style="width:${conf.score}%"></i></div></div></div>
+<p class="sub" style="text-align:center;margin:8px 0 0">${f.rated?`${f.wins}勝${f.losses}敗　／　対戦相手 ${f.opponents}人${f.last_played_at?`　／　最終 ${new Date(f.last_played_at).toLocaleDateString("ja-JP")}`:""}`:"まだ評価対象の試合がありません。結果が承認されると、ここに表示されます。"}</p>
+<details style="margin-top:8px"><summary class="sub" style="cursor:pointer;margin:0">参考信頼度の計算の根拠</summary><p class="sub" style="margin:6px 0 0">試合数 ${conf.count}/${conf.count_max}点（${f.rated||0}試合）<br>対戦相手の人数 ${conf.opp}/${conf.opp_max}点（${f.opponents||0}人）<br>直近の試合 ${conf.rec}/${conf.rec_max}点（時間とともに下がります）<br>合計 ${conf.score}/100。試合がないときは0です。統計的に検証した精度ではなく、目安です。公式のReliability Scoreとは別のものです。</p></details>
+<h3 style="font-size:14px;margin:14px 0 4px">レーティングの推移</h3>${chart(f.history)}
+<h3 style="font-size:14px;margin:14px 0 4px">${FJ[RFMT]}の最近の試合</h3>${ms.length?ms.map(m=>matchRow(m,name)).join(""):'<p class="sub">まだ試合がありません。</p>'}
+<h3 style="font-size:14px;margin:14px 0 4px">公式DUPR（別枠）</h3><div class="box" style="padding:12px;margin:0"><p class="sub" style="margin:0">${off?`<b>${r3(off.value)}</b>（${off.source==="integration"?"公式連携":"自己申告・未検証"}／更新 ${new Date(off.updated_at).toLocaleDateString("ja-JP")}）`:"未入力"}<br>公式連携：<b>未接続</b>（正規の連携手段を確認できていないため）。この欄の値で、アプリ内レーティングが変わることはありません。</p>
+${own?`<div class="row"><input id="off_v" data-keep type="number" step="0.001" min="2" max="8" inputmode="decimal" placeholder="例: 3.250（自己申告）" value="${off?off.value:""}" style="flex:1"><button class="g" onclick="offSave()">保存</button></div>`:""}</div></div>`}
+async function offSave(){const v=($("off_v").value||"").trim();if(v!==""&&!(+v>=2&&+v<=8)){alert("2.000〜8.000で入力してください");return}
+try{await rpc("set_official_dupr",{p_format:RFMT,p_value:v===""?null:+v});clearRM();toast("保存しました（自己申告・未検証）");draw()}catch(e){alert("保存できませんでした")}}
+const statsBox=n=>`<div class="statsx" data-n="${esc(n)}">${STATS[n]?ratingHtml(STATS[n].v,n):'<p class="sub">読み込み中…</p>'}</div>`;
+async function lbFor(f){if(LB.v&&LB.f===f&&Date.now()-LB.t<30000)return LB.v;const v=await rpc("get_rating_leaderboard",{p_format:f,p_limit:20});LB.v=v||[];LB.f=f;LB.t=Date.now();return LB.v}
+function lbHtml(l){const tabs=`<div class="row" role="tablist">${["doubles","singles"].map(k=>`<button class="fchip ${LBF===k?"on":""}" role="tab" aria-selected="${LBF===k}" onclick="LBF='${k}';LB.v=null;draw()">${FJ[k]}</button>`).join("")}</div>`,md=["🥇","🥈","🥉"];
+return tabs+(!l||!l.length?'<p class="sub">まだ評価できる試合がありません。</p>':`<table><tr><th>順位</th><th>名前</th><th>参考レーティング</th><th>信頼度</th><th>試合</th></tr>${l.map((r,i)=>`<tr><td class="medal">${md[i]||"#"+(i+1)}</td><td>${popAvatar(r.name,24)} <b>${esc(r.name)}</b></td><td><b>${r3(r.rating)}</b>${r.provisional?' <span class="st">暫定</span>':""}</td><td>${r.confidence}</td><td>${r.rated}</td></tr>`).join("")}</table>`)+'<p class="sub">※ アプリ内レーティング（参考値）の順位です。公式DUPRではありません。</p>'}
+const lbBox=()=>`<div class="lbx">${LB.v&&LB.f===LBF?lbHtml(LB.v):'<p class="sub">読み込み中…</p>'}</div>`;
+/* 試合の承認 */
+async function getPend(force){if(!force&&Date.now()-PEND.t<20000)return PEND.v;PEND.v=(await rpc("get_matches",{p_pending:true,p_limit:50}))||[];PEND.t=Date.now();return PEND.v}
+const myPend=l=>ROLE==="admin"?l:l.filter(m=>m.team_a.concat(m.team_b).includes(ME)&&!(m.approvals||[]).some(a=>a.player===ME&&a.decision==="approved"));
+function apCard(m){const all=m.team_a.concat(m.team_b),dec=p=>{const a=(m.approvals||[]).find(x=>x.player===p);return a?(a.decision==="approved"?"✅":"❌"):"⏳"},mine=ROLE!=="admin"&&all.includes(ME),done=(m.approvals||[]).some(a=>a.player===ME&&a.decision==="approved"),k=esc(m.mkey);
+return `<div class="box scard"><span class="stk r">承認待ち</span><div class="row" style="justify-content:space-between;margin:0"><b>${FJ[m.format]}</b><span class="sub" style="margin:0">${new Date(m.played_at).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span></div>
+<div style="margin:8px 0">${esc(m.team_a.join("・"))} <b style="font-size:18px">${m.games.map(g=>g.join("-")).join(" / ")}</b> ${esc(m.team_b.join("・"))}</div>
+<p class="sub" style="margin:0 0 6px">登録: ${esc(m.recorded_by)}　／　承認: ${all.map(p=>`${esc(p)} ${dec(p)}`).join("　")}</p>${m.non_rated_reason?`<p class="sub" style="margin:0 0 6px">${esc(m.non_rated_reason)}</p>`:""}
+<div class="row">${mine&&!done?`<button onclick="rmApprove('${k}','approved')">✅ 承認する</button><button class="g" onclick="rmApprove('${k}','rejected')">❌ 却下</button>`:""}${ROLE==="admin"?`<button onclick="rmConfirm('${k}')">🛡 運営者として確認</button>`:""}${ROLE==="admin"||m.recorded_by===ME?`<button class="x" onclick="rmVoid('${k}')">取消</button>`:""}</div></div>`}
+const apHtml=l=>!l||!l.length?'<p class="sub">承認待ちの試合はありません。</p>':l.map(apCard).join("");
+function ap(){return `<span class="badge">APPROVAL</span><h1>試合の承認</h1><p class="sub">試合に出た全員が「承認」すると、結果がアプリ内レーティングに反映されます。運営者は、確認だけで反映できます（重みが大きくなります）。内容に誤りがあれば「却下」してください。</p><div class="apx">${PEND.t?apHtml(myPendAll()):'<p class="sub">読み込み中…</p>'}</div>`}
+const myPendAll=()=>PEND.v;
+async function rmAct(fn,args,msg){try{await rpc(fn,args);clearRM();toast(msg);await getPend(true);PEND.n=myPend(PEND.v).length;draw()}catch(e){alert(rmErr(e))}}
+const rmApprove=(k,d)=>rmAct("approve_match",{p_key:k,p_decision:d},d==="approved"?"承認しました":"却下しました");
+const rmConfirm=k=>rmAct("confirm_match",{p_key:k},"運営者として確認しました。評価に反映されます");
+const rmVoid=k=>ask("この試合を取り消します。よろしいですか？",()=>rmAct("void_match",{p_key:k},"取り消しました"));
+function rmRecalc(){ask("すべての試合を、最初から再計算します。よろしいですか？",async()=>{try{const r=await rpc("admin_recalc_all");clearRM();toast("再計算しました（"+r.version+"）")}catch(e){alert("再計算できませんでした")}})}
+const pendBanner=()=>{const n=PEND.n||0;return n?`<div class="box" style="border-color:#F472B6"><b>✅ 承認待ちの試合が${n}件あります</b><div class="row"><button onclick="go('ap')">確認する</button></div></div>`:""};
+function fillStats(){document.querySelectorAll(".statsx").forEach(async el=>{try{const v=await cardFor(el.dataset.n);if(el.isConnected)el.innerHTML=ratingHtml(v,el.dataset.n)}catch(e){if(el.isConnected)el.innerHTML='<p class="sub">レーティングを読み込めませんでした。</p>'}});
+const lb=document.querySelector(".lbx");if(lb)lbFor(LBF).then(v=>{if(lb.isConnected)lb.innerHTML=lbHtml(v)}).catch(()=>{if(lb.isConnected)lb.innerHTML='<p class="sub">ランキングを読み込めませんでした。</p>'});
+const ax=document.querySelector(".apx");if(ax)getPend(!PEND.t).then(l=>{if(ax.isConnected)ax.innerHTML=apHtml(l)}).catch(()=>{if(ax.isConnected)ax.innerHTML='<p class="sub">読み込めませんでした。</p>'});
+if(loaded&&TOKEN&&Date.now()-PEND.t>20000)getPend(true).then(()=>{const n=myPend(PEND.v).length;if(n!==PEND.n){PEND.n=n;draw()}}).catch(()=>{});
+const rx=document.querySelector(".rhx");if(rx)(INFO?Promise.resolve(INFO):rpc("get_rating_info")).then(p=>{INFO=p;if(rx.isConnected)rx.innerHTML=rhParams(p)}).catch(()=>{})}
+/* レーティングのしくみ（ヘルプ） */
+function rhParams(p){return `<table><tr><th>項目</th><th>現在の値</th></tr><tr><td>アルゴリズムのバージョン</td><td><b>${esc(p.version)}</b></td></tr><tr><td>初期値（独自の仮定）</td><td>${Number(p.base).toFixed(3)}</td></tr><tr><td>範囲</td><td>${Number(p.min).toFixed(3)} 〜 ${Number(p.max).toFixed(3)}</td></tr><tr><td>D（期待得点割合の調整）</td><td>${p.D}</td></tr><tr><td>更新係数 K</td><td>${p.K.map(t=>`${t.from}${t.to==null?"試合以上":"〜"+t.to+"試合"}: ${t.k}`).join("<br>")}</td></tr><tr><td>重み W</td><td>一般試合（出場者全員が承認）: ${p.W.general}<br>運営者が確認した試合: ${p.W.operator}</td></tr><tr><td>暫定の基準</td><td>評価対象${p.provisional_n}試合未満</td></tr></table>`}
+function rh(){return `<span class="badge">HELP</span><h1>レーティングのしくみ</h1>
+<div class="box"><b>これは公式DUPRではありません</b><p style="margin:6px 0 0">この画面の数字は、このクラブの試合結果だけから計算する<b>「アプリ内レーティング（参考値）」</b>です。DUPRの計算式や係数は公開されていないため、再現していません。数式・係数・初期値は、すべてこのアプリ独自の仮定です。</p></div>
+<h2>計算のしくみ</h2><div class="box"><p style="margin:0 0 8px"><b>① 期待得点割合</b>（勝率ではありません）<br><code>EA = 1 / (1 + 10^((RB − RA) / D))</code><br>RA・RBは試合前の評価（ダブルスは2人の平均）。強い側ほど、得点の割合が大きくなると予想します。</p>
+<p style="margin:0 0 8px"><b>② 実際の得点割合</b><br><code>SA = PA / (PA + PB)</code>（複数ゲームの試合は、全ゲームの得点を合算して1回だけ更新）</p>
+<p style="margin:0 0 8px"><b>③ 更新</b><br><code>新しい評価 = 古い評価 + K × W × (実際の得点割合 − 期待得点割合)</code><br>結果は2.000〜8.000の範囲に収めます。勝っても、予想より得点割合が低ければ下がり、負けても、予想より高ければ上がります。</p>
+<p style="margin:0"><b>④ 種目</b><br>シングルスとダブルスは、完全に別々に管理します。ダブルスは、同じチームの2人に同じ得点割合の誤差を使います（個人の貢献度は、スコアだけからは分からないため）。</p></div>
+<h2>いまの設定</h2><div class="box"><div class="rhx"><p class="sub">読み込み中…</p></div></div>
+<h2>評価に反映される試合</h2><div class="box"><p style="margin:0">・シングルスは1対1、ダブルスは2対2。同じ人が重複することはできません。<br>・同点・0対0・未来の日時は登録できません。<br>・<b>出場者全員が承認</b>した試合（または<b>運営者が確認</b>した試合）だけが反映されます。利用者が自分で「大会扱い」にして、重みを上げることはできません。<br>・棄権・不戦勝・途中終了・取消済みの試合は、評価の対象外です。<br>・試合の修正・取消・過去日時の追加があると、その種目の全試合を、試合日時の順に最初から再計算します（同じデータなら、必ず同じ結果になります）。</p></div>
+<h2>表示の意味</h2><div class="box"><p style="margin:0"><b>NR</b>：評価対象の試合がまだありません。<br><b>暫定</b>：評価対象の試合が5試合未満です（初期値3.000は、独自の仮定で、確定した評価ではありません）。<br><b>参考信頼度（0〜100）</b>：評価対象の試合数（最大50点）・対戦相手の人数（最大30点）・直近の試合（最大20点、時間とともに減る）を足した目安です。公式のReliability Scoreとは別のもので、統計的に検証した精度ではありません。</p></div>
+<h2>限界・注意</h2><div class="box"><p style="margin:0">・対戦相手が少ない、または実力差が大きい小さなグループでは、精度に限界があります。<br>・複数ゲームを合算する方式なので、ゲームごとの勝敗は反映されません。<br>・時間の経過による減衰は、まだ入れていません（時系列の逐次更新のみ）。<br>・更新係数や上限・下限のため、1試合の増減の合計は、ゼロになるとは限りません。</p></div>
+<h2>公式DUPRとの連携</h2><div class="box"><p style="margin:0">現在は<b>未接続</b>です。正規の連携手段と利用条件を確認できていないため、非公開APIの利用やスクレイピングはしていません。プロフィールの「公式DUPR」欄には、<b>自己申告（未検証）</b>の値を入力できますが、アプリ内レーティングを上書きすることはありません。</p></div>
+<h2>管理者向け：設定の変え方</h2><div class="box"><p style="margin:0">Supabaseの <code>rating_params</code> に新しいバージョンの行を追加して <code>active=true</code> にし、管理者ページ → 設定 →「全試合を再計算する」を押します。履歴には、使ったバージョンが残ります。</p></div>`}
 /* マイギア */
 function gearHtml(list,own){const cards=list.length?`<div class="gear">${list.map(g=>`<div class="gcard">${g.image?`<img src="${esc(g.image)}" alt="${esc(g.paddle_name)}">`:'<div class="gnone">🏓</div>'}${g.weight_oz?`<span class="gw">${g.weight_oz}oz</span>`:""}<div class="gi"><b>${esc(g.paddle_name)}</b><small>${esc(g.brand||"")}</small>${own?`<button class="x" onclick="gearDel('${esc(g.id)}')">削除</button>`:""}</div></div>`).join("")}</div>`:'<p class="sub">まだ登録されていません。</p>';
 if(!own)return cards;
@@ -1501,7 +1626,7 @@ if(HF.l!=="all")evs=evs.filter(e=>(e.level||"all")==="all"||e.level===HF.l);
 if(HF.o)evs=evs.filter(e=>!(+e.capacity)||eventCounts(e).remaining>0);
 const chip=(l,on,fn)=>`<button class="fchip ${on?"on":""}" aria-pressed="${on}" onclick="${fn};draw()">${l}</button>`;
 const steps=[[1,"👥","1. メンバーを登録","名前を入れるだけ","#FDE047"],[2,"⚔️","2. 対戦ペアをつくる","メンバーから選ぶだけ","#F472B6"],[3,"📊","3. 結果を入力・集計","勝敗とスコアを入れるだけ","#67E8F9"]];
-return `${heroBlock()}<div class="steps">${steps.map(([k,e,ti,d,c],i)=>`<button class="step" style="background:${c};transform:rotate(${i%2?1.2:-1.2}deg)" onclick="SEV=${k};go('se')"><span class="step-e" aria-hidden="true">${e}</span><span style="flex:1"><b>${ti}</b><br><small>${d}</small></span><span aria-hidden="true">➡️</span></button>`).join("")}</div>
+return `${heroBlock()}${pendBanner()}<div class="steps">${steps.map(([k,e,ti,d,c],i)=>`<button class="step" style="background:${c};transform:rotate(${i%2?1.2:-1.2}deg)" onclick="SEV=${k};go('se')"><span class="step-e" aria-hidden="true">${e}</span><span style="flex:1"><b>${ti}</b><br><small>${d}</small></span><span aria-hidden="true">➡️</span></button>`).join("")}</div>
 ${topExtras()}<h2>📅 これからのイベント</h2><div class="hscroll">${[["all","すべて"],["today","今日"],["week","今週"]].map(([k,l])=>chip("📅 "+l,HF.d===k,`HF.d='${k}'`)).join("")}${[["all","すべて"],["b","🌱 BEGINNER"],["i","⚡ INTERMEDIATE"],["a","🔥 ADVANCED"]].map(([k,l])=>chip(l,HF.l===k,`HF.l='${k}'`)).join("")}${chip("🟢 空きあり",HF.o,"HF.o=!HF.o")}</div>
 ${evs.map(e=>sessionCard(e,ROLE==="admin"?"":ME)).join("")||mnote("orange","条件に合うイベントはありません。")}`}
 /* ルールQ&A（ポップなモーダル） */
@@ -1540,7 +1665,7 @@ function scPick(v){SCS.mi=+v;const lr=S.rounds[S.rounds.length-1];if(SCS.mi>=0&&
 function scApply(){const lr=S.rounds[S.rounds.length-1],m=lr&&lr.m[SCS.mi];if(!m){alert("反映する試合を選んでください");return}m.sa=SCS.sc[0];m.sb=SCS.sc[1];m.st="completed";maybeRecord(m);save();toast("対戦表に反映しました")}
 function scShare(){shareTxt(`【スコア】\n${SCS.names[0]} ${SCS.sc[0]} - ${SCS.sc[1]} ${SCS.names[1]}`)}
 function scWin(){const w=SCS.done,em=["🎉","🎊","⭐","🏆","✨","🎾"];
-return `${Array.from({length:28},(_,i)=>`<span class="cf" style="left:${Math.round(Math.random()*96)}vw;animation-delay:${(Math.random()*1.2).toFixed(2)}s">${em[i%em.length]}</span>`).join("")}<div class="winov"><div class="box">${mon("pink",130,"hop")}<h2>WINNER! 🏆</h2><p class="big" style="font-size:30px;margin:6px 0">${esc(SCS.names[w])}</p><p style="font-size:26px;font-weight:900;margin:4px 0">${SCS.sc[0]} - ${SCS.sc[1]}</p><div class="row" style="justify-content:center"><button class="line-btn" onclick="scShare()">LINEで共有</button>${!SC_DEMO&&SCS.mi>=0?'<button onclick="scApply()">対戦表に反映</button>':""}<button class="g" onclick="scReset();scDraw()">もう一度</button><button class="g" onclick="scUndo()">↩ 戻す</button></div></div></div>`}
+return `${Array.from({length:28},(_,i)=>`<span class="cf" style="left:${Math.round(Math.random()*96)}vw;animation-delay:${(Math.random()*1.2).toFixed(2)}s">${em[i%em.length]}</span>`).join("")}<div class="winov"><div class="box">${mon("pink",130,"hop")}<h2>WINNER! 🏆</h2><p class="big" style="font-size:30px;margin:6px 0">${esc(SCS.names[w])}</p><p style="font-size:26px;font-weight:900;margin:4px 0">${SCS.sc[0]} - ${SCS.sc[1]}</p><div class="row" style="justify-content:center"><button class="line-btn" onclick="scShare()">LINEで共有</button>${!SC_DEMO&&SCS.sessionTarget?'<button onclick="sesScApply()">対戦結果に保存</button>':(!SC_DEMO&&SCS.mi>=0?'<button onclick="scApply()">対戦表に反映</button>':"")}<button class="g" onclick="scReset();scDraw()">もう一度</button><button class="g" onclick="scUndo()">↩ 戻す</button></div></div></div>`}
 function scBody(){const q=SCS,col=i=>`<div class="scc ${q.srv===i?"srv":""}"><input class="scn" value="${esc(q.names[i])}" onchange="SCS.names[${i}]=this.value;scDraw()" aria-label="チーム名">
 <div class="scn-big" aria-label="得点">${q.sc[i]}</div>${q.srv===i?`<div class="serve">🎾 SERVE${q.mode==="d"&&!q.rs?` · Server ${q.no}`:""}</div>`:'<div class="recv">RECEIVE</div>'}
 <button class="rally" onclick="scRally(${i})">${i?"B":"A"} がラリーを取った</button><div class="row" style="justify-content:center;margin:0"><button class="g" onclick="scAdj(${i},-1)" aria-label="${i?"B":"A"}を1点減らす">−1</button><button class="g" onclick="scAdj(${i},1)" aria-label="${i?"B":"A"}を1点増やす">＋1</button></div></div>`;
@@ -1549,7 +1674,7 @@ return `<div class="scgrid">${col(0)}${col(1)}</div><p class="sub" style="text-a
 <div class="row" style="justify-content:center"><button class="g" onclick="scUndo()">↩ 元に戻す</button><button class="g" onclick="scAsk()">🔄 リセット</button></div>
 <div class="box"><div class="row" style="margin:0"><label style="margin:0">形式 <select onchange="SCS.mode=this.value;scReset();scPref();scDraw()"><option value="d" ${q.mode==="d"?"selected":""}>ダブルス</option><option value="s" ${q.mode==="s"?"selected":""}>シングルス</option></select></label><label style="margin:0">先取点 <select onchange="SCS.t=+this.value;scCheck();scPref();scDraw()">${[7,11,15,21,25].map(n=>`<option ${n===q.t?"selected":""}>${n}</option>`).join("")}</select></label><label style="margin:0">得点方式 <select onchange="SCS.rs=this.value==='r';scReset();scPref();scDraw()"><option value="s" ${q.rs?"":"selected"}>サイドアウト（標準）</option><option value="r" ${q.rs?"selected":""}>ラリーポイント制</option></select></label><label style="margin:0">勝ち条件 <select onchange="SCS.w2=this.value==='2';scCheck();scPref();scDraw()"><option value="2" ${q.w2===false?"":"selected"}>2点差で勝ち</option><option value="1" ${q.w2===false?"selected":""}>先取で勝ち</option></select></label></div>${sel}</div>${q.done>=0?scWin():""}`}
 function scoreTab(){SC_DEMO=false;return `<span class="badge">SCORE</span><h1>スコア記録</h1><p class="sub">ラリーを取ったチームのボタンを押すだけ。<b>標準（サイドアウト）</b>：サーブ側が取ると1点、レシーブ側が取ると点は入らずサーブ交代。<b>ラリーポイント制</b>：どちらが取っても、取ったチームに1点。得点方式は、下の設定で切り替えられます。</p><div class="sc_root">${scBody()}</div>`}
-function openDemo(){SC_DEMO=true;SCS=scDef();scReset();const d=document.createElement("div");d.id="demo";d.className="demo-ov";
+function openDemo(){ga("demo_start");SC_DEMO=true;SCS=scDef();scReset();const d=document.createElement("div");d.id="demo";d.className="demo-ov";
 d.innerHTML=`<main><div class="row" style="justify-content:space-between"><span class="badge">DEMO</span><button class="g" id="c">✕ とじる</button></div><h1>お試しデモ</h1><p class="sub">ログイン不要のお試しです。記録は保存されません。ラリーを取ったチームのボタンを押してみてください。</p><div class="sc_root">${scBody()}</div></main>`;
 document.body.appendChild(d);d.querySelector("#c").onclick=()=>{SC_DEMO=false;d.remove()}}
 /* トーナメントブラケット */
