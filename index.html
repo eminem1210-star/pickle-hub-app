@@ -471,14 +471,23 @@ async function loadPinStatus(){try{const r=await rpc("admin_member_status"),k=JS
 
 // 起動時にSupabaseからデータを読み込む ＆ リアルタイム購読のセットアップ
 async function initApp(){
-  $("app").innerHTML='<div style="text-align:center;padding:70px 0">'+mon("green",130,"hop")+'<p class="sub">読み込み中…</p></div>';
-  if(TOKEN){
+  $("app").innerHTML='<div style="text-align:center;padding:70px 0">'+mon("green",130,"hop")+'<p class="sub">読み込み中…</p><p id="boot_status" class="sub">起動処理を確認しています…</p></div>';
+  window.__phBootStage="initApp開始";
+  clearTimeout(window.__phBootWatchdog);
+  window.__phBootWatchdog=setTimeout(()=>{
+    const app=$("app"),login=document.getElementById("login");
+    if(app&&!login&&app.textContent.includes("読み込み中")){
+      app.innerHTML='<main style="max-width:520px;margin:40px auto;padding:20px;text-align:center"><h1>PICKLE HUB</h1><p style="font-weight:700">アプリの起動が予定より長くかかっています。</p><p>停止した場所：'+String(window.__phBootStage||"不明")+'</p><p>通信またはサーバー応答を確認する必要があります。保存済みデータは削除していません。</p><button onclick="location.reload()" style="padding:12px 22px">再読み込み</button></main>';
+    }
+  },25000);
+  if(TOKEN){window.__phBootStage="ログイン状態を確認中";}
+
     try{
       const si=await Promise.race([
         rpc0("session_info",{p_token:TOKEN}),
         new Promise((_,reject)=>setTimeout(()=>reject(new Error("session_info timeout")),10000))
       ]);
-      if(si&&si.role){ROLE=si.role;ME=si.member||"";window.MYNO=si.no||""}
+      if(si&&si.role){ROLE=si.role;ME=si.member||"";window.MYNO=si.no||"";window.__phBootStage="ログイン確認完了";}
       else{TOKEN="";try{localStorage.removeItem("ph_tok")}catch(e){}}
     }catch(e){
       console.error("session check failed; returning to login",e);
@@ -490,6 +499,7 @@ async function initApp(){
     }
   }
   if(!TOKEN){try{await showLogin("",new URLSearchParams(location.search).get("invite")||"")}catch(e){console.error("login screen render failed",e);const app=$("app");if(app)app.innerHTML='<main style="max-width:520px;margin:24px auto;padding:16px"><h1>PICKLE HUB</h1><p>ログイン画面の表示で問題が発生しました。</p><button onclick="location.reload()">再読み込み</button></main>'}return}
+  window.__phBootStage="アプリデータを取得中";
   await startApp()
 }
 async function startApp(){
@@ -499,16 +509,17 @@ async function startApp(){
       new Promise((_,reject)=>setTimeout(()=>reject(new Error("get_state timeout")),15000))
     ]);
     if(!st||typeof st!=="object")throw new Error("get_state returned empty data");
-    S=Object.assign(defaultS(),st);loaded=true;
+    S=Object.assign(defaultS(),st);loaded=true;window.__phBootStage="基本データ取得完了";clearTimeout(window.__phBootWatchdog);
   }catch(e){
     console.error("app data loading failed",e);
     const app=$("app");
     if(app)app.innerHTML='<main style="max-width:520px;margin:40px auto;padding:20px;text-align:center"><h1>PICKLE HUB</h1><p style="font-weight:700">ログインはできましたが、アプリのデータを読み込めませんでした。</p><p>保存済みの会員情報やイベント情報は削除していません。通信状況を確認して、もう一度お試しください。</p><button onclick="location.reload()" style="padding:12px 22px">再読み込み</button></main>';
     return;
   }
+  window.__phBootStage="掲示板・メッセージを取得中";
   profileSessionName=ME;profileUnlockedName=ME;adminSession=ROLE==="admin";
   try{await refreshRows(false)}catch(e){console.error("board/message loading failed",e)}
-  syncClubPlayers();draw();
+  syncClubPlayers();draw();clearTimeout(window.__phBootWatchdog);window.__phBootStage="ホーム画面表示完了";
   ga("login",{method:ROLE==="admin"?"admin":"member"});trackPage();syncStart();
   if(!pollTimer){pollTimer=setInterval(poll,5000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()})}
 }
