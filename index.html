@@ -664,6 +664,10 @@ try{history.pushState({t,root:ROOT,d:((history.state&&history.state.d)||0)+1},""
 function navBack(){if(history.state&&history.state.d>0){history.back();return}tab=MAIN.includes(ROOT)?ROOT:"hm";draw()}
 window.addEventListener("popstate",e=>{const st=e.state;if(st&&st.t){tab=st.t;ROOT=st.root||"hm";trackPage();draw()}});
 try{history.replaceState({t:tab,root:"hm",d:0},"")}catch(e){}
+function topBar(){
+const sub=!MAIN.includes(tab);
+return `<header class="topbar"><div class="tb-brand">🏓 PICKLE HUB</div>${sub?'<button class="g tb-ic" onclick="navBack()">← 戻る</button>':`<div class="tb-path">${esc(ME||"地域クラブ")}</div>`}</header>`
+}
 function draw(){
 checkTournamentDay();
 $("app").innerHTML=topBar()+noticeBanner()+({hm:homeTab,se:sessionTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th,gr,ap,rh})[tab]();
