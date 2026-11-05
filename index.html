@@ -534,10 +534,24 @@ async function startApp(){
       new Promise((_,reject)=>setTimeout(()=>reject(new Error("board/message loading timeout")),12000))
     ]);
   }catch(e){console.error("board/message loading failed; continuing to home",e)}
-  window.__phBootStage="ホーム画面を表示中";
-  syncClubPlayers();draw();
+  window.__phBootStage="クラブ情報を整理中";
+  try{syncClubPlayers()}catch(e){
+    console.error("syncClubPlayers failed",e);
+    window.__phBootStage="クラブ情報の整理でエラー";
+    const app=$("app");
+    if(app)app.innerHTML='<main style="max-width:560px;margin:30px auto;padding:20px;background:#fff;color:#222;border-radius:16px"><h1>PICKLE HUB</h1><p>ホーム画面の準備中にエラーが発生しました。</p><p style="font-weight:700">処理：クラブ情報の整理</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(String(e&&e.message||e))+'</pre><button onclick="location.reload()">再読み込み</button></main>';
+    clearTimeout(window.__phBootWatchdog);return;
+  }
+  window.__phBootStage="ホーム画面を描画中";
+  try{draw()}catch(e){
+    console.error("home draw failed",e);
+    window.__phBootStage="ホーム画面の描画でエラー";
+    const app=$("app");
+    if(app)app.innerHTML='<main style="max-width:560px;margin:30px auto;padding:20px;background:#fff;color:#222;border-radius:16px"><h1>PICKLE HUB</h1><p>ホーム画面の表示中にエラーが発生しました。</p><p style="font-weight:700">処理：ホーム画面の描画</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(String(e&&e.message||e))+'</pre><button onclick="location.reload()">再読み込み</button></main>';
+    clearTimeout(window.__phBootWatchdog);return;
+  }
   clearTimeout(window.__phBootWatchdog);window.__phBootStage="ホーム画面表示完了";
-  ga("login",{method:ROLE==="admin"?"admin":"member"});trackPage();syncStart();
+  try{ga("login",{method:ROLE==="admin"?"admin":"member"});trackPage();syncStart()}catch(e){console.error("post-login setup failed",e)}
   if(!pollTimer){pollTimer=setInterval(poll,5000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()})}
 }
 async function refreshRows(notify){
