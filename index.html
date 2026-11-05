@@ -1309,7 +1309,7 @@ const event={...previous,id:S.adminEventEdit||`${Date.now()}-${Math.random().toS
 S.events=S.events||[];
 const index=S.events.findIndex(item=>item.id===event.id);
 if(index>=0){S.events[index]=event}else S.events.push(event);
-rememberAdminSuggestion("place");S.adminEventEdit="";["event_title","event_date","event_time","event_end","event_level","event_place","event_capacity","event_details"].forEach(id=>{if(S.adminForm)delete S.adminForm[id]});save();draw();toast("イベントを公開しました")
+rememberAdminSuggestion("place");S.adminEventEdit="";["event_title","event_date","event_time","event_end","event_level","event_place","event_capacity","event_details"].forEach(id=>{if(S.adminForm)delete S.adminForm[id]});save();draw();toast(event.isPublic?"イベントを一般公開しました":"イベントを保存しました（非公開）")
 }
 function editEvent(index){const event=S.events[index];if(!event)return;S.adminEventEdit=event.id;save();draw()}
 function cancelEditEvent(){S.adminEventEdit="";draw()}
