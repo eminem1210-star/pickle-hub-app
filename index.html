@@ -490,7 +490,19 @@ async function initApp(){
       ]);
       if(si&&si.role){ROLE=si.role;ME=si.member||"";window.MYNO=si.no||""}
       else{TOKEN="";try{localStorage.removeItem("ph_tok")}catch(e){}}
-    }catch(e){console.error(e);showLoadError();return}
+    }catch(e){
+      console.error("session check failed; returning to login",e);
+      TOKEN="";ROLE="";ME="";
+      try{localStorage.removeItem("ph_tok")}catch(x){}
+      try{
+        await showLogin("ログイン状態を確認できませんでした。もう一度ログインしてください。",new URLSearchParams(location.search).get("invite")||"");
+      }catch(x){
+        console.error("login fallback failed",x);
+        if(app)app.innerHTML='<main style="max-width:520px;margin:24px auto;padding:16px;background:#fff;color:#222"><h1>PICKLE HUB</h1><p>ログイン画面を表示できませんでした。通信状態を確認して再読み込みしてください。</p><button onclick="location.reload()">再読み込み</button></main>';
+      }
+      clearTimeout(window.__phBootWatchdog);
+      return;
+    }
   }
   if(!TOKEN){
     try{await showLogin("",new URLSearchParams(location.search).get("invite")||"")}
