@@ -1836,7 +1836,7 @@ const stk=(left!=null&&left>0&&left<=2?`<span class="stk">✦ 残り${left}枠�
 return `<div class="box scard">${stk}<div class="row" style="justify-content:space-between;margin:0"><h2 style="margin:0">${esc(e.title)}</h2><span class="lvl">${LVL_LABEL[lv]||""}</span></div>
 <p class="sub" style="margin:8px 0">📅 ${esc(e.date)} ${esc(evTime(e))}<br>📍 ${esc(e.place||"")}${fee?`<br>💴 会費 ${fee.toLocaleString()}円`:""}</p>
 <div class="row" style="justify-content:space-between;margin:0"><b>👥 ${c.yes.length}${cap?`/${cap}`:""}人</b>${me?(r==="yes"?'<span class="ok">参加予定 ✔</span>':String(r||"").startsWith("wait")?'<span class="ok">⏳ キャンセル待ち中</span>':`<button onclick="respondEvent('${esc(e.id)}','yes')">${full?"キャンセル待ち":"参加予約"}</button>`):""}</div></div>`}
-function uniqueEvents(events){const seen=new Set();return events.filter(e=>{const norm=v=>String(v||"").trim().toLocaleLowerCase().replace(/[\\s　]+/g," ");const identity=[norm(e.date),norm(e.time),norm(e.place),norm(e.title)].join("|");const key=identity.replace(/\\|/g,"")?"event|"+identity:"id|"+norm(e.id);if(seen.has(key))return false;seen.add(key);return true})}
+function uniqueEvents(events){const seen=new Set();return events.filter(e=>{const norm=v=>String(v||"").trim().toLocaleLowerCase().replace(/[ 　]+/g," ");const parts=[norm(e.date),norm(e.time),norm(e.place),norm(e.title)];const key=parts.some(Boolean)?"event|"+parts.join("|"):"id|"+norm(e.id);if(seen.has(key))return false;seen.add(key);return true})}
 function homeTab(){
 const t=localDateKey(),wk=new Date();wk.setDate(wk.getDate()+7);const wkk=localDateKey(wk);
 let evs=uniqueEvents(S.events||[]).filter(e=>(e.date||"")>=t).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||"").localeCompare(b.time||""));
