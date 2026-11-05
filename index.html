@@ -719,33 +719,34 @@ if(lastTab!=tab){window.scrollTo(0,0);lastTab=tab}}
 
 
 function shareTxt(t){ga("share",{method:navigator.share?"web_share":"line",content_type:"text"});if(navigator.share){navigator.share({text:t}).catch(e=>{if(e&&e.name!=="AbortError")showCopy(t)})}else{const w=window.open("https://line.me/R/share?text="+encodeURIComponent(t),"_blank");if(!w)showCopy(t)}}
-function modSc(ri,mi,k,d){const m=S.rounds[ri].m[mi],c=m[k]===""?0:m[k];m[k]=Math.max(0,c+d);maybeRecord(m);save();draw()}
+function modSc(ri,mi,k,d){if(ROLE!=="admin"){alert("スコアの編集は管理者のみです");return}const m=S.rounds[ri].m[mi],c=m[k]===""?0:m[k];m[k]=Math.max(0,c+d);maybeRecord(m);save();draw()}
 function addRental(){const item=$("ri").value.trim(),member=$("rh").value;if(!item||!member){alert("用具名とメンバーを選択してください");return}S.rentals=S.rentals||[];S.rentals.push({item,holder:member});save();draw()}
 
 /* ---------- 大会 ---------- */
 function evRot(){
+const admin=ROLE==="admin";
 return `<span class="badge">TOURNAMENT</span><h1>PICKLE HUB</h1><p class="sub">楽しくスマートに大会・練習を管理しよう！</p>
-<div class="row"><label style="margin:0">大会形式 <select id="tournament_format" onchange="setTournamentFormat(this.value)"><option value="doubles" ${(S.tournamentFormat||"doubles")==="doubles"?"selected":""}>ダブルス</option><option value="singles" ${S.tournamentFormat==="singles"?"selected":""}>シングルス</option></select></label></div>
+${admin?`<div class="row"><label style="margin:0">大会形式 <select id="tournament_format" onchange="setTournamentFormat(this.value)"><option value="doubles" ${(S.tournamentFormat||"doubles")==="doubles"?"selected":""}>ダブルス</option><option value="singles" ${S.tournamentFormat==="singles"?"selected":""}>シングルス</option></select></label></div>`:`<p class="sub">大会の参加者・組み合わせ・試合結果を閲覧できます。編集は管理者が行います。</p>`}
 <h2>参加者 (${S.players.length}人)</h2>
-<div class="row"><input id="pn" placeholder="名前 (例: 田中 3.5, 佐藤)" onkeydown="if(event.key=='Enter')addP()"><button onclick="addP()">追加</button></div>
-<div>${S.players.map((p,i)=>`<span class="chip">${P(i)}${S.rt&&S.rt[p]!=null?' <small style="color:var(--ac)">'+Number(S.rt[p]).toFixed(1)+'</small>':''}<button class="x" aria-label="削除" onclick="delP(${i})">×</button></span>`).join("")||'<p class="sub">名前を入力して追加。「田中 3.5」のようにレベル指定も可能。</p><button class="g" onclick="demo()">✨ サンプル8人で試す</button>'}</div>
-<div class="row"><label style="margin:0">コート数
+${admin?`<div class="row"><input id="pn" placeholder="名前 (例: 田中 3.5, 佐藤)" onkeydown="if(event.key=='Enter')addP()"><button onclick="addP()">追加</button></div>`: ""}
+<div>${S.players.map((p,i)=>`<span class="chip">${P(i)}${S.rt&&S.rt[p]!=null?' <small style="color:var(--ac)">'+Number(S.rt[p]).toFixed(1)+'</small>':''}${admin?`<button class="x" aria-label="削除" onclick="delP(${i})">×</button>`:""}</span>`).join("")||'<p class="sub">大会参加者はまだ登録されていません。</p>'}${admin&&!S.players.length?'<button class="g" onclick="demo()">✨ サンプル8人で試す</button>':""}</div>
+${admin?`<div class="row"><label style="margin:0">コート数
 <select id="cn" onchange="S.courts=+this.value;save()">${[1,2,3,4,5,6].map(n=>`<option ${n==S.courts?"selected":""}>${n}</option>`).join("")}</select></label>
-<button onclick="nextRound()">次のラウンドを組む</button><button class="g" onclick="undoR()">直前取消</button><button class="g" onclick="resetEv()">全消去</button></div>
-<div class="row"><button class="line-btn" onclick="shareR()">LINEで結果共有</button><button class="g" onclick="big()">大画面</button><button class="g" onclick="saveH()">履歴保存</button></div><textarea id="sh" rows="7" style="display:none;width:100%" aria-label="結果テキスト"></textarea>
+<button onclick="nextRound()">次のラウンドを組む</button><button class="g" onclick="undoR()">直前取消</button><button class="g" onclick="resetEv()">全消去</button></div>`: ""}
+<div class="row"><button class="line-btn" onclick="shareR()">LINEで結果共有</button><button class="g" onclick="big()">大画面</button>${admin?'<button class="g" onclick="saveH()">履歴保存</button>':""}</div><textarea id="sh" rows="7" style="display:none;width:100%" aria-label="結果テキスト"></textarea>
 ${S.rounds.slice().reverse().map((r,ri)=>round(r,S.rounds.length-1-ri)).join("")}
 ${S.rounds.length?`<h2>順位表</h2>${stand()}`:""}
-${(S.hist||[]).length?`<h2>過去の履歴</h2>${S.hist.map((h,i)=>`<div class="box"><b>${esc(h.d)}</b> (${h.p.length}人・${h.r.length}R)<div class="row"><button class="g" onclick="loadH(${i})">読み込む</button><button class="x" onclick="deleteH(${i})">履歴削除</button></div></div>`).join("")}`:""}`}
-function addP(){const raw=$("pn").value.trim();if(!raw)return;S.rt=S.rt||{};raw.split(/[,、\n]+/).map(s=>s.trim()).filter(Boolean).forEach(s=>{const m=s.match(/^(.+?)\s+(\d(?:\.\d+)?)$/),n=m?m[1]:s;if(m)S.rt[n]=+m[2];if(!S.players.includes(n))S.players.push(n)});save();draw();$("pn").focus()}
-function delP(i){const f=()=>{S.players.splice(i,1);S.rounds=[];S.tournamentTeams=[];save();draw()};S.rounds.length?ask("ラウンド記録が消えます。削除しますか？",f):f()}
-function setTournamentFormat(format){
+${(S.hist||[]).length?`<h2>過去の履歴</h2>${S.hist.map((h,i)=>`<div class="box"><b>${esc(h.d)}</b> (${h.p.length}人・${h.r.length}R)${admin?`<div class="row"><button class="g" onclick="loadH(${i})">読み込む</button><button class="x" onclick="deleteH(${i})">履歴削除</button></div>`:""}</div>`).join("")}`:""}`}
+function addP(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}const raw=$("pn").value.trim();if(!raw)return;S.rt=S.rt||{};raw.split(/[,、\n]+/).map(s=>s.trim()).filter(Boolean).forEach(s=>{const m=s.match(/^(.+?)\s+(\d(?:\.\d+)?)$/),n=m?m[1]:s;if(m)S.rt[n]=+m[2];if(!S.players.includes(n))S.players.push(n)});save();draw();$("pn").focus()}
+function delP(i){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}const f=()=>{S.players.splice(i,1);S.rounds=[];S.tournamentTeams=[];save();draw()};S.rounds.length?ask("ラウンド記録が消えます。削除しますか？",f):f()}
+function setTournamentFormat(format){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}
 if(format===S.tournamentFormat)return;
 const apply=()=>{S.tournamentFormat=format;S.rounds=[];S.tournamentTeams=[];save();draw()};
 if(S.rounds.length){ask("大会形式を変更すると進行中のラウンドとスコアが消えます。変更しますか？",apply);const dialog=$("dg"),cancel=dialog&&dialog.querySelector("#n");if(cancel)cancel.onclick=()=>{dialog.remove();draw()}}
 else{S.tournamentFormat=format;S.tournamentTeams=[];save();draw()}
 }
 function tournamentPlayers(){return S.players.map((_,index)=>index)}
-function resetEv(){ask("ラウンドを全て消しますか？",()=>{S.rounds=[];S.tournamentTeams=[];syncClubPlayers();save();draw()})}
+function resetEv(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("ラウンドを全て消しますか？",()=>{S.rounds=[];S.tournamentTeams=[];syncClubPlayers();save();draw()})}
 function syncClubPlayers(){
 S.clubPlayerNames=Array.isArray(S.clubPlayerNames)?S.clubPlayerNames:[];
 const attended=[...new Set(S.members.filter(member=>member.at).map(member=>member.n))];
@@ -774,7 +775,7 @@ if(ranked.length)teams.push([ranked[0]]);
 S.tournamentTeams=teams;
 return teams
 }
-function nextRound(force){
+function nextRound(force){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}
 const roster=tournamentPlayers(),n=roster.length,singles=S.tournamentFormat==="singles";if(n<(singles?2:4)){alert(singles?"選択したレベル帯にシングルス参加者が2人以上必要です":"選択したレベル帯にダブルス参加者が4人以上必要です");return}
 const lr=S.rounds[S.rounds.length-1];if(!force&&lr&&lr.m.some(m=>m.sa===""||m.sb==="")){ask("前のラウンドにスコア未入力の試合があります。このまま進みますか？",()=>nextRound(true));return}
 const R=i=>(S.rt&&S.rt[S.players[i]])||3;
@@ -840,16 +841,16 @@ matches=best||[]
 }
 S.rounds.push({m:matches,bye});save();draw()}
 function teamLabel(team){return team.map(i=>P(i)).join("・")}
-function round(r,ri){const b=(k,mi,d)=>`<button class="g pm" aria-label="${k=="sa"?"左":"右"}チーム得点${d>0?"+1":"-1"}" onclick="modSc(${ri},${mi},'${k}',${d})">${d>0?"+":"−"}</button>`;
+function round(r,ri){const admin=ROLE==="admin";const b=(k,mi,d)=>`<button class="g pm" aria-label="${k=="sa"?"左":"右"}チーム得点${d>0?"+1":"-1"}" onclick="modSc(${ri},${mi},'${k}',${d})">${d>0?"+":"−"}</button>`;
 const inp=(k,mi,v)=>`<input class="sc" inputmode="numeric" aria-label="${k=="sa"?"左":"右"}チーム得点" value="${v}" onchange="setSc(${ri},${mi},'${k}',this.value)">`;
 return `<h2>ラウンド ${ri+1}</h2>${r.m.map((m,mi)=>`<div class="court"><div class="t">コート ${m.court||mi+1}<span class="st">${(m.sa!==""&&m.sb!==""&&m.sa!==m.sb)?"FINISHED 🏁":(ri===S.rounds.length-1?"LIVE 🔴":"—")}</span></div>
 <div class="m"><div class="${wn(m)==1?"win":""}">${teamLabel(m.a)}</div>
-<div>${b("sa",mi,-1)}${inp("sa",mi,m.sa)}${b("sa",mi,1)}<span class="sub" style="margin:0">:</span>${b("sb",mi,-1)}${inp("sb",mi,m.sb)}${b("sb",mi,1)}</div>
+<div>${admin?`${b("sa",mi,-1)}${inp("sa",mi,m.sa)}${b("sa",mi,1)}`: `<span class="score-view">${m.sa===""?"–":m.sa}</span>`}<span class="sub" style="margin:0">:</span>${admin?`${b("sb",mi,-1)}${inp("sb",mi,m.sb)}${b("sb",mi,1)}`: `<span class="score-view">${m.sb===""?"–":m.sb}</span>`}</div>
 <div class="${wn(m)==2?"win":""}">${teamLabel(m.b)}</div></div></div>`).join("")}
 ${r.bye.length?`<div class="bye">お休み: ${r.bye.map(P).join("、")}</div>`:""}`}
 const wn=m=>m.sa===""||m.sb===""?0:m.sa>m.sb?1:m.sa<m.sb?2:0;
-function setSc(ri,mi,k,v){const m=S.rounds[ri].m[mi];m[k]=v===""?"":+v;maybeRecord(m);save();draw()}
-function undoR(){if(S.rounds.length)ask("最新のラウンドを取り消しますか？",()=>{S.rounds.pop();save();draw()})}
+function setSc(ri,mi,k,v){if(ROLE!=="admin"){alert("スコアの編集は管理者のみです");return}const m=S.rounds[ri].m[mi];m[k]=v===""?"":+v;maybeRecord(m);save();draw()}
+function undoR(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}if(S.rounds.length)ask("最新のラウンドを取り消しますか？",()=>{S.rounds.pop();save();draw()})}
 function shareR(){shareTxt("【PICKLE HUB 試合結果】\n"+table().map((r,k)=>(k+1)+". "+S.players[r.i]+" "+r.w+"勝"+r.l+"敗 ("+(r.d>0?"+":"")+r.d+")").join("\n"))}
 function big(){const r=S.rounds[S.rounds.length-1];if(!r){alert("先にラウンドを組んでください");return}const d=document.createElement("div");d.id="bg";d.onclick=()=>d.remove();d.innerHTML="<h1 style='color:var(--ac)'>ラウンド "+S.rounds.length+"</h1>"+r.m.map((m,i)=>'<div class="court"><div class="t">コート '+(i+1)+'</div><div class="m"><div style="font-size:18px">'+teamLabel(m.a)+'</div><div style="font-size:22px;font-weight:900">VS</div><div style="font-size:18px">'+teamLabel(m.b)+'</div></div></div>').join("")+(r.bye.length?'<p class="bye">お休み: '+r.bye.map(P).join("、")+'</p>':"")+'<p class="sub" style="text-align:center;margin-top:20px">タップして閉じる</p>';document.body.appendChild(d)}
 function table(){
@@ -873,10 +874,10 @@ if(+score>+against)pair.w++;else if(+score<+against)pair.l++
 return Object.values(pairs).sort((a,b)=>b.w-a.w||(b.scored-b.against)-(a.scored-a.against))
 }
 function stand(){return `<h3 style="font-size:14px;margin:18px 0 8px">${S.tournamentFormat==="singles"?"対戦者別戦績":"ペア別戦績"}</h3><table><tr><th>${S.tournamentFormat==="singles"?"選手":"ペア"}</th><th>試合</th><th>勝</th><th>負</th><th>得点</th><th>得失点</th></tr>${pairTable().map(pair=>`<tr><td>${teamLabel(pair.ids)}</td><td>${pair.g}</td><td>${pair.w}</td><td>${pair.l}</td><td>${pair.scored}-${pair.against}</td><td>${pair.scored-pair.against>0?"+":""}${pair.scored-pair.against}</td></tr>`).join("")||'<tr><td colspan="6">スコア入力後に表示されます</td></tr>'}</table>${S.tournamentFormat==="singles"?"":`<h3 style="font-size:14px;margin:22px 0 8px">個人順位</h3><table id="st"><tr><th>順位</th><th>名前</th><th>勝</th><th>負</th><th>得失点</th></tr>${table().map((r,k)=>`<tr><td><b>#${k+1}</b></td><td>${P(r.i)}</td><td>${r.w}</td><td>${r.l}</td><td>${r.d>0?"+":""}${r.d}</td></tr>`).join("")}</table>`}`}
-function demo(){S.players=["Kaito","Ren","Aoi","Yuki","Hina","Sota","Mio","Riku"];S.rt={};S.rounds=[];S.tournamentTeams=[];save();draw()}
-function saveH(){if(!S.rounds.length){alert("保存するラウンドがありません");return}S.hist=S.hist||[];S.hist.unshift({d:new Date().toLocaleString("ja-JP"),p:S.players,r:S.rounds,c:S.courts,t:S.rt||{},teams:S.tournamentTeams||[],format:S.tournamentFormat||"doubles"});S.hist=S.hist.slice(0,10);save();toast("履歴に保存しました")}
-function loadH(i){ask("この履歴を読み込みますか？",()=>{const h=S.hist[i];S.players=h.p;S.rounds=h.r;S.courts=h.c;S.rt=h.t;S.tournamentTeams=h.teams||[];S.tournamentFormat=h.format||"doubles";save();draw()})}
-function deleteH(i){ask("この大会履歴を削除しますか？",()=>{S.hist.splice(i,1);save();draw()})}
+function demo(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}S.players=["Kaito","Ren","Aoi","Yuki","Hina","Sota","Mio","Riku"];S.rt={};S.rounds=[];S.tournamentTeams=[];save();draw()}
+function saveH(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}if(!S.rounds.length){alert("保存するラウンドがありません");return}S.hist=S.hist||[];S.hist.unshift({d:new Date().toLocaleString("ja-JP"),p:S.players,r:S.rounds,c:S.courts,t:S.rt||{},teams:S.tournamentTeams||[],format:S.tournamentFormat||"doubles"});S.hist=S.hist.slice(0,10);save();toast("履歴に保存しました")}
+function loadH(i){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("この履歴を読み込みますか？",()=>{const h=S.hist[i];S.players=h.p;S.rounds=h.r;S.courts=h.c;S.rt=h.t;S.tournamentTeams=h.teams||[];S.tournamentFormat=h.format||"doubles";save();draw()})}
+function deleteH(i){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("この大会履歴を削除しますか？",()=>{S.hist.splice(i,1);save();draw()})}
 
 /* ---------- 練習 ---------- */
 const DR=[["ディンク練習",300,"キッチンライン越しに相手と柔らかく打ち合う。30球続けば合格。"],["サード・ドロップ",420,"ベースラインからキッチンへ落とす。10本中7本が目標。"],["サーブ精度",300,"ターゲットを決めて深さを狙う。10本中8本が目標。"],["ボレー連打",180,"ノンボレーゾーン手前で速い打ち合い。ラケット面を安定させる。"],["ステップ&フットワーク",240,"サイドステップでライン間を往復。膝を曲げたまま。"]];
