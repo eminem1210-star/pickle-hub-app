@@ -504,7 +504,7 @@ async function startApp(){
       new Promise((_,reject)=>setTimeout(()=>reject(new Error("get_state timeout")),15000))
     ]);
     if(!st||typeof st!=="object")throw new Error("get_state returned empty data");
-    S=Object.assign(defaultS(),st);loaded=true;window.__phBootStage="基本データ取得完了";clearTimeout(window.__phBootWatchdog);
+    S=Object.assign(defaultS(),st);loaded=true;window.__phBootStage="基本データ取得完了";
   }catch(e){
     console.error("app data loading failed",e);
     const app=$("app");
@@ -513,8 +513,15 @@ async function startApp(){
   }
   window.__phBootStage="掲示板・メッセージを取得中";
   profileSessionName=ME;profileUnlockedName=ME;adminSession=ROLE==="admin";
-  try{await refreshRows(false)}catch(e){console.error("board/message loading failed",e)}
-  syncClubPlayers();draw();clearTimeout(window.__phBootWatchdog);window.__phBootStage="ホーム画面表示完了";
+  try{
+    await Promise.race([
+      refreshRows(false),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("board/message loading timeout")),12000))
+    ]);
+  }catch(e){console.error("board/message loading failed; continuing to home",e)}
+  window.__phBootStage="ホーム画面を表示中";
+  syncClubPlayers();draw();
+  clearTimeout(window.__phBootWatchdog);window.__phBootStage="ホーム画面表示完了";
   ga("login",{method:ROLE==="admin"?"admin":"member"});trackPage();syncStart();
   if(!pollTimer){pollTimer=setInterval(poll,5000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()})}
 }
