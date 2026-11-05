@@ -1602,18 +1602,19 @@ const siteUrl=()=>location.origin+location.pathname;
 function qzShare(){const r=lsGet("ph_quiz",null);if(!r)return;const m=MONINFO[r];shareTxt(`【PICKLE HUB モンスター診断】\n私は「${m.n}（${m.t}）」タイプ！\nあなたはどのモンスター？ 4つの質問でわかるよ👇\n${siteUrl()}`)}
 function inviteShare(){shareTxt(`ピックルボール仲間のアプリ「PICKLE HUB」🎾\n集まって、名前を入れて、打つだけ！\n対戦ペアづくり・結果集計・イベント募集がかんたん。\n${siteUrl()}`)}
 function topInner(){
-const dn=dnum(),tip=TIPS[dn%TIPS.length],ms=MISSIONS[dn%MISSIONS.length],k=QK[dn%4],st=lsGet("ph_st",{n:1}),done=lsGet("ph_ms",[]),today=localDateKey();
+const dn=dnum(),ms=MISSIONS[dn%MISSIONS.length],k=QK[dn%4],st=lsGet("ph_st",{n:1}),done=lsGet("ph_ms",[]),today=localDateKey();
 const week=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return[localDateKey(d),"日月火水木金土"[d.getDay()]]});
 const res=lsGet("ph_quiz",null),q=QUIZ[QZ.i];
-return `<h2>📣 今日のひとこと</h2><div class="box" style="display:flex;gap:14px;align-items:center">${mon(k,92)}<div class="bubble"><b>${MONINFO[k].n}</b>：${esc(tip)}</div></div>
-<h2>🔥 今日のチャレンジ</h2><div class="box"><div class="row" style="justify-content:space-between;margin:0 0 8px"><span class="fire">🔥 ${st.n||1}日連続</span><span class="sub" style="margin:0">最高 ${st.best||st.n||1}日</span></div>
+return `<div class="hero-btns" style="margin:10px 0"><button onclick="openDemo()">🎮 スコアをお試し</button><button class="g" onclick="openRules()">📖 ルールを見る</button><button class="g" onclick="inviteShare()">🤝 友だちに紹介</button></div>
+<details class="box" style="margin-top:10px"><summary style="font-weight:900;cursor:pointer;min-height:36px">🎾 もっと楽しむ（チャレンジ・キャラ診断）</summary>
+<h3>🎾 ミニチャレンジ</h3><div class="box"><div class="row" style="justify-content:space-between;margin:0 0 8px"><span class="fire">🔥 ${st.n||1}日連続</span><span class="sub" style="margin:0">最高 ${st.best||st.n||1}日</span></div>
 <p style="margin:6px 0"><b>${esc(ms)}</b></p>
-<button onclick="msToggle()" class="${done.includes(today)?"g":""}" style="width:100%">${done.includes(today)?"✅ できた！（もう一度押すと取り消し）":"🎾 やってみた！スタンプをもらう"}</button>
+<button onclick="msToggle()" class="${done.includes(today)?"g":""}" style="width:100%">${done.includes(today)?"✅ 今日のチャレンジ達成済み":"🎾 やってみた！"}</button>
 <div class="row" style="justify-content:center;gap:4px;flex-wrap:nowrap;margin:12px 0 0">${week.map(([d,w])=>`<div style="text-align:center"><div class="stp ${done.includes(d)?"on":""} ${d===today?"today":""}" aria-label="${d}${done.includes(d)?" 達成":""}">${done.includes(d)?"🎾":w}</div></div>`).join("")}</div></div>
-<h2>🎭 あなたはどのモンスター？</h2><div class="box">${res&&MONINFO[res]?`<div style="text-align:center">${mon(res,150,"hop")}<h2 style="justify-content:center;margin:6px 0">${MONINFO[res].n}<small style="font-size:13px">（${MONINFO[res].t}）</small></h2><p style="text-align:left">${MONINFO[res].d}</p><div class="row" style="justify-content:center"><button class="line-btn" onclick="qzShare()">LINEで友だちに教える</button><button class="g" onclick="qzReset()">もう一回</button></div></div>`
-:`<p class="sub" style="margin:0 0 6px">4つの質問で、あなたに似たモンスターがわかります（${QZ.i+1}/${QUIZ.length}）</p><b>${q[0]}</b>${q[1].map((o,i)=>`<button class="g qopt" onclick="qzAns('${QK[i]}')">${"ABCD"[i]}. ${o}</button>`).join("")}`}</div>
-<h2>🎮 まずは気軽に</h2><div class="hero-btns"><button onclick="openDemo()">🎮 登録なしでスコアをお試し</button><button class="g" onclick="openRules()">📖 10秒でわかるルール</button><button class="g" onclick="inviteShare()">🤝 友だちに教える</button></div>
-<details class="box" style="margin-top:12px"><summary style="font-weight:900;cursor:pointer;min-height:32px">📲 ホーム画面に追加すると、アプリみたいに使えます</summary><p class="sub" style="margin:8px 0 0"><b>iPhone</b>：Safariで開いて、下の「共有」ボタン →「ホーム画面に追加」<br><b>Android</b>：Chromeで開いて、右上のメニュー →「ホーム画面に追加」</p></details>`}
+<h3>🎭 ピックルボール・キャラ診断</h3><div class="box">${res&&MONINFO[res]?`<div style="text-align:center">${mon(res,130,"hop")}<h3 style="margin:6px 0">${MONINFO[res].n}<small style="font-size:13px">（${MONINFO[res].t}）</small></h3><p style="text-align:left">${MONINFO[res].d}</p><div class="row" style="justify-content:center"><button class="line-btn" onclick="qzShare()">LINEで友だちに教える</button><button class="g" onclick="qzReset()">もう一回</button></div></div>`:`<p class="sub" style="margin:0 0 6px">4つの質問で、あなたに似たモンスターがわかります（${QZ.i+1}/${QUIZ.length}）</p><b>${q[0]}</b>${q[1].map((o,i)=>`<button class="g qopt" onclick="qzAns('${QK[i]}')">${"ABCD"[i]}. ${o}</button>`).join("")}`}</div>
+<details style="margin-top:10px"><summary style="font-weight:800;cursor:pointer">📲 ホーム画面に追加する方法</summary><p class="sub" style="margin:8px 0 0"><b>iPhone</b>：Safariの共有ボタン →「ホーム画面に追加」<br><b>Android</b>：Chromeのメニュー →「ホーム画面に追加」</p></details>
+</details>`
+}
 const topExtras=()=>`<div class="topx">${topInner()}</div>`;
 /* ---------- 試合の状態・コートボード・戦績・ギア・キャンセル待ち ---------- */
 const STATS={},LB={v:null,t:0},GEAR={},EPADDLE={};let GRIMG="";
