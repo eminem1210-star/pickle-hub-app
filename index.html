@@ -571,6 +571,23 @@ async function poll(){
     if(p.b!==prev.b||p.d!==prev.d){await refreshRows(true);changed=true}
     if(changed)draw()
   }catch(e){console.error(e)}}
+async function loadPublicEvents(){
+ const root=document.getElementById('public_event_list'); if(!root)return;
+ try{
+  const result=await supabaseClient.rpc('public_events_list'); if(result.error)throw result.error;
+  const rows=Array.isArray(result.data)?result.data:[];
+  if(!rows.length){root.innerHTML='<p class="sub">現在、一般公開中のイベントはありません。</p>';return}
+  root.innerHTML=rows.map(e=>{
+   const labels={all:'全レベル',b:'🌱 初心者歓迎',i:'⚡ 中級',a:'🔥 上級'};
+   const cap=Number(e.capacity)||0,count=Number(e.participant_count)||0,remaining=cap?Math.max(0,cap-count):null;
+   const people=cap?count+'/'+cap+'人':'参加予定 '+count+'人';
+   const fee=e.fee==null||Number(e.fee)===0?'参加費は詳細をご確認ください':'参加費 '+Number(e.fee).toLocaleString('ja-JP')+'円';
+   const when=esc(e.date||'日程未定')+' '+esc(e.time||'')+(e.endTime?'〜'+esc(e.endTime):'');
+   const slot=remaining===null?'':'（残り'+remaining+'枠）';
+   return '<article class="box scard" style="margin:10px 0"><div class="row" style="justify-content:space-between;margin:0"><b>'+esc(e.title||'イベント')+'</b><span class="lvl">'+(labels[e.level]||'全レベル')+'</span></div><p class="sub" style="margin:8px 0">📅 '+when+'<br>📍 '+esc(e.place||'場所未定')+'<br>👥 '+people+slot+'<br>💴 '+fee+'</p>'+(e.details?'<p style="white-space:pre-wrap">'+esc(e.details)+'</p>':'')+'<p class="sub">参加予約はメンバー登録・ログイン後に行えます。</p><button type="button" onclick="document.getElementById(\'lgbox\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">このイベントに参加したい・ログイン</button></article>';
+  }).join('');
+ }catch(error){console.error('public events load failed',error);root.innerHTML='<p class="sub">公開イベントを読み込めませんでした。時間をおいて再読み込みしてください。</p>';}
+}
 async function showLogin(msg="",invite=""){
   const old=document.getElementById("login");if(old)old.remove();
   const d=document.createElement("div");d.id="login";
@@ -588,7 +605,7 @@ async function showLogin(msg="",invite=""){
 <div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:12px"><b>📍 活動エリア</b><p class="sub" style="margin:4px 0 0">愛知県・東海市／大府市／知多市周辺から、地域の仲間づくりを目指しています。</p></div>
 <a href="#lgbox" style="display:block;margin-top:12px;text-align:center;padding:12px;background:#FDE047;color:#111;border:2px solid #111;border-radius:12px;font-weight:900;text-decoration:none">招待コードをお持ちの方はこちら ↓</a>
 </section>
-<h2 id="lgbox">ログイン・メンバー登録</h2><p class="sub">クラブメンバー専用です。${esc(msg)}</p>
+<section id="public_events" class="box" style="margin:12px 0;border:2px solid var(--ink)"><span class="badge">OPEN EVENTS</span><h2 style="margin:6px 0">📅 開催予定イベント</h2><p class="sub">ログインせずに開催内容を確認できます。参加予約にはメンバー登録・ログインが必要です。</p><div id="public_event_list"><p class="sub">公開イベントを読み込み中…</p></div></section>\n<h2 id="lgbox">ログイン・メンバー登録</h2><p class="sub">クラブメンバー専用です。${esc(msg)}</p>
 <div class="box"><b>ログイン</b><label>会員番号（または登録名）</label><input id="lg_name" autocomplete="username" style="width:100%" placeholder="例: 101" value="${esc(localStorage.getItem("ph_name")||"")}">
 <label>4桁のPIN</label><input id="lg_pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" style="width:100%" onkeydown="if(event.key==='Enter')doMemberLogin()">
 <div class="row"><button onclick="doMemberLogin()" style="flex:1">ログイン</button></div></div>
@@ -601,6 +618,7 @@ async function showLogin(msg="",invite=""){
 <div class="row"><button onclick="doAdminLogin()">管理者ログイン</button></div></details></main>`;
   document.body.appendChild(d);
   loadTodayAccess();
+  loadPublicEvents();
   if(invite){try{const r=await rpc0("invite_info",{p_code:invite}),el=document.getElementById("lg_inv");if(el)el.textContent=r&&r.name?`${r.name}さん（会員番号 ${r.no}）、ようこそ。これから使う4桁のPINを決めてください。`:"この招待コードは無効です。管理者に再発行を依頼してください。"}catch(e){}}
 }
 async function doLogin(fn,args){
@@ -1244,7 +1262,7 @@ const draft=S.adminForm||{};
 const dateValue=editing?.date||draft.event_date||"";
 const timeValue=editing?.time||draft.event_time||"",endValue=editing?.endTime||draft.event_end||"";
 const sorted=(S.events||[]).map((event,index)=>({event,index})).sort((a,b)=>(a.event.date||"").localeCompare(b.event.date||""));
-return `<h2>${editing?"イベントを編集":"イベント日程を登録"}</h2><div class="box"><label>イベント名</label><input id="event_title" value="${esc(editing?.title||draft.event_title||"")}" placeholder="例: 週末ピックルボール練習会" style="width:100%"><label>開催日 <span class="sub">必須</span></label><input id="event_date" type="date" value="${esc(dateValue)}" style="width:100%"><label>開始時刻</label><select id="event_time" style="width:100%">${eventTimeOptions(timeValue)}</select><label>終了時刻</label><select id="event_end" style="width:100%">${eventTimeOptions(endValue)}</select><label>場所 <span class="sub">必須</span></label><input id="event_place" value="${esc(editing?.place||draft.event_place||"")}" list="event_place_options" placeholder="例: 中央公園テニスコート" style="width:100%"><datalist id="event_place_options">${adminSuggestionOptions("place")}</datalist><label>対象レベル</label><select id="event_level" style="width:100%">${[["all","全レベル"],["b","🌱 初心者歓迎"],["i","⚡ 中級"],["a","🔥 上級"]].map(([k,l])=>`<option value="${k}" ${(editing?.level||draft.event_level||"all")===k?"selected":""}>${l}</option>`).join("")}</select><label>募集人数（0は定員なし）</label><input id="event_capacity" type="number" min="0" max="999" value="${editing?.capacity??draft.event_capacity??0}" style="width:100%"><label>内容・持ち物など</label><textarea id="event_details" rows="4" style="width:100%">${esc(editing?.details||draft.event_details||"")}</textarea><div class="row"><button onclick="saveEvent()">${editing?"変更を保存":"イベントを公開"}</button>${editing?'<button class="g" onclick="cancelEditEvent()">編集をやめる</button>':""}</div></div>
+return `<h2>${editing?"イベントを編集":"イベント日程を登録"}</h2><div class="box"><label>イベント名</label><input id="event_title" value="${esc(editing?.title||draft.event_title||"")}" placeholder="例: 週末ピックルボール練習会" style="width:100%"><label>開催日 <span class="sub">必須</span></label><input id="event_date" type="date" value="${esc(dateValue)}" style="width:100%"><label>開始時刻</label><select id="event_time" style="width:100%">${eventTimeOptions(timeValue)}</select><label>終了時刻</label><select id="event_end" style="width:100%">${eventTimeOptions(endValue)}</select><label>場所 <span class="sub">必須</span></label><input id="event_place" value="${esc(editing?.place||draft.event_place||"")}" list="event_place_options" placeholder="例: 中央公園テニスコート" style="width:100%"><datalist id="event_place_options">${adminSuggestionOptions("place")}</datalist><label>対象レベル</label><select id="event_level" style="width:100%">${[["all","全レベル"],["b","🌱 初心者歓迎"],["i","⚡ 中級"],["a","🔥 上級"]].map(([k,l])=>`<option value="${k}" ${(editing?.level||draft.event_level||"all")===k?"selected":""}>${l}</option>`).join("")}</select><label>募集人数（0は定員なし）</label><input id="event_capacity" type="number" min="0" max="999" value="${editing?.capacity??draft.event_capacity??0}" style="width:100%"><label>内容・持ち物など</label><textarea id="event_details" rows="4" style="width:100%">${esc(editing?.details||draft.event_details||"")}</textarea><label style="display:flex;gap:9px;align-items:center;margin:14px 0;padding:12px;background:var(--bg);border-radius:10px"><input id="event_public" type="checkbox" style="width:20px;height:20px" ${editing?.isPublic===true?"checked":""}> <span><b>🌐 一般公開する</b><small class="sub" style="display:block">ログイン前の人にもイベント詳細を表示します。参加者名・回答内容は公開されません。</small></span></label><div class="row"><button onclick="saveEvent()">${editing?"変更を保存":"イベントを公開"}</button>${editing?'<button class="g" onclick="cancelEditEvent()">編集をやめる</button>':""}</div></div>
 <h2>イベント一覧・参加状況</h2>${sorted.map(({event,index})=>eventAdminCard(event,index)).join("")||'<p class="sub">登録済みイベントはありません。</p>'}`
 }
 function eventTimeOptions(selected=""){
@@ -1278,7 +1296,7 @@ async function saveEventMatchScore(id,matchId,index){const a=$("em_sa_"+index)?.
 async function setEventMatchLive(id,matchId,status){try{const m=(EVENT_MATCHES[id]||[]).find(x=>x.id===matchId);if(!m)return;await rpc("save_event_match",{p_event_id:id,p_id:matchId,p_court_number:m.court_number,p_team_a:m.team_a,p_team_b:m.team_b,p_score_a:m.score_a,p_score_b:m.score_b,p_status:status});EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw()}catch(e){alert("試合状態を更新できませんでした")}}
 function eventAdminCard(event,index){
 const counts=eventCounts(event);
-return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="sub">不参加: ${counts.no.map(member=>esc(member.n)).join("、")||"なし"}</div>${counts.wait.length?`<div class="sub">キャンセル待ち: ${counts.wait.map(member=>esc(member.n)).join("、")}</div>`:""}<div class="sub">未回答: ${counts.unanswered.map(member=>esc(member.n)).join("、")||"なし"}</div><div class="event-paddle" data-mode="admin" data-event-id="${esc(event.id)}"><p class="sub">🏓 レンタル状況を確認中…</p></div><div class="row"><button onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコア管理</button><button onclick="goDues('${esc(event.id)}')">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
+return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${event.isPublic===true?"🌐 一般公開中":"🔒 非公開"} ・ ${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="sub">不参加: ${counts.no.map(member=>esc(member.n)).join("、")||"なし"}</div>${counts.wait.length?`<div class="sub">キャンセル待ち: ${counts.wait.map(member=>esc(member.n)).join("、")}</div>`:""}<div class="sub">未回答: ${counts.unanswered.map(member=>esc(member.n)).join("、")||"なし"}</div><div class="event-paddle" data-mode="admin" data-event-id="${esc(event.id)}"><p class="sub">🏓 レンタル状況を確認中…</p></div><div class="row"><button onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコア管理</button><button onclick="goDues('${esc(event.id)}')">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
 }
 function saveEvent(){
 const title=$("event_title").value.trim(),date=$("event_date").value,place=$("event_place").value.trim();
@@ -1286,10 +1304,11 @@ if(!title){alert("イベント名を入力してください");return}
 if(!date){alert("開催日を選択してください");return}
 if(!place){alert("開催場所を入力してください");return}
 if($("event_time").value&&$("event_end").value&&$("event_end").value<=$("event_time").value){alert("終了時刻は開始時刻より後にしてください");return}
-const event={id:S.adminEventEdit||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,title,date,level:$("event_level").value,time:$("event_time").value,endTime:$("event_end").value,place,capacity:Math.max(0,parseInt($("event_capacity").value,10)||0),details:$("event_details").value.trim(),responses:{}};
+const previous=(S.events||[]).find(item=>item.id===S.adminEventEdit)||{};
+const event={...previous,id:S.adminEventEdit||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,title,date,level:$("event_level").value,time:$("event_time").value,endTime:$("event_end").value,place,capacity:Math.max(0,parseInt($("event_capacity").value,10)||0),details:$("event_details").value.trim(),isPublic:$("event_public")?.checked===true,responses:previous.responses||{}};
 S.events=S.events||[];
 const index=S.events.findIndex(item=>item.id===event.id);
-if(index>=0){event.responses=S.events[index].responses||{};if(S.events[index].dues)event.dues=S.events[index].dues;S.events[index]=event}else S.events.push(event);
+if(index>=0){S.events[index]=event}else S.events.push(event);
 rememberAdminSuggestion("place");S.adminEventEdit="";["event_title","event_date","event_time","event_end","event_level","event_place","event_capacity","event_details"].forEach(id=>{if(S.adminForm)delete S.adminForm[id]});save();draw();toast("イベントを公開しました")
 }
 function editEvent(index){const event=S.events[index];if(!event)return;S.adminEventEdit=event.id;save();draw()}
