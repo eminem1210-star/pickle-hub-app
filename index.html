@@ -893,8 +893,8 @@ function memberOptions(selected=""){return S.members.map(member=>`<option value=
 function eq(){
 const selected=S.members.some(member=>member.n===S.rentalMember)?S.rentalMember:(S.members[0]?.n||"");
 return `<span class="badge">EQUIPMENT</span><h1>パドル・用具の貸出</h1><p class="sub">クラブメンバーから貸出先を選択します。</p>
-<div class="box"><label>用具名</label><input id="ri" placeholder="例: パドルA" style="width:100%"><label>借りるメンバー</label><select id="rh" style="width:100%" onchange="S.rentalMember=this.value;save()"><option value="">メンバーを選択</option>${memberOptions(selected)}</select><div class="row"><button onclick="addRental()" ${S.members.length?"":"disabled"}>貸出を記録</button></div>${S.members.length?"":'<p class="sub">先にクラブシートでメンバーを登録してください。</p>'}</div>
-<h2>貸出中</h2>${(S.rentals||[]).map((item,index)=>`<div class="box"><div class="row" style="justify-content:space-between;margin:0"><span><b>${esc(item.item)}</b><span class="sub" style="margin-left:10px;display:inline-flex;align-items:center;gap:6px">${memberIcon(item.holder,24)}${esc(item.holder)}</span></span><button class="g" onclick="returnRental(${index})">返却</button></div></div>`).join("")||'<p class="sub">貸出中の用具はありません。</p>'}`
+${ROLE==="admin"?`<div class="box"><label>用具名</label><input id="ri" placeholder="例: パドルA" style="width:100%"><label>借りるメンバー</label><select id="rh" style="width:100%" onchange="S.rentalMember=this.value;save()"><option value="">メンバーを選択</option>${memberOptions(selected)}</select><div class="row"><button onclick="addRental()" ${S.members.length?"":"disabled"}>貸出を記録</button></div>${S.members.length?"":'<p class="sub">先にクラブシートでメンバーを登録してください。</p>'}</div>`:'<p class="sub">貸出記録の追加・返却は管理者が行います。</p>'}
+<h2>貸出中</h2>${(S.rentals||[]).map((item,index)=>`<div class="box"><div class="row" style="justify-content:space-between;margin:0"><span><b>${esc(item.item)}</b><span class="sub" style="margin-left:10px;display:inline-flex;align-items:center;gap:6px">${memberIcon(item.holder,24)}${esc(item.holder)}</span></span>${ROLE==="admin"?`<button class="g" onclick="returnRental(${index})">返却</button>`:""}</div></div>`).join("")||'<p class="sub">貸出中の用具はありません。</p>'}`
 }
 function returnRental(index){S.rentals.splice(index,1);save();draw()}
 const LEVEL_QUESTIONS=[
@@ -1085,24 +1085,27 @@ return `<span class="badge">COMMUNITY</span><h1>仲間・コート</h1><p class=
 <button onclick="addPost()" style="margin-top:10px">募集を出す</button></div>
 ${S.posts.map(postCard).join("")||'<p class="sub">現在募集はありません。</p>'}
 <h2>コートを探す</h2><div class="box"><div class="row"><input id="ar" placeholder="地域名 (例: 渋谷)"><button onclick="srch()" class="g">Google Mapsで検索</button></div></div>
-<h2>コート順番待ち</h2><div class="row"><input id="qn" placeholder="名前"><button onclick="S.queue.push($('qn').value.trim()||'名無し');save();draw()">並ぶ</button></div>
-${S.queue.map((q,i)=>`<div class="box">${i+1}. ${esc(q)} ${i==0?'<span class="ok">次です！</span>':""}<button class="x" onclick="S.queue.splice(${i},1);save();draw()">完了</button></div>`).join("")}`}
-function addPost(){const w=$("pw").value.trim();if(!w){alert("日時や場所を入力してください");return}const c=Math.max(1,parseInt($("pk").value)||1);S.posts.unshift({w,l:$("pl").value,r:c,c,m:[],wl:[],dl:$("pd2").value||""});save();draw()}
+<h2>コート順番待ち</h2><p class="sub">ログイン中の会員名で順番待ちに登録します。</p><div class="row"><button onclick="queueJoin()" ${S.queue.includes(ME)?"disabled":""}>順番待ちに並ぶ</button></div>
+${S.queue.map((q,i)=>`<div class="box">${i+1}. ${esc(q)} ${i==0?'<span class="ok">次です！</span>':""}${ROLE==="admin"||q===ME?`<button class="x" onclick="queueLeave(${i})">完了</button>`:""}</div>`).join("")}`}
+function addPost(){const w=$("pw").value.trim();if(!w){alert("日時や場所を入力してください");return}const c=Math.max(1,parseInt($("pk").value)||1);S.posts.unshift({w,l:$("pl").value,r:c,c,m:[],wl:[],dl:$("pd2").value||"",by:ME});save();draw()}
+function queueJoin(){if(!ME||S.queue.includes(ME))return;S.queue.push(ME);save();draw()}
+function queueLeave(i){const q=S.queue[i];if(ROLE!=="admin"&&q!==ME){alert("自分の順番待ちだけ操作できます");return}S.queue.splice(i,1);save();draw()}
 const closed=p=>p.dl&&Date.now()>new Date(p.dl).getTime();
 function postCard(p,i){const m=p.m||[],wl=p.wl||[],rr=p.r==null?0:p.r,full=rr<=0,cl=closed(p);
 return `<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(p.w)}</div>
 ${p.eventDate||p.eventTime||p.eventPlace?`<div class="sub">${p.eventDate?"開催日 "+esc(formatEventDate(p.eventDate)):""}${p.eventTime?" / "+esc(p.eventTime):""}${p.eventPlace?" / "+esc(p.eventPlace):""}</div>`:""}
 <div class="sub">${esc(p.l)} / ${cl?"締切済み":full?"満員":"あと"+rr+"人"}${p.dl?" / 締切 "+esc(p.dl.replace("T"," ")):""}</div>
-${m.length?`<div>参加者: ${m.map((x,k)=>`<span class="chip">${esc(x)}<button class="x" aria-label="取消" onclick="leave(${i},${k})">×</button></span>`).join("")}</div>`:""}
+${m.length?`<div>参加者: ${m.map((x,k)=>`<span class="chip">${esc(x)}${ROLE==="admin"||x===ME?`<button class="x" aria-label="取消" onclick="leave(${i},${k})">×</button>`:""}</span>`).join("")}</div>`:""}
 ${wl.length?`<div class="sub">キャンセル待ち: ${wl.map(esc).join("、")}</div>`:""}
-${cl?"":`<div class="row"><input id="jn${i}" placeholder="あなたの名前" onkeydown="if(event.key=='Enter')join(${i})"><button onclick="join(${i})">${full?"キャンセル待ち":"参加する"}</button></div>`}
-<div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpP(${i})">LINE共有</button><button class="g" onclick="dupP(${i})">来週も募集</button>${m.length?`<button class="g" onclick="toEv2(${i})">大会へ</button>`:""}<button class="x" onclick="S.posts.splice(${i},1);save();draw()">削除</button></div></div>`}
+${cl?"":`<div class="row"><button onclick="join(${i})" ${!ME||m.includes(ME)||wl.includes(ME)?"disabled":""}>${full?"キャンセル待ち":"参加する"}</button></div>`}
+<div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpP(${i})">LINE共有</button>${ROLE==="admin"||p.by===ME?`<button class="g" onclick="dupP(${i})">来週も募集</button>`:""}${m.length?`<button class="g" onclick="toEv2(${i})">大会へ</button>`:""}${ROLE==="admin"||p.by===ME?`<button class="x" onclick="deleteOwnPost(${i})">削除</button>`:""}</div></div>`}
 function formatEventDate(value){const [year,month,day]=value.split("-");return `${year}年${Number(month)}月${Number(day)}日`}
 function cpP(i){const p=S.posts[i],m=p.m||[],t="【ピックルボール募集】\n"+p.w+(p.eventDate?"\n開催日: "+formatEventDate(p.eventDate):"")+(p.eventTime?" "+p.eventTime:"")+(p.eventPlace?"\n場所: "+p.eventPlace:"")+"\n"+p.l+" / "+(p.r>0?"あと"+p.r+"人":"満員")+(p.dl?"\n締切 "+p.dl.replace("T"," "):"")+(m.length?"\n参加: "+m.join("、"):"");shareTxt(t)}
-function dupP(i){const p=S.posts[i];let dl="";if(p.dl){const t=new Date(p.dl),z=n=>String(n).padStart(2,"0");t.setDate(t.getDate()+7);dl=t.getFullYear()+"-"+z(t.getMonth()+1)+"-"+z(t.getDate())+"T"+z(t.getHours())+":"+z(t.getMinutes())}const c=p.c||(p.r||0)+(p.m||[]).length||4;S.posts.unshift({w:p.w,l:p.l,r:c,c,m:[],wl:[],dl});save();draw()}
+function dupP(i){const p=S.posts[i];if(!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ複製できます");return}let dl="";if(p.dl){const t=new Date(p.dl),z=n=>String(n).padStart(2,"0");t.setDate(t.getDate()+7);dl=t.getFullYear()+"-"+z(t.getMonth()+1)+"-"+z(t.getDate())+"T"+z(t.getHours())+":"+z(t.getMinutes())}const c=p.c||(p.r||0)+(p.m||[]).length||4;S.posts.unshift({w:p.w,l:p.l,r:c,c,m:[],wl:[],dl,by:ME});save();draw()}
 function toEv2(i){const p=S.posts[i],f=()=>{S.players=p.m.slice();S.rounds=[];save();go("ev")};S.players.length?ask("大会参加者をこのメンバーに置き換えますか？",f):f()}
-function join(i){const p=S.posts[i],nm=($("jn"+i).value||"").trim();if(!nm){alert("名前を入力してください");return}p.m=p.m||[];p.wl=p.wl||[];if(p.m.includes(nm)||p.wl.includes(nm)){alert("すでに登録されています");return}if(p.r>0){p.m.push(nm);p.r--}else{p.wl.push(nm)}save();draw()}
-function leave(i,k){const p=S.posts[i];p.m.splice(k,1);p.r++;if(p.wl&&p.wl.length){p.m.push(p.wl.shift());p.r--}save();draw()}
+function join(i){const p=S.posts[i],nm=ME;if(!nm){alert("ログインしてください");return}p.m=p.m||[];p.wl=p.wl||[];if(p.m.includes(nm)||p.wl.includes(nm)){alert("すでに参加登録されています");return}if(p.r>0){p.m.push(nm);p.r--}else{p.wl.push(nm)}save();draw()}
+function leave(i,k){const p=S.posts[i],nm=p.m&&p.m[k];if(ROLE!=="admin"&&nm!==ME){alert("自分の参加登録だけ取り消せます");return}p.m.splice(k,1);p.r++;if(p.wl&&p.wl.length){p.m.push(p.wl.shift());p.r--}save();draw()}
+function deleteOwnPost(i){const p=S.posts[i];if(!p||!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ削除できます");return}S.posts.splice(i,1);save();draw()}
 function srch(){const a=$("ar").value.trim();window.open("https://www.google.com/maps/search/"+encodeURIComponent("ピックルボール コート "+a),"_blank")}
 
 /* ---------- クラブ ---------- */
