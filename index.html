@@ -1173,7 +1173,7 @@ async function saveEventMatchScore(id,matchId,index){const a=$("em_sa_"+index)?.
 async function setEventMatchLive(id,matchId,status){try{const m=(EVENT_MATCHES[id]||[]).find(x=>x.id===matchId);if(!m)return;await rpc("save_event_match",{p_event_id:id,p_id:matchId,p_court_number:m.court_number,p_team_a:m.team_a,p_team_b:m.team_b,p_score_a:m.score_a,p_score_b:m.score_b,p_status:status});EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw()}catch(e){alert("試合状態を更新できませんでした")}}
 function eventAdminCard(event,index){
 const counts=eventCounts(event);
-return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="event-paddle" data-mode="admin" data-event-id="${esc(event.id)}"><p class="sub">🏓 レンタル状況を確認中…</p></div><div class="row"><button onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコア管理</button><button onclick="goDues('${esc(event.id)}')">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
+return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="sub">不参加: ${counts.no.map(member=>esc(member.n)).join("、")||"なし"}</div>${counts.wait.length?`<div class="sub">キャンセル待ち: ${counts.wait.map(member=>esc(member.n)).join("、")}</div>`:""}<div class="sub">未回答: ${counts.unanswered.map(member=>esc(member.n)).join("、")||"なし"}</div><div class="event-paddle" data-mode="admin" data-event-id="${esc(event.id)}"><p class="sub">🏓 レンタル状況を確認中…</p></div><div class="row"><button onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコア管理</button><button onclick="goDues('${esc(event.id)}')">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
 }
 function saveEvent(){
 const title=$("event_title").value.trim(),date=$("event_date").value,place=$("event_place").value.trim();
@@ -1198,8 +1198,10 @@ return `<span class="badge">CLUB EVENTS</span><h1>イベント</h1><p class="sub
 function eventMemberCard(event,memberName){
 const counts=eventCounts(event),response=event.responses&&event.responses[memberName];
 const full=event.capacity&&counts.yes.length>=event.capacity&&response!=="yes",waiting=String(response||"").startsWith("wait"),wpos=counts.wait.findIndex(m=>m.n===memberName)+1;
-const controls=memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":waiting?`キャンセル待ち（${wpos}番目）`:"未回答"}</p>${duesNote(event,memberName,response)}${response==="yes"?`<div class="event-paddle" data-mode="member" data-event-id="${esc(event.id)}"><p class="sub">🏓 パドル状況を確認中…</p></div>`:""}<div class="row">${waiting?"":`<button onclick="respondEvent('${esc(event.id)}','yes')">${full?"⏳ キャンセル待ちに入る":"参加する"}</button>`}<button class="g" onclick="respondEvent('${esc(event.id)}','no')">${waiting?"キャンセル待ちをやめる":"参加しない"}</button></div>${full&&!waiting?'<p class="sub">定員に達しています。「キャンセル待ち」に入ると、空きが出たとき早い順に自動で繰り上がります。</p>':""}${waiting?'<p class="sub">空きが出たら、早く並んだ順に自動で繰り上がります。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>';
-return `<div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><p><b>場所:</b> ${esc(event.place)}</p>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div><div class="sub">参加予定メンバー: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"まだいません"}</div>${controls}<div class="row"><button class="g" onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコアを見る</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
+const controls=memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":waiting?`キャンセル待ち（${wpos}番目）`:"未回答"}</p>${duesNote(event,memberName,response)}${response==="yes"?`<div class="event-paddle" data-mode="member" data-event-id="${esc(event.id)}"><p class="sub">🏓 パドル状況を確認中…</p></div>`:""}<div class="row">${waiting?"":`<button class="${response==="yes"?"":"g"}" onclick="respondEvent('${esc(event.id)}','yes')">${full?"⏳ キャンセル待ちに入る":response==="yes"?"✓ 参加中":"参加する"}</button>`}<button class="${response==="no"?"":"g"}" onclick="respondEvent('${esc(event.id)}','no')">${waiting?"キャンセル待ちをやめる":response==="no"?"✓ 不参加":"参加しない"}</button></div>${full&&!waiting?'<p class="sub">定員に達しています。「キャンセル待ち」に入ると、空きが出たとき早い順に自動で繰り上がります。</p>':""}${waiting?'<p class="sub">空きが出たら、早く並んだ順に自動で繰り上がります。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>';
+const memberList=(items,empty)=>items.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||empty;
+const responseLists=`<div class="sub">参加予定メンバー: ${memberList(counts.yes,"まだいません")}</div><div class="sub">不参加メンバー: ${memberList(counts.no,"なし")}</div>${counts.wait.length?`<div class="sub">キャンセル待ち: ${memberList(counts.wait,"なし")}</div>`:""}<div class="sub">未回答メンバー: ${memberList(counts.unanswered,"なし")}</div>`;
+return `<div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><p><b>場所:</b> ${esc(event.place)}</p>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div>${responseLists}${controls}<div class="row"><button class="g" onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコアを見る</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
 }
 
 async function fillEventPaddles(force=false){
@@ -1238,8 +1240,13 @@ async function eventPaddleRespond(eventId,choice){
 function openProfileLogin(){go("pf")}
 async function respondEvent(eventId,status){
 const event=(S.events||[]).find(i=>i.id===eventId);if(!event||!profileSessionName){alert("ログインし直してください");return}
-try{const r=await rpc("event_respond",{p_event:eventId,p_status:status}),st=r&&r.status;logMemberUpdate(profileSessionName,(st==="yes"?"イベント参加回答: ":st==="wait"?"キャンセル待ち登録: ":"イベント不参加回答: ")+event.title);await reloadState();toast(st==="yes"?"参加で回答しました":st==="wait"?"満員のため、キャンセル待ちに登録しました。空きが出たら自動で繰り上がります":"不参加で回答しました")}
-catch(e){alert("回答できませんでした")}
+try{
+const r=await rpc("event_respond",{p_event:eventId,p_status:status});
+const st=(r&&r.status)||status;
+logMemberUpdate(profileSessionName,(st==="yes"?"イベント参加回答: ":st==="wait"?"キャンセル待ち登録: ":"イベント不参加回答: ")+event.title);
+await reloadState();
+toast(st==="yes"?"参加で回答しました":st==="wait"?"満員のため、キャンセル待ちに登録しました。空きが出たら自動で繰り上がります":"不参加で回答しました");
+}catch(e){console.error(e);alert("回答できませんでした")}
 }
 function adminUpdates(){
 const audit=S.memberAudit||[];
@@ -1255,13 +1262,30 @@ async function issueProfileSetupCode(name){
 try{const r=await rpc("admin_issue_code",{p_name:name});adminSetupCodeDisplay={name,code:r.code,no:r.no};logMemberUpdate(name,"招待リンク発行");await loadPinStatus();draw()}
 catch(e){alert("発行できませんでした")}
 }
-let analyticsCache=null,analyticsDays=30,analyticsLoading=false;
+let analyticsCache=null,analyticsDays=30,analyticsRequestId=0;
 async function loadAdminAnalytics(days=analyticsDays){
-  analyticsDays=days;if(analyticsLoading)return;analyticsLoading=true;
-  const host=$("admin_analytics_body");if(host)host.innerHTML='<p class="sub">集計中…</p>';
-  try{analyticsCache=await rpc("admin_app_analytics",{p_days:days});
-    const el=$("admin_analytics_body");if(el)el.innerHTML=renderAdminAnalytics(analyticsCache);
-  }catch(e){console.error(e);const el=$("admin_analytics_body");if(el)el.innerHTML='<p class="sub">アクセス集計を読み込めません。SQL追加と管理者ログインを確認してください。</p>'}finally{analyticsLoading=false}
+  analyticsDays=days;
+  const requestId=++analyticsRequestId;
+  [7,30,90].forEach(d=>{
+    const buttons=document.querySelectorAll('button[onclick="loadAdminAnalytics('+d+')"]');
+    buttons.forEach(b=>b.classList.toggle("g",d!==days));
+  });
+  const host=$("admin_analytics_body");
+  if(host)host.innerHTML='<p class="sub">集計中…</p>';
+  try{
+    // このブラウザの匿名IDを除外登録してから集計する
+    await rpc("admin_exclude_access_visitor",{p_visitor_id:phVisitorId});
+    const data=await rpc("admin_app_analytics",{p_days:days});
+    if(requestId!==analyticsRequestId)return;
+    analyticsCache=data;
+    const el=$("admin_analytics_body");
+    if(el)el.innerHTML=renderAdminAnalytics(data);
+  }catch(e){
+    if(requestId!==analyticsRequestId)return;
+    console.error(e);
+    const el=$("admin_analytics_body");
+    if(el)el.innerHTML='<p class="sub">アクセス集計を読み込めません。SQL追加と管理者ログインを確認してください。</p>';
+  }
 }
 function renderAdminAnalytics(d){
   if(!d)return '<p class="sub">データがありません。</p>';
