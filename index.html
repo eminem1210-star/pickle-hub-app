@@ -508,7 +508,7 @@ async function showLogin(msg="",invite=""){
   const old=document.getElementById("login");if(old)old.remove();
   const d=document.createElement("div");d.id="login";
   d.style.cssText="position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 24px) 16px 24px";
-  d.innerHTML=`<main>${heroBlock(true)}${topExtras()}<h2 id="lgbox">ログイン</h2><p class="sub">クラブメンバー専用です。${esc(msg)}</p>
+  d.innerHTML=`<main>${heroBlock(true)}<div id="today_access" class="box" style="margin:10px 0 14px;padding:12px 16px"><div class="row" style="justify-content:space-between;align-items:center"><b>📊 本日のアクセス</b><span class="sub">集計中…</span></div></div><div class="box" style="margin:10px 0 14px;border:2px solid var(--ink)"><span class="badge">WELCOME</span><h2 style="margin:6px 0">はじめてでも、気軽に楽しめる！🏓</h2><div class="tiles"><div class="tile"><span class="te">🌱</span><b>初心者歓迎</b><small>ルールや練習からスタート</small></div><div class="tile"><span class="te">🤝</span><b>仲間とつながる</b><small>イベント・練習会で交流</small></div><div class="tile"><span class="te">🏆</span><b>上達を楽しむ</b><small>試合・スコア・レベルを記録</small></div></div><p class="sub" style="margin-bottom:8px">まずはログインして、開催予定やクラブの活動をチェックしてみましょう。</p><a href="#lgbox" style="display:block;text-align:center;padding:12px;background:var(--ink);color:var(--bg);font-weight:900;border-radius:12px;text-decoration:none">メンバー登録・ログインはこちら ↓</a></div>${topExtras()}<h2 id="lgbox">ログイン</h2><p class="sub">クラブメンバー専用です。${esc(msg)}</p>
 <div class="box"><b>ログイン</b><label>会員番号（または登録名）</label><input id="lg_name" autocomplete="username" style="width:100%" placeholder="例: 101" value="${esc(localStorage.getItem("ph_name")||"")}">
 <label>4桁のPIN</label><input id="lg_pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" style="width:100%" onkeydown="if(event.key==='Enter')doMemberLogin()">
 <div class="row"><button onclick="doMemberLogin()" style="flex:1">ログイン</button></div></div>
@@ -520,6 +520,7 @@ async function showLogin(msg="",invite=""){
 <details class="box"><summary>管理者の方</summary><label>管理者パスワード</label><input id="lg_apw" type="password" style="width:100%" onkeydown="if(event.key==='Enter')doAdminLogin()">
 <div class="row"><button onclick="doAdminLogin()">管理者ログイン</button></div></details></main>`;
   document.body.appendChild(d);
+  loadTodayAccess();
   if(invite){try{const r=await rpc0("invite_info",{p_code:invite}),el=document.getElementById("lg_inv");if(el)el.textContent=r&&r.name?`${r.name}さん（会員番号 ${r.no}）、ようこそ。これから使う4桁のPINを決めてください。`:"この招待コードは無効です。管理者に再発行を依頼してください。"}catch(e){}}
 }
 async function doLogin(fn,args){
