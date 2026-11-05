@@ -478,13 +478,16 @@ async function initApp(){
   window.__phBootWatchdog=setTimeout(()=>{
     const root=$("app");
     if(root&&!document.getElementById("login")&&root.textContent.includes("読み込み中")){
-      root.innerHTML='<main style="max-width:520px;margin:40px auto;padding:20px;text-align:center;background:#fff;color:#222;border-radius:16px"><h1>PICKLE HUB</h1><p>起動処理が停止しています。</p><p>ページを再読み込みしてください。保存済みデータは削除していません。</p><button onclick="location.reload()" style="padding:12px 22px">再読み込み</button></main>';
+      root.innerHTML='<main style="max-width:520px;margin:40px auto;padding:20px;text-align:center;background:#fff;color:#222;border-radius:16px"><h1>PICKLE HUB</h1><p>起動処理が停止しています。</p><p style="font-weight:700">停止した場所：'+String(window.__phBootStage||"不明")+'</p><p>ページを再読み込みしてください。保存済みデータは削除していません。</p><button onclick="location.reload()" style="padding:12px 22px">再読み込み</button></main>';
     }
   },20000);
   if(TOKEN){
     window.__phBootStage="ログイン状態を確認中";
     try{
-      const si=await rpc0("session_info",{p_token:TOKEN});
+      const si=await Promise.race([
+        rpc0("session_info",{p_token:TOKEN}),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error("session_info timeout")),10000))
+      ]);
       if(si&&si.role){ROLE=si.role;ME=si.member||"";window.MYNO=si.no||""}
       else{TOKEN="";try{localStorage.removeItem("ph_tok")}catch(e){}}
     }catch(e){console.error(e);showLoadError();return}
