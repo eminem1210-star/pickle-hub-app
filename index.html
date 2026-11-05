@@ -444,7 +444,7 @@ let loaded=false,saveQ=Promise.resolve(),pending=0,TOKEN=localStorage.getItem("p
 const LOCAL_KEYS=["profileMember","levelMember","radarCompareIndex","rentalMember","adminSheet","adminEventEdit","duesEvent"];
 function relogin(msg){TOKEN="";ROLE="";ME="";loaded=false;try{localStorage.removeItem("ph_tok")}catch(e){}showLogin(msg)}
 let syncCh=null;
-const READ_RE=/^(get_|session|board_list|dm_list|gear_list|admin_list|admin_member|invite|member_login|admin_login|member_setup|logout)/;
+const READ_RE=/^(get_|session|board_list|dm_list|gear_list|event_paddle_get|admin_list|admin_member|invite|member_login|admin_login|member_setup|logout)/;
 function syncPing(){try{if(syncCh)syncCh.send({type:"broadcast",event:"chg",payload:{t:Date.now()}})}catch(e){}}
 function syncStart(){if(syncCh||!supabaseClient.channel)return;try{syncCh=supabaseClient.channel("ph-sync",{config:{broadcast:{self:false}}}).on("broadcast",{event:"chg"},()=>{Object.keys(STATS).forEach(k=>delete STATS[k]);LB.v=null;PEND.t=0;clearTimeout(syncStart.t);syncStart.t=setTimeout(poll,150)}).subscribe()}catch(e){syncCh=null}}
 async function rpc(fn,args={}){const{data,error}=await supabaseClient.rpc(fn,{p_token:TOKEN,...args});if(error){if(String(error.message).includes("unauthorized"))relogin("ログインの有効期限が切れました。もう一度ログインしてください。");throw error}if(!READ_RE.test(fn))syncPing();return data}
@@ -580,7 +580,7 @@ checkTournamentDay();
 $("app").innerHTML=topBar()+noticeBanner()+({hm:homeTab,se:sessionTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th,gr,ap,rh})[tab]();
 if(tab=="pr")showT();
 addTabMon();
-fillStats();fillGear();
+fillStats();fillGear();fillEventPaddles();
 if(tab=="bz")calcB();
 if(tab=="bz"&&S.adminSheet==="settings")loadBackups();
 if(tab=="bz"&&S.adminSheet==="profiles")loadPinStatus();
@@ -1173,7 +1173,7 @@ async function saveEventMatchScore(id,matchId,index){const a=$("em_sa_"+index)?.
 async function setEventMatchLive(id,matchId,status){try{const m=(EVENT_MATCHES[id]||[]).find(x=>x.id===matchId);if(!m)return;await rpc("save_event_match",{p_event_id:id,p_id:matchId,p_court_number:m.court_number,p_team_a:m.team_a,p_team_b:m.team_b,p_score_a:m.score_a,p_score_b:m.score_b,p_status:status});EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw()}catch(e){alert("試合状態を更新できませんでした")}}
 function eventAdminCard(event,index){
 const counts=eventCounts(event);
-return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="row"><button onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコア管理</button><button onclick="goDues('${esc(event.id)}')">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
+return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="event-paddle" data-mode="admin" data-event-id="${esc(event.id)}"><p class="sub">🏓 レンタル状況を確認中…</p></div><div class="row"><button onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコア管理</button><button onclick="goDues('${esc(event.id)}')">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
 }
 function saveEvent(){
 const title=$("event_title").value.trim(),date=$("event_date").value,place=$("event_place").value.trim();
@@ -1198,9 +1198,43 @@ return `<span class="badge">CLUB EVENTS</span><h1>イベント</h1><p class="sub
 function eventMemberCard(event,memberName){
 const counts=eventCounts(event),response=event.responses&&event.responses[memberName];
 const full=event.capacity&&counts.yes.length>=event.capacity&&response!=="yes",waiting=String(response||"").startsWith("wait"),wpos=counts.wait.findIndex(m=>m.n===memberName)+1;
-const controls=memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":waiting?`キャンセル待ち（${wpos}番目）`:"未回答"}</p>${duesNote(event,memberName,response)}<div class="row">${waiting?"":`<button onclick="respondEvent('${esc(event.id)}','yes')">${full?"⏳ キャンセル待ちに入る":"参加する"}</button>`}<button class="g" onclick="respondEvent('${esc(event.id)}','no')">${waiting?"キャンセル待ちをやめる":"参加しない"}</button></div>${full&&!waiting?'<p class="sub">定員に達しています。「キャンセル待ち」に入ると、空きが出たとき早い順に自動で繰り上がります。</p>':""}${waiting?'<p class="sub">空きが出たら、早く並んだ順に自動で繰り上がります。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>';
+const controls=memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":waiting?`キャンセル待ち（${wpos}番目）`:"未回答"}</p>${duesNote(event,memberName,response)}${response==="yes"?`<div class="event-paddle" data-mode="member" data-event-id="${esc(event.id)}"><p class="sub">🏓 パドル状況を確認中…</p></div>`:""}<div class="row">${waiting?"":`<button onclick="respondEvent('${esc(event.id)}','yes')">${full?"⏳ キャンセル待ちに入る":"参加する"}</button>`}<button class="g" onclick="respondEvent('${esc(event.id)}','no')">${waiting?"キャンセル待ちをやめる":"参加しない"}</button></div>${full&&!waiting?'<p class="sub">定員に達しています。「キャンセル待ち」に入ると、空きが出たとき早い順に自動で繰り上がります。</p>':""}${waiting?'<p class="sub">空きが出たら、早く並んだ順に自動で繰り上がります。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>';
 return `<div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><p><b>場所:</b> ${esc(event.place)}</p>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div><div class="sub">参加予定メンバー: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"まだいません"}</div>${controls}<div class="row"><button class="g" onclick="openEventMatches('${esc(event.id)}')">🏟️ 試合・スコアを見る</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
 }
+
+async function fillEventPaddles(force=false){
+  document.querySelectorAll(".event-paddle").forEach(async el=>{
+    const id=el.dataset.eventId,mode=el.dataset.mode||"member";
+    if(!id||!el.isConnected)return;
+    const key=mode+":"+id,cache=EPADDLE[key];
+    try{
+      let d=cache&&Date.now()-cache.t<20000&&!force?cache.data:null;
+      if(!d){d=await rpc("event_paddle_get",{p_event:id});EPADDLE[key]={data:d,t:Date.now()};}
+      if(!el.isConnected)return;
+      if(mode==="admin"){
+        const a=Array.isArray(d.attendees)?d.attendees:[];
+        const rent=a.filter(x=>x.choice==="rent"),bring=a.filter(x=>x.choice==="bring"),unset=a.filter(x=>!x.choice);
+        const names=xs=>xs.map(x=>esc(x.member)).join("、")||"なし";
+        el.innerHTML=`<div class="box" style="margin:8px 0"><b>🏓 パドル・レンタル集計</b><div class="row"><span>持参 <b>${bring.length}</b>人</span><span>レンタル <b>${rent.length}</b>人</span><span>未回答 <b>${unset.length}</b>人</span></div><p class="sub">レンタル希望：${names(rent)}</p>${unset.length?`<p class="sub">パドル回答待ち：${names(unset)}</p>`:""}${bring.length?`<p class="sub">持参：${names(bring)}</p>`:""}</div>`;
+      }else{
+        const has=!!d.has_gear,choice=d.choice||null;
+        const note=has?"マイギア登録済みのため、通常は持参扱いです。忘れた場合はレンタルに変更できます。":"マイギア未登録です。持参するか、レンタルするか選んでください。";
+        const state=choice==="rent"?"今回はレンタル希望です。":choice==="bring"?"自分のパドルを持参します。":"まだ回答していません。";
+        el.innerHTML=`<div class="box" style="margin:8px 0"><b>🏓 パドルについて</b><p class="sub">${note}</p><p>${state}</p><div class="row"><button class="${choice==="bring"?"":"g"}" onclick="eventPaddleRespond('${esc(id)}','bring')">自分のパドルを持参</button><button class="${choice==="rent"?"":"g"}" onclick="eventPaddleRespond('${esc(id)}','rent')">今回はレンタルする</button></div></div>`;
+      }
+    }catch(e){if(el.isConnected)el.innerHTML='<p class="sub">パドル状況を読み込めませんでした。</p>';console.error("event paddle",e);}
+  });
+}
+async function eventPaddleRespond(eventId,choice){
+  try{
+    await rpc("event_paddle_respond",{p_event:eventId,p_choice:choice});
+    delete EPADDLE["member:"+eventId];
+    delete EPADDLE["admin:"+eventId];
+    toast(choice==="rent"?"今回はレンタル希望で登録しました":"自分のパドルを持参する設定にしました");
+    await fillEventPaddles(true);
+  }catch(e){alert(String(e.message||"").includes("attending")?"先にイベント参加の回答をしてください":"パドル回答を保存できませんでした");}
+}
+
 function openProfileLogin(){go("pf")}
 async function respondEvent(eventId,status){
 const event=(S.events||[]).find(i=>i.id===eventId);if(!event||!profileSessionName){alert("ログインし直してください");return}
@@ -1534,7 +1568,7 @@ return `<h2>📣 今日のひとこと</h2><div class="box" style="display:flex;
 <details class="box" style="margin-top:12px"><summary style="font-weight:900;cursor:pointer;min-height:32px">📲 ホーム画面に追加すると、アプリみたいに使えます</summary><p class="sub" style="margin:8px 0 0"><b>iPhone</b>：Safariで開いて、下の「共有」ボタン →「ホーム画面に追加」<br><b>Android</b>：Chromeで開いて、右上のメニュー →「ホーム画面に追加」</p></details>`}
 const topExtras=()=>`<div class="topx">${topInner()}</div>`;
 /* ---------- 試合の状態・コートボード・戦績・ギア・キャンセル待ち ---------- */
-const STATS={},LB={v:null,t:0},GEAR={};let GRIMG="";
+const STATS={},LB={v:null,t:0},GEAR={},EPADDLE={};let GRIMG="";
 const stOf=x=>isDone(x)?"completed":x.st==="in_progress"?"in_progress":"upcoming";
 const stkOf=x=>{const s=stOf(x);return s==="completed"?'<span class="stk">FINISHED 🏁</span>':s==="in_progress"?'<span class="stk r">LIVE 🔴</span>':'<span class="stk r">NEXT ⏳</span>'};
 function sesStart(r,m){const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;x.st=x.st==="in_progress"?"upcoming":"in_progress";save();draw()}
@@ -1632,9 +1666,9 @@ const url=URL.createObjectURL(f),img=new Image();img.onload=()=>{const M=640,r=M
 img.onerror=()=>{URL.revokeObjectURL(url);alert("この画像は読み込めませんでした（iPhoneのHEIC形式などは、別の形式で保存してからお試しください）")};img.src=url}
 async function gearAdd(){const n=($("gr_name").value||"").trim(),b=($("gr_brand").value||"").trim(),w=$("gr_w").value.trim();
 if(!n){alert("パドル名を入れてください");return}if(w!==""&&!(+w>=5&&+w<=12)){alert("重さは5〜12ozで入れてください");return}
-try{await rpc("gear_save",{p_id:null,p_paddle:n,p_brand:b||null,p_weight:w===""?null:+w,p_image:GRIMG||null});GRIMG="";["gr_name","gr_brand","gr_w"].forEach(i=>{const e=$(i);if(e)e.value=""});delete GEAR[ME];toast("ギアを登録しました 🎒");fillGear(true)}
+try{await rpc("gear_save",{p_id:null,p_paddle:n,p_brand:b||null,p_weight:w===""?null:+w,p_image:GRIMG||null});GRIMG="";Object.keys(EPADDLE).forEach(k=>delete EPADDLE[k]);["gr_name","gr_brand","gr_w"].forEach(i=>{const e=$(i);if(e)e.value=""});delete GEAR[ME];toast("ギアを登録しました 🎒");fillGear(true)}
 catch(e){alert(String(e.message||"").includes("limit")?"登録できるのは12件までです":"登録できませんでした")}}
-function gearDel(id){ask("このギアを削除します。よろしいですか？",async()=>{try{await rpc("gear_delete",{p_id:id});delete GEAR[ME];fillGear(true)}catch(e){alert("削除できませんでした")}})}
+function gearDel(id){ask("このギアを削除します。よろしいですか？",async()=>{try{await rpc("gear_delete",{p_id:id});delete GEAR[ME];Object.keys(EPADDLE).forEach(k=>delete EPADDLE[k]);fillGear(true)}catch(e){alert("削除できませんでした")}})}
 function gr(){return `<span class="badge">LOCKER</span><h1>マイギア</h1><p class="sub">愛用のパドルを登録して、プロフィールに飾ろう。</p>${ME?gearBox(ME,true):'<p class="sub">メンバーでログインすると登録できます。</p>'}`}
 /* キャンセル待ち */
 const waitTs=v=>+String(v).split(":")[1]||0;
