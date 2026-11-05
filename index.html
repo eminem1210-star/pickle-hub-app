@@ -493,10 +493,21 @@ async function initApp(){
   await startApp()
 }
 async function startApp(){
-  try{const st=await rpc("get_state");S=Object.assign(defaultS(),st);loaded=true}
-  catch(e){console.error(e);if(TOKEN)showLoadError();return}
+  try{
+    const st=await Promise.race([
+      rpc("get_state"),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("get_state timeout")),15000))
+    ]);
+    if(!st||typeof st!=="object")throw new Error("get_state returned empty data");
+    S=Object.assign(defaultS(),st);loaded=true;
+  }catch(e){
+    console.error("app data loading failed",e);
+    const app=$("app");
+    if(app)app.innerHTML='<main style="max-width:520px;margin:40px auto;padding:20px;text-align:center"><h1>PICKLE HUB</h1><p style="font-weight:700">ログインはできましたが、アプリのデータを読み込めませんでした。</p><p>保存済みの会員情報やイベント情報は削除していません。通信状況を確認して、もう一度お試しください。</p><button onclick="location.reload()" style="padding:12px 22px">再読み込み</button></main>';
+    return;
+  }
   profileSessionName=ME;profileUnlockedName=ME;adminSession=ROLE==="admin";
-  try{await refreshRows(false)}catch(e){console.error(e)}
+  try{await refreshRows(false)}catch(e){console.error("board/message loading failed",e)}
   syncClubPlayers();draw();
   ga("login",{method:ROLE==="admin"?"admin":"member"});trackPage();syncStart();
   if(!pollTimer){pollTimer=setInterval(poll,5000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()})}
