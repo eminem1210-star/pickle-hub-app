@@ -563,6 +563,28 @@ function ga(n,p){try{if(window.gtag)gtag("event",n,p||{})}catch(e){}}
 let phVisitorId="";try{phVisitorId=localStorage.getItem("ph_visitor_id")||""}catch(e){}if(!/^[0-9a-f-]{36}$/i.test(phVisitorId)){phVisitorId=(crypto.randomUUID?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&3|8)).toString(16)}));try{localStorage.setItem("ph_visitor_id",phVisitorId)}catch(e){}}
 let phLastVisitAt=0;
 function trackVisit(path){const now=Date.now();if(now-phLastVisitAt<1500)return;phLastVisitAt=now;try{if(supabaseClient&&supabaseClient.rpc)supabaseClient.rpc("track_app_visit",{p_visitor_id:phVisitorId,p_path:String(path||"/").slice(0,120),p_token:TOKEN||null}).then(({error})=>{if(error)console.warn("visit tracking",error.message)}).catch(()=>{})}catch(e){}}
+let todayAccessCache=null,todayAccessAt=0,todayAccessRequest=0;
+async function loadTodayAccess(){
+  const el=$("today_access");
+  if(!el)return;
+  const request=++todayAccessRequest;
+  if(todayAccessCache&&Date.now()-todayAccessAt<60000){
+    el.innerHTML='<div class="row" style="justify-content:space-between;align-items:center"><b>📊 本日のアクセス</b><span><b>'+Number(todayAccessCache.views||0).toLocaleString()+'</b> 回 ／ 訪問者 <b>'+Number(todayAccessCache.visitors||0).toLocaleString()+'</b> 人</span></div>';
+    return;
+  }
+  el.innerHTML='<div class="row" style="justify-content:space-between;align-items:center"><b>📊 本日のアクセス</b><span class="sub">集計中…</span></div>';
+  try{
+    const data=await rpc0("today_access_summary",{});
+    if(request!==todayAccessRequest||!$("today_access"))return;
+    todayAccessCache=data||{};
+    todayAccessAt=Date.now();
+    el.innerHTML='<div class="row" style="justify-content:space-between;align-items:center"><b>📊 本日のアクセス</b><span><b>'+Number(data.views||0).toLocaleString()+'</b> 回 ／ 訪問者 <b>'+Number(data.visitors||0).toLocaleString()+'</b> 人</span></div>';
+  }catch(e){
+    if(request!==todayAccessRequest||!$("today_access"))return;
+    console.warn("today access",e);
+    el.innerHTML='<div class="row" style="justify-content:space-between;align-items:center"><b>📊 本日のアクセス</b><span class="sub">集計を取得できません</span></div>';
+  }
+}
 function trackPage(){trackVisit("/"+tab);if(_gaLast===tab)return;_gaLast=tab;const base=(window.__gaLoc||location.href).split("?")[0].split("#")[0];
 ga("page_view",{page_title:(TITLES[tab]||ROOTN[tab]||"ホーム")+" | PICKLE HUB",page_path:"/"+tab,page_location:base+"#/"+tab})}
 const MAIN=["hm","se","events","bd","mo"];
@@ -579,6 +601,7 @@ function draw(){
 checkTournamentDay();
 $("app").innerHTML=topBar()+noticeBanner()+({hm:homeTab,se:sessionTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th,gr,ap,rh})[tab]();
 if(tab=="pr")showT();
+if(tab=="hm")loadTodayAccess();
 addTabMon();
 fillStats();fillGear();fillEventPaddles();
 if(tab=="bz")calcB();
@@ -1719,7 +1742,7 @@ if(HF.l!=="all")evs=evs.filter(e=>(e.level||"all")==="all"||e.level===HF.l);
 if(HF.o)evs=evs.filter(e=>!(+e.capacity)||eventCounts(e).remaining>0);
 const chip=(l,on,fn)=>`<button class="fchip ${on?"on":""}" aria-pressed="${on}" onclick="${fn};draw()">${l}</button>`;
 const steps=[[1,"👥","1. メンバーを登録","名前を入れるだけ","#FDE047"],[2,"⚔️","2. 対戦ペアをつくる","メンバーから選ぶだけ","#F472B6"],[3,"📊","3. 結果を入力・集計","勝敗とスコアを入れるだけ","#67E8F9"]];
-return `${heroBlock()}${pendBanner()}<div class="steps">${steps.map(([k,e,ti,d,c],i)=>`<button class="step" style="background:${c};transform:rotate(${i%2?1.2:-1.2}deg)" onclick="SEV=${k};go('se')"><span class="step-e" aria-hidden="true">${e}</span><span style="flex:1"><b>${ti}</b><br><small>${d}</small></span><span aria-hidden="true">➡️</span></button>`).join("")}</div>
+return `${heroBlock()}<div id="today_access" class="box" style="margin:10px 0 14px;padding:12px 16px"><div class="row" style="justify-content:space-between;align-items:center"><b>📊 本日のアクセス</b><span class="sub">集計中…</span></div></div>${pendBanner()}<div class="steps">${steps.map(([k,e,ti,d,c],i)=>`<button class="step" style="background:${c};transform:rotate(${i%2?1.2:-1.2}deg)" onclick="SEV=${k};go('se')"><span class="step-e" aria-hidden="true">${e}</span><span style="flex:1"><b>${ti}</b><br><small>${d}</small></span><span aria-hidden="true">➡️</span></button>`).join("")}</div>
 ${topExtras()}<h2>📅 これからのイベント</h2><div class="hscroll">${[["all","すべて"],["today","今日"],["week","今週"]].map(([k,l])=>chip("📅 "+l,HF.d===k,`HF.d='${k}'`)).join("")}${[["all","すべて"],["b","🌱 BEGINNER"],["i","⚡ INTERMEDIATE"],["a","🔥 ADVANCED"]].map(([k,l])=>chip(l,HF.l===k,`HF.l='${k}'`)).join("")}${chip("🟢 空きあり",HF.o,"HF.o=!HF.o")}</div>
 ${evs.map(e=>sessionCard(e,ROLE==="admin"?"":ME)).join("")||mnote("orange","条件に合うイベントはありません。")}`}
 /* ルールQ&A（ポップなモーダル） */
