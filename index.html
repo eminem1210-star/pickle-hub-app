@@ -473,53 +473,27 @@ async function loadPinStatus(){try{const r=await rpc("admin_member_status"),k=JS
 async function initApp(){
   const app=$("app");
   if(app)app.innerHTML='<div style="text-align:center;padding:70px 0">'+mon("green",130,"hop")+'<p class="sub">読み込み中…</p></div>';
-  window.__phBootStage="initApp開始";
+  window.__phBootStage="起動処理開始";
   clearTimeout(window.__phBootWatchdog);
   window.__phBootWatchdog=setTimeout(()=>{
-    const root=$("app"),login=document.getElementById("login");
-    if(root&&!login&&root.textContent.includes("読み込み中")){
-      root.innerHTML='<main style="max-width:520px;margin:40px auto;padding:20px;text-align:center"><h1>PICKLE HUB</h1><p style="font-weight:700">アプリの起動が予定より長くかかっています。</p><p>停止した場所：'+String(window.__phBootStage||"不明")+'</p><p>保存済みデータは削除していません。</p><button onclick="location.reload()" style="padding:12px 22px">再読み込み</button></main>';
+    const root=$("app");
+    if(root&&!document.getElementById("login")&&root.textContent.includes("読み込み中")){
+      root.innerHTML='<main style="max-width:520px;margin:40px auto;padding:20px;text-align:center;background:#fff;color:#222;border-radius:16px"><h1>PICKLE HUB</h1><p>起動処理が停止しています。</p><p>ページを再読み込みしてください。保存済みデータは削除していません。</p><button onclick="location.reload()" style="padding:12px 22px">再読み込み</button></main>';
     }
-  },25000);
-
+  },20000);
   if(TOKEN){
     window.__phBootStage="ログイン状態を確認中";
     try{
-      const si=await Promise.race([
-        rpc0("session_info",{p_token:TOKEN}),
-        new Promise((_,reject)=>setTimeout(()=>reject(new Error("session_info timeout")),10000))
-      ]);
-      if(si&&si.role){
-        ROLE=si.role;ME=si.member||"";window.MYNO=si.no||"";
-        window.__phBootStage="ログイン確認完了";
-      }else{
-        TOKEN="";ROLE="";ME="";
-        try{localStorage.removeItem("ph_tok")}catch(e){}
-      }
-    }catch(e){
-      console.error("session check failed; returning to login",e);
-      TOKEN="";ROLE="";ME="";
-      try{localStorage.removeItem("ph_tok")}catch(e){}
-      try{
-        await showLogin("通信を確認できませんでした。もう一度ログインしてください。",new URLSearchParams(location.search).get("invite")||"");
-      }catch(x){
-        console.error("login fallback failed",x);
-        if(app)app.innerHTML='<main style="max-width:520px;margin:24px auto;padding:16px"><h1>PICKLE HUB</h1><p>ログイン画面を表示できませんでした。通信状態を確認して再読み込みしてください。</p><button onclick="location.reload()">再読み込み</button></main>';
-      }
-      return;
-    }
+      const si=await rpc0("session_info",{p_token:TOKEN});
+      if(si&&si.role){ROLE=si.role;ME=si.member||"";window.MYNO=si.no||""}
+      else{TOKEN="";try{localStorage.removeItem("ph_tok")}catch(e){}}
+    }catch(e){console.error(e);showLoadError();return}
   }
-
   if(!TOKEN){
-    try{
-      await showLogin("",new URLSearchParams(location.search).get("invite")||"");
-    }catch(e){
-      console.error("login screen render failed",e);
-      if(app)app.innerHTML='<main style="max-width:520px;margin:24px auto;padding:16px"><h1>PICKLE HUB</h1><p>ログイン画面の表示で問題が発生しました。</p><button onclick="location.reload()">再読み込み</button></main>';
-    }
+    try{await showLogin("",new URLSearchParams(location.search).get("invite")||"")}
+    catch(e){console.error("login screen render failed",e);if(app)app.innerHTML='<main style="max-width:520px;margin:24px auto;padding:16px;background:#fff;color:#222"><h1>PICKLE HUB</h1><p>ログイン画面の表示で問題が発生しました。</p><button onclick="location.reload()">再読み込み</button></main>'}
     return;
   }
-
   window.__phBootStage="アプリデータを取得中";
   await startApp();
 }
