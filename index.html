@@ -1087,31 +1087,34 @@ async function unlockProfile(){
 const name=$("profile_member").value;if(!name){alert("メンバーを選択してください");return}
 const profile=profileData(name);
 if((profile.pinLockUntil||0)>Date.now()){alert("PIN入力を一時停止中です。しばらくしてから再試行してください。");draw();return}
-if(profile.pinLockUntil){profile.pinLockUntil=0;profile.pinFailures=0;save()}
+if(profile.pinLockUntil){profile.pinLockUntil=0;profile.pinFailures=0}
 try{
 if(profile.pinHash){
 const pin=$("profile_pin").value;
 if(!/^\d{4,8}$/.test(pin)){alert("PINを入力してください");return}
 const hash=await digestProfilePin(name,pin,profile.pinSalt);
-if(hash!==profile.pinHash){registerProfileAuthFailure(profile);return}
-profile.pinFailures=0;profile.pinLockUntil=0;save()
+if(hash!==profile.pinHash){await registerProfileAuthFailure(profile);return}
+profile.pinFailures=0;profile.pinLockUntil=0;
+if(!await saveOrRestore("PIN認証情報を保存できませんでした。通信を確認して再試行してください"))return
 }else{
 if(!profile.setupCodeHash||profile.setupCodeUsed){alert("先に管理者から初回設定コードを発行してもらってください");return}
 const code=$("profile_setup_code").value,newPin=$("profile_new_pin").value,confirm=$("profile_new_pin_confirm").value;
 if(!/^\d{8}$/.test(code)){alert("8桁の初回設定コードを入力してください");return}
 if(!/^\d{4}$/.test(newPin)||newPin!==confirm){alert("自分の4桁PINを2回同じ内容で入力してください");return}
 const setupHash=await digestProfilePin(name,code,profile.setupSalt);
-if(setupHash!==profile.setupCodeHash){registerProfileAuthFailure(profile,"初回設定コードが違います");return}
+if(setupHash!==profile.setupCodeHash){await registerProfileAuthFailure(profile,"初回設定コードが違います");return}
 const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(byte=>byte.toString(16).padStart(2,"0")).join("");
-profile.pinSalt=salt;profile.pinHash=await digestProfilePin(name,newPin,salt);profile.pinLength=4;profile.setupCodeHash="";profile.setupCodeUsed=true;profile.setupSalt="";profile.pinFailures=0;profile.pinLockUntil=0;logMemberUpdate(name,"本人PIN初回設定");save()
+profile.pinSalt=salt;profile.pinHash=await digestProfilePin(name,newPin,salt);profile.pinLength=4;profile.setupCodeHash="";profile.setupCodeUsed=true;profile.setupSalt="";profile.pinFailures=0;profile.pinLockUntil=0;logMemberUpdate(name,"本人PIN初回設定");
+if(!await saveOrRestore("初回PINを保存できませんでした。通信を確認してもう一度お試しください"))return
 }
-profileUnlockedName=name;profileSessionName=name;S.profileMember=name;profileAnswersEditedName="";profileBaseline={rating:S.rt&&S.rt[name]!=null?Number(S.rt[name]):null,answers:(S.levelAnswers&&S.levelAnswers[name]||[]).slice(),bio:profile.bio||"",avatar:profile.avatar||""};save();draw()
+profileUnlockedName=name;profileSessionName=name;S.profileMember=name;profileAnswersEditedName="";profileBaseline={rating:S.rt&&S.rt[name]!=null?Number(S.rt[name]):null,answers:(S.levelAnswers&&S.levelAnswers[name]||[]).slice(),bio:profile.bio||"",avatar:profile.avatar||""};draw()
 }catch(error){alert(error.message||"PINを確認できませんでした")}
 }
-function registerProfileAuthFailure(profile,message="PINが違います"){
+async function registerProfileAuthFailure(profile,message="PINが違います"){
 profile.pinFailures=(profile.pinFailures||0)+1;
 if(profile.pinFailures>=5){profile.pinFailures=0;profile.pinLockUntil=Date.now()+5*60*1000}
-save();alert(profile.pinLockUntil?"5回間違えたため5分間停止します":message);draw()
+if(!await saveOrRestore("PINの失敗回数を保存できませんでした。通信を確認してください"))return;
+alert(profile.pinLockUntil?"5回間違えたため5分間停止します":message);draw()
 }
 function loadProfilePhoto(input){
 const file=input.files&&input.files[0];if(!file)return;
