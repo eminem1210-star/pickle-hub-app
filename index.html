@@ -1709,20 +1709,25 @@ function sesCloseRally(){const d=document.getElementById("ses-rally");if(d)d.rem
 async function sesScAgain(){
  const t=SCS&&SCS.sessionTarget;
  if(t){
-   const x=S.rounds[t.r]&&S.rounds[t.r].m[t.m];
-   if(x){
-     x.sa="";x.sb="";x.st="in_progress";
-     try{await save();}catch(e){console.error("PICKLE HUB session score reset:",e);toast("対戦カードへのリセット保存に失敗しました");return;}
-   }
+   try{
+     await rpc("session_match_result",{p_round:t.r,p_match:t.m,p_score_a:0,p_score_b:0});
+     await reloadState(false);
+   }catch(e){console.error("PICKLE HUB session score reset:",e);toast("対戦カードへのリセット保存に失敗しました");return;}
  }
  scReset();
  if(t)draw();
  scDraw();
  toast("スコアを0-0に戻しました。対戦カードの点数もリセットしました");
 }
-function sesScApply(){const t=SCS&&SCS.sessionTarget;if(!t)return;const x=S.rounds[t.r]&&S.rounds[t.r].m[t.m];if(!x)return;
- if(SCS.sc[0]===SCS.sc[1]){alert("同点のままでは保存できません。勝敗が決まってから保存してください。");return;}
- x.sa=SCS.sc[0];x.sb=SCS.sc[1];x.st="completed";maybeRecord(x);save();sesCloseRally();draw();toast("ラリーのスコアを対戦結果に保存しました！");
+async function sesScApply(){const t=SCS&&SCS.sessionTarget;if(!t)return;const x=S.rounds[t.r]&&S.rounds[t.r].m[t.m];if(!x)return;
+ const a=Number(SCS.sc[0]),b=Number(SCS.sc[1]);
+ try{
+   await rpc("session_match_result",{p_round:t.r,p_match:t.m,p_score_a:a,p_score_b:b});
+   x.sa=a;x.sb=b;x.st=a===b?"in_progress":"completed";
+   if(a!==b)maybeRecord(x);
+   await reloadState(false);
+   sesCloseRally();draw();toast(a===b?"同点の途中経過を保存しました":"ラリーのスコアを対戦結果に保存しました！");
+ }catch(e){console.error("PICKLE HUB rally score save:",e);alert("スコアを保存できませんでした。もう一度お試しください。");}
 }
 /* 3. 結果入力・集計 */
 function sesRank(){const t=table().filter(r=>r.g>0).map(r=>({...r,n:S.players[r.i],rate:r.w/r.g}));return t.sort((a,b)=>b.rate-a.rate||b.w-a.w||b.d-a.d)}
@@ -1730,13 +1735,13 @@ function sesQuickResult(r,m){const a=$(`quick_ra_${r}_${m}`)?.value.trim()||"",b
 function sesResult(r,m){const a=$(`ra_${r}_${m}`).value.trim(),b=$(`rb_${r}_${m}`).value.trim();sesSaveResult(r,m,a,b)}
 async function sesSaveResult(r,m,a,b){
 if(a===""||b===""||isNaN(+a)||isNaN(+b)||+a<0||+b<0||!Number.isInteger(+a)||!Number.isInteger(+b)){alert("両チームの点数を整数で入力してください（例: 11 と 8）");return}
-if(+a===+b){alert("同点は入力できません。勝ったチームが上回るようにしてください");return}
 const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;
 try{
  await rpc("session_match_result",{p_round:r,p_match:m,p_score_a:+a,p_score_b:+b});
- x.sa=+a;x.sb=+b;x.st="completed";maybeRecord(x);
+ x.sa=+a;x.sb=+b;x.st=+a===+b?"in_progress":"completed";
+ if(+a!==+b)maybeRecord(x);
  await reloadState(false);draw();
- const all=matchList();if(all.length&&all.every(o=>isDone(o.x)))toast("全試合終了！表彰を見てみよう 🏆");else toast("試合結果を保存しました");
+ const all=matchList();if(+a===+b)toast("同点の途中経過を保存しました");else if(all.length&&all.every(o=>isDone(o.x)))toast("全試合終了！表彰を見てみよう 🏆");else toast("試合結果を保存しました");
 }catch(e){console.error("session match result failed",e);alert(String(e.message||"").includes("forbidden")?"自分が参加する対戦のみ結果を保存できます。":"試合結果を保存できませんでした。");try{await reloadState(false);draw()}catch(x){}}
 }
 function sesStep3(){const list=matchList();
