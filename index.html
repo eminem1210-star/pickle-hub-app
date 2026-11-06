@@ -1267,7 +1267,7 @@ const d=e.dues||{amount:0,paid:{}},paid=d.paid||{},yes=eventCounts(e).yes,amt=+d
 const order=[...yes,...S.members.filter(m=>!yes.includes(m))];
 return `<h2>イベントごとの会費</h2><div class="box"><label style="margin-top:0">対象のイベント</label><select onchange="S.duesEvent=this.value;draw()" style="width:100%">${evs.map(x=>`<option value="${esc(x.id)}" ${x.id===e.id?"selected":""}>${esc(x.date)} ${esc(x.title)}</option>`).join("")}</select>
 <p style="margin:10px 0 0"><b>${esc(e.title)}</b><br><span class="sub">${esc(e.date)} ${esc(evTime(e))} ／ ${esc(e.place||"")}</span></p>
-<label>1人あたりの会費（円）</label><input type="number" min="0" step="100" value="${amt}" onchange="setEventDues('${esc(e.id)}',this.value)" style="width:100%">
+<label>1人あたりの会費（円）</label><input type="number" min="0" step="100" value="${amt}" onchange="setEventDues(${jsArg(e.id)},this.value)" style="width:100%">
 <div class="row" style="justify-content:space-between"><span>参加予定</span><b>${yes.length}人</b></div>
 <div class="row" style="justify-content:space-between"><span>回収済み</span><b>${paidYes}人 / ${(paidYes*amt).toLocaleString()}円</b></div>
 <div class="row" style="justify-content:space-between"><span>未回収</span><b>${yes.length-paidYes}人 / ${((yes.length-paidYes)*amt).toLocaleString()}円</b></div>
