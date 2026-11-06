@@ -1681,7 +1681,7 @@ for(let t=0;t<500;t++){const sh=play.slice().sort(()=>Math.random()-.5);let sc=0
 for(let i=0;i<sh.length;i+=4){const[a,b,x,y]=sh.slice(i,i+4);sc+=25*((pc[K(a,b)]||0)**2+(pc[K(x,y)]||0)**2);[[a,x],[a,y],[b,x],[b,y]].forEach(([u,v])=>sc+=(oc[K(u,v)]||0)**2*5);sc+=Math.abs(R(a)+R(b)-R(x)-R(y))*4;ms.push({a:[a,b],b:[x,y],sa:"",sb:"",court:i/4+1,manual:true})}
 if(sc<bs){bs=sc;best=ms}}
 S.rounds.push({m:best,bye});save();draw();toast("おまかせでペアを作りました 🎲")}
-function sesDelMatch(r,m){ask("この対戦を削除します。よろしいですか？",()=>{const rd=S.rounds[r];if(!rd)return;const dm=rd.m[m];if(dm&&dm.k)rpc("void_match",{p_key:dm.k}).catch(()=>{});rd.m.splice(m,1);if(!rd.m.length)S.rounds.splice(r,1);save();draw()})}
+function sesDelMatch(r,m){ask("この対戦を削除します。よろしいですか？",async()=>{const rd=S.rounds[r];if(!rd||!rd.m[m])return;const dm=rd.m[m];const backup=JSON.parse(JSON.stringify(S.rounds));rd.m.splice(m,1);if(!rd.m.length)S.rounds.splice(r,1);const ok=await save();if(!ok){S.rounds=backup;try{await reloadState(false)}catch(e){}draw();alert("対戦カードを削除できませんでした。権限または保存競合を確認してください。");return}if(dm&&dm.k){try{await rpc("void_match",{p_key:dm.k})}catch(e){console.error("match void failed",e)}}draw();toast("対戦カードを削除しました")})}
 function matchList(){const o=[];S.rounds.forEach((r,ri)=>r.m.forEach((m,mi)=>o.push({r:ri,m:mi,x:m})));return o}
 const isDone=x=>x.sa!==""&&x.sb!==""&&x.sa!==x.sb;
 function sesStep2(){const used=new Set([...SES.a,...SES.b].filter(x=>x!=null)),list=matchList();
