@@ -1610,7 +1610,7 @@ const collected=S.members.filter(m=>m.paid).length*amount;
 $("dues_collected").textContent=collected.toLocaleString()+"円";
 $("dues_remaining").textContent=((S.members.length*amount)-collected).toLocaleString()+"円";
 }
-async function toggleDues(i){if(!S.members[i])return;S.members[i].paid=!S.members[i].paid;if(!await saveOrRestore("会費の入金状況を保存できませんでした。最新データに戻しました"))return;draw()}
+async async function toggleDues(i){if(!S.members[i])return;S.members[i].paid=!S.members[i].paid;if(!await saveOrRestore("会費の入金状況を保存できませんでした。最新データに戻しました"))return;draw()}
 async function toggleMemberPaid(i){if(ROLE!=="admin"||!S.members[i])return;S.members[i].paid=!S.members[i].paid;if(!await saveOrRestore("会費の入金状況を保存できませんでした。最新データに戻しました"))return;draw()}
 function shareDues(){
 const unpaid=S.members.filter(m=>!m.paid).map(m=>m.n);
