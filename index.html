@@ -1365,9 +1365,17 @@ async function fillEventPaddles(force=false){
         el.innerHTML=`<div class="box" style="margin:8px 0;border:3px solid #F59E0B;background:#FFFBEB"><div class="row" style="justify-content:space-between;align-items:center"><b>🏓 パドル準備・レンタル集計</b><button class="g" style="font-size:12px;padding:5px 9px" onclick="fillEventPaddles(true)">更新</button></div><div class="row" style="gap:8px;margin:10px 0"><div style="flex:1;min-width:90px;background:#fff;padding:10px;border-radius:10px;text-align:center"><b style="display:block;font-size:25px;color:#15803D">${bring.length}</b><small>マイパドル持参</small></div><div style="flex:1;min-width:90px;background:#fff;padding:10px;border-radius:10px;text-align:center"><b style="display:block;font-size:25px;color:#D97706">${rent.length}</b><small>貸出必要本数</small></div><div style="flex:1;min-width:90px;background:#fff;padding:10px;border-radius:10px;text-align:center"><b style="display:block;font-size:25px;color:#64748B">${unset.length}</b><small>未回答</small></div></div><p class="sub" style="margin:4px 0"><b>レンタル希望（${rent.length}人）：</b>${names(rent)}</p>${unset.length?`<p class="sub" style="margin:4px 0"><b>回答待ち：</b>${names(unset)}</p>`:""}${bring.length?`<p class="sub" style="margin:4px 0"><b>持参予定：</b>${names(bring)}</p>`:""}<p class="sub" style="margin:6px 0 0">※参加予定者の回答を集計しています。未回答者には確認してください。</p></div>`;
       }else{
         const has=!!d.has_gear,choice=d.choice||null;
-        const note=has?"マイギア登録済みのため、通常は持参扱いです。忘れた場合はレンタルに変更できます。":"マイギア未登録です。持参するか、レンタルするか選んでください。";
-        const state=choice==="rent"?"今回はレンタル希望です。":choice==="bring"?"自分のパドルを持参します。":"まだ回答していません。";
-        el.innerHTML=`<div class="box" style="margin:8px 0"><b>🏓 パドルについて</b><p class="sub">${note}</p><p>${state}</p><div class="row"><button class="${choice==="bring"?"":"g"}" onclick="eventPaddleRespond('${esc(id)}','bring')">自分のパドルを持参</button><button class="${choice==="rent"?"":"g"}" onclick="eventPaddleRespond('${esc(id)}','rent')">今回はレンタルする</button></div></div>`;
+        if(has){
+          const effective=choice||"bring";
+          const state=effective==="rent"?"今回はレンタル希望です。":"マイギア登録済みのため、持参として集計されています。";
+          const action=effective==="rent"
+            ?`<button class="g" onclick="eventPaddleRespond('${esc(id)}','bring')">自分のパドルを持参する</button>`
+            :`<button class="g" onclick="eventPaddleRespond('${esc(id)}','rent')">今回はレンタルする</button>`;
+          el.innerHTML=`<div class="box" style="margin:8px 0"><b>🏓 パドルについて</b><p class="sub">${state}</p><div class="row">${action}</div></div>`;
+        }else{
+          const state=choice==="rent"?"今回はレンタル希望です。":choice==="bring"?"自分のパドルを持参します。":"まだ回答していません。";
+          el.innerHTML=`<div class="box" style="margin:8px 0"><b>🏓 パドルについて</b><p class="sub">マイギア未登録です。持参するか、レンタルするか選んでください。</p><p>${state}</p><div class="row"><button class="${choice==="bring"?"":"g"}" onclick="eventPaddleRespond('${esc(id)}','bring')">自分のパドルを持参</button><button class="${choice==="rent"?"":"g"}" onclick="eventPaddleRespond('${esc(id)}','rent')">今回はレンタルする</button></div></div>`;
+        }
       }
     }catch(e){if(el.isConnected)el.innerHTML='<p class="sub">パドル状況を読み込めませんでした。</p>';console.error("event paddle",e);}
   });
