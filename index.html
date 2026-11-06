@@ -1650,11 +1650,11 @@ const teamPop=t=>t.map(popName).join("<br>");
 function sessionTab(){const steps=[[1,"👥","メンバー"],[2,"⚔️","対戦ペア"],[3,"📊","結果・集計"]];
 return `<span class="badge">SESSION</span><h1>今日のセッション</h1><div class="hscroll" role="tablist">${steps.map(([k,e,l])=>`<button class="fchip ${SEV===k?"on":""}" role="tab" aria-selected="${SEV===k}" onclick="SEV=${k};draw()">${e} ${k}. ${l}</button>`).join("")}</div>${SEV===1?sesStep1():SEV===2?sesStep2():sesStep3()}`}
 /* 1. メンバー登録 */
-function sesStep1(){return `<p class="sub">その場にいる人の名前（ニックネーム）を入れて「追加」。メンバー画面で「出席」にした人は、自動で入ります。</p>
-<div class="box"><div class="row"><input id="ses_name" data-keep maxlength="20" placeholder="なまえ" onkeydown="if(event.key==='Enter')sesAdd()" style="flex:1"><button onclick="sesAdd()">＋ 追加</button></div>
-<div class="row" role="radiogroup" aria-label="レベル">${["b","i","a"].map(k=>`<button class="fchip ${SES.lv===k?"on":""}" role="radio" aria-checked="${SES.lv===k}" onclick="SES.lv='${k}';draw()">${LVT[k]}</button>`).join("")}</div></div>
+function sesStep1(){return `<p class="sub">${ROLE==="admin"?"その場にいる人の名前（ニックネーム）を登録します。メンバー画面で「出席」にした人は、自動で入ります。":"参加メンバーの登録・変更は管理者が行います。登録済みのメンバーで対戦カードを作成できます。"}</p>
+${ROLE==="admin"?`<div class="box"><div class="row"><input id="ses_name" data-keep maxlength="20" placeholder="なまえ" onkeydown="if(event.key==='Enter')sesAdd()" style="flex:1"><button onclick="sesAdd()">＋ 追加</button></div>
+<div class="row" role="radiogroup" aria-label="レベル">${["b","i","a"].map(k=>`<button class="fchip ${SES.lv===k?"on":""}" role="radio" aria-checked="${SES.lv===k}" onclick="SES.lv='${k}';draw()">${LVT[k]}</button>`).join("")}</div></div>`:""}
 <h2>参加メンバー（${S.players.length}人）</h2>
-${S.players.map((n,i)=>`<div class="box" style="display:flex;align-items:center;gap:10px;margin:8px 0;padding:10px"><span>${popAvatar(n,40)}</span><b style="flex:1;word-break:break-all">${esc(n)}</b><button class="g" onclick="sesLv(${i})" aria-label="レベルを切り替え">${LVT[lvOf(n)]}</button><button class="x" onclick="sesDel(${i})" aria-label="${esc(n)}を削除">✕</button></div>`).join("")||mnote("green","まだ誰もいません。上のフォームから追加しましょう！")}
+${S.players.map((n,i)=>`<div class="box" style="display:flex;align-items:center;gap:10px;margin:8px 0;padding:10px"><span>${popAvatar(n,40)}</span><b style="flex:1;word-break:break-all">${esc(n)}</b>${ROLE==="admin"?`<button class="g" onclick="sesLv(${i})" aria-label="レベルを切り替え">${LVT[lvOf(n)]}</button><button class="x" onclick="sesDel(${i})" aria-label="${esc(n)}を削除">✕</button>`:""}</div>`).join("")||mnote("green","まだ誰もいません。管理者が参加者を登録してください。")}
 ${S.players.length>=2?'<div class="row"><button onclick="SEV=2;draw()" style="width:100%">次へ：対戦ペアをつくる ➡️</button></div>':""}`}
 async function sesAdd(){if(ROLE!=="admin"){alert("セッション参加者の登録は管理者のみ行えます");return}const f=$("ses_name"),n=(f?.value||"").trim();if(!n){alert("名前を入れてください");return}
 if(S.players.some(p=>normName(p)===normName(n))){alert("同じ名前の人がすでにいます");return}
