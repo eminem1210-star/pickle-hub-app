@@ -695,7 +695,7 @@ if(Array.isArray(S.rounds)&&S.rounds.length){
       teams:JSON.parse(JSON.stringify(S.tournamentTeams||[])),
       format:S.tournamentFormat||"doubles"
     });
-    S.hist=S.hist.slice(0,10);
+    /* 履歴は自動で間引かず、過去データを保持する */
   }
 }
 S.tournamentDate=today;S.players=[];S.rounds=[];S.clubPlayerNames=[];S.tournamentTeams=[];
@@ -957,9 +957,9 @@ return Object.values(pairs).sort((a,b)=>b.w-a.w||(b.scored-b.against)-(a.scored-
 }
 function stand(){return `<h3 style="font-size:14px;margin:18px 0 8px">${S.tournamentFormat==="singles"?"対戦者別戦績":"ペア別戦績"}</h3><table><tr><th>${S.tournamentFormat==="singles"?"選手":"ペア"}</th><th>試合</th><th>勝</th><th>負</th><th>得点</th><th>得失点</th></tr>${pairTable().map(pair=>`<tr><td>${teamLabel(pair.ids)}</td><td>${pair.g}</td><td>${pair.w}</td><td>${pair.l}</td><td>${pair.scored}-${pair.against}</td><td>${pair.scored-pair.against>0?"+":""}${pair.scored-pair.against}</td></tr>`).join("")||'<tr><td colspan="6">スコア入力後に表示されます</td></tr>'}</table>${S.tournamentFormat==="singles"?"":`<h3 style="font-size:14px;margin:22px 0 8px">個人順位</h3><table id="st"><tr><th>順位</th><th>名前</th><th>勝</th><th>負</th><th>得失点</th></tr>${table().map((r,k)=>`<tr><td><b>#${k+1}</b></td><td>${P(r.i)}</td><td>${r.w}</td><td>${r.l}</td><td>${r.d>0?"+":""}${r.d}</td></tr>`).join("")}</table>`}`}
 function demo(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}S.players=["Kaito","Ren","Aoi","Yuki","Hina","Sota","Mio","Riku"];S.rt={};S.rounds=[];S.tournamentTeams=[];save();draw()}
-function saveH(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}if(!S.rounds.length){alert("保存するラウンドがありません");return}S.hist=S.hist||[];S.hist.unshift({d:new Date().toLocaleString("ja-JP"),p:S.players,r:S.rounds,c:S.courts,t:S.rt||{},teams:S.tournamentTeams||[],format:S.tournamentFormat||"doubles"});S.hist=S.hist.slice(0,10);save();toast("履歴に保存しました")}
-function loadH(i){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("この履歴を読み込みますか？",()=>{const h=S.hist[i];S.players=h.p;S.rounds=h.r;S.courts=h.c;S.rt=h.t;S.tournamentTeams=h.teams||[];S.tournamentFormat=h.format||"doubles";save();draw()})}
-function deleteH(i){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("この大会履歴を削除しますか？",()=>{S.hist.splice(i,1);save();draw()})}
+async function saveH(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}if(!S.rounds.length){alert("保存するラウンドがありません");return}S.hist=Array.isArray(S.hist)?S.hist:[];S.hist.unshift({d:new Date().toLocaleString("ja-JP"),p:JSON.parse(JSON.stringify(S.players||[])),r:JSON.parse(JSON.stringify(S.rounds||[])),c:S.courts,t:JSON.parse(JSON.stringify(S.rt||{})),teams:JSON.parse(JSON.stringify(S.tournamentTeams||[])),format:S.tournamentFormat||"doubles"});if(!await save()){await reloadState(false);draw();alert("履歴を保存できませんでした。最新データに戻しました");return}draw();toast("履歴に保存しました")}
+function loadH(i){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("この履歴を読み込みますか？",async()=>{const h=S.hist[i];if(!h)return;S.players=JSON.parse(JSON.stringify(h.p||[]));S.rounds=JSON.parse(JSON.stringify(h.r||[]));S.courts=h.c;S.rt=JSON.parse(JSON.stringify(h.t||{}));S.tournamentTeams=JSON.parse(JSON.stringify(h.teams||[]));S.tournamentFormat=h.format||"doubles";if(!await save()){await reloadState(false);draw();alert("履歴の読み込みを保存できませんでした");return}draw()})}
+function deleteH(i){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("この大会履歴を削除しますか？",async()=>{if(!Array.isArray(S.hist)||!S.hist[i])return;S.hist.splice(i,1);if(!await save()){await reloadState(false);draw();alert("履歴の削除を保存できませんでした");return}draw()})}
 
 /* ---------- 練習 ---------- */
 const DR=[["ディンク練習",300,"キッチンライン越しに相手と柔らかく打ち合う。30球続けば合格。"],["サード・ドロップ",420,"ベースラインからキッチンへ落とす。10本中7本が目標。"],["サーブ精度",300,"ターゲットを決めて深さを狙う。10本中8本が目標。"],["ボレー連打",180,"ノンボレーゾーン手前で速い打ち合い。ラケット面を安定させる。"],["ステップ&フットワーク",240,"サイドステップでライン間を往復。膝を曲げたまま。"]];
