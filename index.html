@@ -690,7 +690,7 @@ const MAIN=["hm","se","events","bd","mo"];
 const TITLES={ev:"大会モード",sc:"スコア記録",cl:"メンバー",nt:"通知",pf:"プロフィール",pr:"練習ドリル",eq:"用具の貸出",rules:"ルール",lv:"ランキング・レベル",ap:"試合の承認",rh:"レーティングのしくみ",th:"見た目の設定",bz:"管理者",gr:"マイギア"};
 const ROOTN={hm:"ホーム",se:"セッション",events:"イベント",bd:"掲示板",mo:"メニュー"};
 let ROOT="hm";
-function go(t){if(t===tab)return;if(tab==="bz"&&t!=="bz")adminSetupCodeDisplay=null;if(t!=="pf")profilePhotoDraft="";
+function go(t){if(t===tab)return;if(t==="bz"&&tab!=="bz")S.adminSheet="menu";if(tab==="bz"&&t!=="bz")adminSetupCodeDisplay=null;if(t!=="pf")profilePhotoDraft="";
 ROOT=MAIN.includes(t)?t:(MAIN.includes(tab)?tab:ROOT);tab=t;
 try{history.pushState({t,root:ROOT,d:((history.state&&history.state.d)||0)+1},"")}catch(e){}trackPage();draw()}
 function navBack(){if(history.state&&history.state.d>0){history.back();return}tab=MAIN.includes(ROOT)?ROOT:"hm";draw()}
@@ -1135,18 +1135,22 @@ const BD=[0,1500,0,12000,10000,3.6];
 const B=i=>S.bz&&S.bz[i]!=null?S.bz[i]:(i==2?(S.players.length||16):BD[i]);
 function adminSheetUnread(key){if(ROLE!=="admin")return false;if(key==="updates")return (S.memberAudit||[]).some(x=>Number(x.ts||0)>seenGet("admin_updates"));if(key==="feedbacks"){const latest=new Map();dmRows.forEach(x=>{const old=latest.get(x.member);if(!old||x.ts>old.ts)latest.set(x.member,x)});return [...latest.values()].some(x=>x.f==="m"&&Number(x.ts||0)>seenGet("admin_feedbacks"))}return false}
 function bz(){
-S.adminSheet=S.adminSheet||"events";
+S.adminSheet=S.adminSheet||"menu";
 const groups=[
 {title:"① 日々の運営",desc:"イベントや参加者への対応、連絡・お知らせ",items:[["events","イベント・参加者","日程登録／参加者・キャンセル待ち"],["feedbacks","メンバーからの連絡","メンバーから届いた相談・質問への返信"],["posts","募集・お知らせ","練習会の募集やクラブのお知らせを作成"],["notify","全員への通知","メンバー全員へ連絡を送信"]]},
 {title:"② 会員管理",desc:"会員の登録、ログイン、プロフィールを管理",items:[["members","会員一覧・追加・削除","会員の追加・招待／退会・削除／プロフィール確認"],["profiles","招待・PIN再発行","招待リンクの発行、PINを忘れた会員の再設定"]]},
 {title:"③ クラブ運営",desc:"会費や大会のお金、アプリの利用状況を確認",items:[["dues","会費の回収状況","イベント会費・クラブ会費の入金確認"],["finance","大会収支","大会の参加費・協賛金・支出を集計"],["analytics","アクセス分析","利用者数や閲覧状況を確認"]]},
 {title:"④ 詳細・管理",desc:"アプリの保守や重要な設定",items:[["updates","更新履歴","メンバーによるプロフィール等の更新記録"],["settings","バックアップ・復元／設定","データ復元、管理者パスワード、レーティング設定"]]}
 ];
-const nav=groups.map(g=>`<section style="margin:14px 0"><h2 style="margin:0 0 4px">${g.title}</h2><p class="sub" style="margin:0 0 8px">${g.desc}</p><div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px">${g.items.map(([key,label,help])=>`<button class="${S.adminSheet===key?"":"g"}" style="text-align:left;min-height:58px;white-space:normal" role="tab" aria-selected="${S.adminSheet===key}" onclick="setAdminSheet('${key}')"><span style="font-weight:800">${label}${adminSheetUnread(key)?' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;margin-left:4px" aria-label="未確認"></span>':""}</span><small style="display:block;font-weight:400;opacity:.75;margin-top:4px">${help}</small></button>`).join("")}</div></section>`).join("");
-const view=S.adminSheet==="members"?adminMembers()+"<hr>"+adminProfiles():({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,analytics:adminAnalytics,settings:adminSettings})[S.adminSheet]();
-return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者メニュー</h1><p class="sub">目的に合った項目を選んでください。</p>${nav}<hr>${view}`
+const labels={events:"イベント・参加者",feedbacks:"メンバーからの連絡",posts:"募集・お知らせ",notify:"全員への通知",members:"会員一覧・追加・削除",profiles:"招待・PIN再発行",dues:"会費の回収状況",finance:"大会収支",analytics:"アクセス分析",updates:"更新履歴",settings:"バックアップ・復元／設定"};
+if(S.adminSheet==="menu"){
+const nav=groups.map(g=>`<section style="margin:14px 0"><h2 style="margin:0 0 4px">${g.title}</h2><p class="sub" style="margin:0 0 8px">${g.desc}</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px">${g.items.map(([key,label,help])=>`<button class="g" style="text-align:left;min-height:58px;white-space:normal" onclick="setAdminSheet('${key}')"><span style="font-weight:800">${label}${adminSheetUnread(key)?' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;margin-left:4px" aria-label="未確認"></span>':""}</span><small style="display:block;font-weight:400;opacity:.75;margin-top:4px">${help}</small></button>`).join("")}</div></section>`).join("");
+return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者メニュー</h1><p class="sub">目的に合った項目を選んでください。</p>${nav}`
 }
-function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;if(sheet==="updates")markSeen("admin_updates");if(sheet==="feedbacks")markSeen("admin_feedbacks");S.adminSheet=sheet;save();draw()}
+const view=S.adminSheet==="members"?adminMembers()+"<hr>"+adminProfiles():({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,analytics:adminAnalytics,settings:adminSettings})[S.adminSheet]();
+return `<div class="row" style="justify-content:space-between;align-items:center"><button class="g" onclick="setAdminSheet('menu')">← 管理者メニューに戻る</button><span class="badge" style="background:var(--warn)">ADMIN</span></div><h1>${labels[S.adminSheet]||"管理者"}</h1>${view}`
+}
+function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;if(sheet==="updates")markSeen("admin_updates");if(sheet==="feedbacks")markSeen("admin_feedbacks");S.adminSheet=sheet;save();draw();if(sheet==="settings")loadBackups();if(sheet==="profiles")loadPinStatus();if(sheet==="analytics"&&!analyticsCache)loadAdminAnalytics()}
 
 /* ---------- 管理者への連絡(DM)・掲示板 ---------- */
 let adminSession=false,bch="notice";
@@ -1241,7 +1245,7 @@ function adminFinance(){return `<h2>大会収支</h2><div class="box">
 <h3 style="font-size:14px;margin-top:20px">集計</h3><div class="row" style="justify-content:space-between"><span>参加費収入</span><b id="br_ticket">0円</b></div><div class="row" style="justify-content:space-between"><span>協賛金</span><b id="br_sponsor">0円</b></div><div class="row" style="justify-content:space-between"><span>その他収入</span><b id="br_other_income">0円</b></div><div class="row" style="justify-content:space-between"><span>総収入</span><b id="br_income">0円</b></div><div class="row" style="justify-content:space-between"><span>大会費用</span><b id="br_cost">0円</b></div><div class="row" style="justify-content:space-between"><span>その他支出</span><b id="br_other_cost">0円</b></div><div class="row" style="justify-content:space-between"><span>決済手数料</span><b id="br_fee">0円</b></div><div class="row" style="justify-content:space-between"><span>総支出</span><b id="br_expense">0円</b></div><div class="row" style="justify-content:space-between"><span>差引利益</span><b id="bo" class="big" style="font-size:28px">0円</b></div><div id="bs" class="sub"></div><div class="row" style="justify-content:space-between"><span>一人あたり差引</span><b id="br_per_person">0円</b></div><button onclick="saveFinanceRecord()">この収支を保存</button></div>
 <h2>保存済み収支の総計</h2>${financeTotals()}<h2>保存履歴</h2>${(S.financeRecords||[]).map((record,index)=>`<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(record.name||"大会")}</b><span class="sub">${esc(record.date)}</span></div><div class="row" style="justify-content:space-between"><span>収入 ${record.income.toLocaleString()}円</span><b>${record.profit.toLocaleString()}円</b></div><div class="row"><button class="g" onclick="loadFinanceRecord(${index})">読み込む</button><button class="x" onclick="deleteFinanceRecord(${index})">削除</button></div></div>`).join("")||'<p class="sub">保存された収支はありません。</p>'}`}
 const evTime=e=>e.time?(e.endTime?`${e.time}〜${e.endTime}`:e.time):"";
-function goDues(id){S.duesEvent=id;S.adminSheet="dues";go("bz")}
+function goDues(id){S.duesEvent=id;go("bz");S.adminSheet="dues";save();draw()}
 function duesOf(e){e.dues=e.dues||{amount:0,paid:{}};e.dues.paid=e.dues.paid||{};return e.dues}
 function setEventDues(id,v){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;duesOf(e).amount=Math.max(0,parseInt(v,10)||0);save();draw()}
 function toggleEventDues(id,i){const e=(S.events||[]).find(x=>x.id===id),m=S.members[i];if(!e||!m)return;const d=duesOf(e);if(d.paid[m.n])delete d.paid[m.n];else d.paid[m.n]=Date.now();save();draw()}
