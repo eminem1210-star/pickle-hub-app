@@ -1086,13 +1086,11 @@ T.id=setInterval(()=>{T.left--;showT();if(T.left<=0){stopT();$("tn").textContent
 function stopT(){clearInterval(T.id);T.id=null}
 /* ---------- 仲間 ---------- */
 function co(){
-return `<span class="badge">COMMUNITY</span><h1>仲間・コート</h1><p class="sub">練習の募集やコート情報をシェアしよう！</p>
-<div class="box"><label>いつ・どこで</label><textarea id="pw" rows="3" placeholder="例: 土曜夜 中央公園 初心者歓迎！" style="width:100%"></textarea>
-<label>レベル・人数</label><div class="row"><select id="pl"><option>初心者歓迎</option><option>中級</option><option>上級</option></select><label style="margin:0">人数 <input id="pk" type="number" inputmode="numeric" min="1" max="99" value="4" style="width:70px"> 人</label><label style="margin:0">締切 <input id="pd2" type="datetime-local"></label></div>
-<button onclick="addPost()" style="margin-top:10px">募集を出す</button></div>
-${S.posts.map(postCard).join("")||'<p class="sub">現在募集はありません。</p>'}
-<h2>コートを探す</h2><div class="box"><div class="row"><input id="ar" placeholder="地域名 (例: 渋谷)"><button onclick="srch()" class="g">Google Mapsで検索</button></div></div>
-<h2>コート順番待ち</h2><p class="sub">ログイン中の会員名で順番待ちに登録します。</p><div class="row"><button onclick="queueJoin()" ${S.queue.includes(ME)?"disabled":""}>順番待ちに並ぶ</button></div>
+return `<span class="badge">COMMUNITY</span><h1>仲間・コート</h1><p class="sub">公開中の練習募集に参加したり、近くのコートを探したりできます。</p>
+${ROLE==="admin"?'<div class="box"><p class="sub">募集の作成・編集は管理者ページで行えます。</p><button onclick="go(\'bz\');setAdminSheet(\'posts\')">募集・お知らせを管理する</button></div>':'<p class="sub">募集の作成はクラブ管理者が行います。参加やキャンセル待ちは、下の募集から操作できます。</p>'}
+${S.posts.map(postCard).join("")||'<p class="sub">現在、公開中の募集はありません。</p>'}
+<h2>コートを探す</h2><div class="box"><div class="row"><input id="ar" placeholder="地域名（例：東海市）"><button onclick="srch()" class="g">Google Mapsで検索</button></div></div>
+<h2>コート順番待ち</h2>${ME?'<p class="sub">ログイン中の会員名で順番待ちに登録できます。</p><div class="row"><button onclick="queueJoin()" '+(S.queue.includes(ME)?'disabled':'')+'>順番待ちに並ぶ</button></div>':'<p class="sub">順番待ちへの登録はメンバーでログインしてください。</p>'}
 ${S.queue.map((q,i)=>`<div class="box">${i+1}. ${esc(q)} ${i==0?'<span class="ok">次です！</span>':""}${ROLE==="admin"||q===ME?`<button class="x" onclick="queueLeave(${i})">完了</button>`:""}</div>`).join("")}`}
 function addPost(){const w=$("pw").value.trim();if(!w){alert("日時や場所を入力してください");return}const c=Math.max(1,parseInt($("pk").value)||1);S.posts.unshift({w,l:$("pl").value,r:c,c,m:[],wl:[],dl:$("pd2").value||"",by:ME});save();draw()}
 function queueJoin(){if(!ME||S.queue.includes(ME))return;S.queue.push(ME);save();draw()}
@@ -1105,7 +1103,7 @@ ${p.eventDate||p.eventTime||p.eventPlace?`<div class="sub">${p.eventDate?"開催
 ${m.length?`<div>参加者: ${m.map((x,k)=>`<span class="chip">${esc(x)}${ROLE==="admin"||x===ME?`<button class="x" aria-label="取消" onclick="leave(${i},${k})">×</button>`:""}</span>`).join("")}</div>`:""}
 ${wl.length?`<div class="sub">キャンセル待ち: ${wl.map(esc).join("、")}</div>`:""}
 ${cl?"":`<div class="row"><button onclick="join(${i})" ${!ME||m.includes(ME)||wl.includes(ME)?"disabled":""}>${full?"キャンセル待ち":"参加する"}</button></div>`}
-<div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpP(${i})">LINE共有</button>${ROLE==="admin"||p.by===ME?`<button class="g" onclick="dupP(${i})">来週も募集</button>`:""}${m.length?`<button class="g" onclick="toEv2(${i})">大会へ</button>`:""}${ROLE==="admin"||p.by===ME?`<button class="x" onclick="deleteOwnPost(${i})">削除</button>`:""}</div></div>`}
+<div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpP(${i})">LINE共有</button>${ROLE==="admin"?`<button class="g" onclick="dupP(${i})">来週も募集</button>`:""}${ROLE==="admin"&&m.length?`<button class="g" onclick="toEv2(${i})">大会へ</button>`:""}${ROLE==="admin"?`<button class="x" onclick="deleteOwnPost(${i})">削除</button>`:""}</div></div>`}
 function formatEventDate(value){const [year,month,day]=value.split("-");return `${year}年${Number(month)}月${Number(day)}日`}
 function cpP(i){const p=S.posts[i],m=p.m||[],t="【ピックルボール募集】\n"+p.w+(p.eventDate?"\n開催日: "+formatEventDate(p.eventDate):"")+(p.eventTime?" "+p.eventTime:"")+(p.eventPlace?"\n場所: "+p.eventPlace:"")+"\n"+p.l+" / "+(p.r>0?"あと"+p.r+"人":"満員")+(p.dl?"\n締切 "+p.dl.replace("T"," "):"")+(m.length?"\n参加: "+m.join("、"):"");shareTxt(t)}
 function dupP(i){const p=S.posts[i];if(!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ複製できます");return}let dl="";if(p.dl){const t=new Date(p.dl),z=n=>String(n).padStart(2,"0");t.setDate(t.getDate()+7);dl=t.getFullYear()+"-"+z(t.getMonth()+1)+"-"+z(t.getDate())+"T"+z(t.getHours())+":"+z(t.getMinutes())}const c=p.c||(p.r||0)+(p.m||[]).length||4;S.posts.unshift({w:p.w,l:p.l,r:c,c,m:[],wl:[],dl,by:ME});save();draw()}
