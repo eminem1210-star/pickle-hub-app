@@ -916,7 +916,7 @@ ${r.bye.length?`<div class="bye">お休み: ${r.bye.map(P).join("、")}</div>`:"
 const wn=m=>m.sa===""||m.sb===""?0:m.sa>m.sb?1:m.sa<m.sb?2:0;
 async function writeTournamentScore(ri,mi,k,value){
 const raw=String(value).trim();
-if(raw!==""&&(!/^\\d{1,3}$/.test(raw)||+raw>999)){alert("スコアは0〜999の整数で入力してください");draw();return}
+if(raw!==""&&(!/^\d{1,3}$/.test(raw)||+raw>999)){alert("スコアは0〜999の整数で入力してください");draw();return}
 const score=raw===""?null:+raw;
 const m=S.rounds[ri]&&S.rounds[ri].m[mi];if(!m)return;
 if(ROLE==="admin"){
