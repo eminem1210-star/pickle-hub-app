@@ -501,6 +501,13 @@ async function flushSave(){
   }
   return false}
 const save=()=>{pending++;saveQ=saveQ.then(flushSave).catch(e=>{console.error(e);return false}).finally(()=>{pending--});return saveQ};
+async function saveOrRestore(message){
+  if(await save())return true;
+  try{await reloadState(false)}catch(e){console.error(e)}
+  draw();
+  if(message)alert(message);
+  return false
+}
 async function loadBackups(){const el=$("bk_list");if(!el)return;try{const days=await rpc("admin_list_backups");el.innerHTML=(days||[]).map(d=>`<div class="row" style="justify-content:space-between"><span>${esc(d)}</span><button class="g" onclick="restoreBackup(${jsArg(d)})">この日の変更前に戻す</button></div>`).join("")||'<p class="sub">バックアップはまだありません。</p>'}catch(e){el.innerHTML='<p class="sub">バックアップを読み込めませんでした。</p>'}}
 function restoreBackup(d){ask("この日の最初の変更前の状態に全体を戻します。現在の内容は上書きされます。よろしいですか？",async()=>{try{await rpc("admin_restore_backup",{p_day:d});await reloadState();toast("バックアップから復元しました")}catch(e){alert("復元できませんでした")}})}
 async function loadPinStatus(){try{const r=await rpc("admin_member_status"),k=JSON.stringify(r);if(k!==JSON.stringify(PINST)){PINST=r;draw()}}catch(e){}}
@@ -806,20 +813,18 @@ else{S.tournamentFormat=format;S.tournamentTeams=[];save();draw()}
 }
 function tournamentPlayers(){return S.players.map((_,index)=>index)}
 function resetEv(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("ラウンドを全て消しますか？",()=>{S.rounds=[];S.tournamentTeams=[];syncClubPlayers();save();draw()})}
-function syncClubPlayers(){
+function syncClubPlayers(removeAbsent=false){
 S.clubPlayerNames=Array.isArray(S.clubPlayerNames)?S.clubPlayerNames:[];
 const attended=[...new Set(S.members.filter(member=>member.at).map(member=>member.n))];
-if(S.rounds.length){
-attended.forEach(name=>{if(!S.players.includes(name)){S.players.push(name);S.clubPlayerNames.push(name)}});
-}else{
+if(removeAbsent&&!S.rounds.length){
 const remove=S.clubPlayerNames.filter(name=>!attended.includes(name));
 S.players=S.players.filter(name=>!remove.includes(name));
 S.clubPlayerNames=S.clubPlayerNames.filter(name=>attended.includes(name));
-attended.forEach(name=>{if(!S.players.includes(name)){S.players.push(name);S.clubPlayerNames.push(name)}})
 }
-save()
+attended.forEach(name=>{if(!S.players.includes(name)){S.players.push(name);S.clubPlayerNames.push(name)}});
+return save()
 }
-function setAttendance(i){S.members[i].at=!S.members[i].at;syncClubPlayers();draw()}
+async function setAttendance(i){if(!S.members[i])return;S.members[i].at=!S.members[i].at;if(!await syncClubPlayers()){await saveOrRestore("出欠の変更を保存できませんでした。最新状態に戻しました");return}draw()}
 function stats(){
 const g=S.players.map(()=>0),pc={},oc={};
 S.rounds.forEach(r=>r.m.forEach(m=>{[...m.a,...m.b].forEach(i=>g[i]++);
@@ -1175,8 +1180,8 @@ ${S.news.map((n,i)=>`<div class="box"><div style="white-space:pre-wrap;font-weig
 function addN(){const v=$("nw").value.trim();if(!v){alert("内容を入力してください");return}S.news.unshift(v);save();draw()}
 function cpN(i){shareTxt(S.news[i])}
 const normName=t=>String(t).normalize("NFKC").replace(/\s/g,"").toLowerCase();
-function addM(){const v=$("mn").value.trim();if(!v)return;if(v.length>20){alert("名前は20文字以内にしてください");return}if(S.members.some(m=>normName(m.n)===normName(v))||v==="管理者"){alert("同じ名前がすでにあります");return}S.members.push({n:v,at:true,paid:false});syncClubPlayers();draw()}
-function removeM(i){const m=S.members[i];if(!m)return;ask(`${m.n}さんをメンバーから削除します。ログイン情報も削除されます。よろしいですか？`,()=>{S.members.splice(i,1);syncClubPlayers();draw()})}
+async function addM(){const v=$("mn").value.trim();if(!v)return;if(v.length>20){alert("名前は20文字以内にしてください");return}if(S.members.some(m=>normName(m.n)===normName(v))||v==="管理者"){alert("同じ名前がすでにあります");return}S.members.push({n:v,at:true,paid:false});if(!await syncClubPlayers()){await saveOrRestore("メンバー追加を保存できませんでした。最新状態に戻しました");return}draw()}
+function removeM(i){const m=S.members[i];if(!m)return;ask(`${m.n}さんをメンバーから削除します。ログイン情報も削除されます。よろしいですか？`,async()=>{S.members.splice(i,1);if(!await syncClubPlayers(true)){await saveOrRestore("メンバー削除を保存できませんでした。最新状態に戻しました");return}draw()})}
 /* ---------- 収益・要望管理（管理者専用裏画面） ---------- */
 const BD=[0,1500,0,12000,10000,3.6];
 const B=i=>S.bz&&S.bz[i]!=null?S.bz[i]:(i==2?(S.players.length||16):BD[i]);
@@ -1366,7 +1371,7 @@ const defaults={event_title:"",event_date:"",event_time:"",event_end:"",event_le
 S.adminForm=S.adminForm||{};
 Object.entries(defaults).forEach(([id,value])=>{S.adminForm[id]=value;const field=$(id);if(field)field.value=value});
 }
-function saveEvent(){
+async function saveEvent(){
 const title=$("event_title").value.trim(),date=$("event_date").value,place=$("event_place").value.trim();
 if(!title){alert("イベント名を入力してください");return}
 if(!date){alert("開催日を選択してください");return}
@@ -1377,11 +1382,11 @@ const event={...previous,id:S.adminEventEdit||`${Date.now()}-${Math.random().toS
 S.events=S.events||[];
 const index=S.events.findIndex(item=>item.id===event.id);
 if(index>=0){S.events[index]=event}else S.events.push(event);
-rememberAdminSuggestion("place");S.adminEventEdit="";clearEventDraft();save();draw();toast("イベントを保存しました（一般公開）")
+rememberAdminSuggestion("place");S.adminEventEdit="";clearEventDraft();if(!await saveOrRestore("イベントを保存できませんでした。最新状態に戻しました"))return;draw();toast("イベントを保存しました（一般公開）")
 }
 function editEvent(index){const event=S.events[index];if(!event)return;S.adminEventEdit=event.id;draw()}
 function cancelEditEvent(){S.adminEventEdit="";clearEventDraft();draw()}
-function deleteEvent(index){ask("このイベントと参加回答を削除しますか？",()=>{S.events.splice(index,1);S.adminEventEdit="";save();draw()})}
+function deleteEvent(index){ask("このイベントと参加回答を削除しますか？",async()=>{S.events.splice(index,1);S.adminEventEdit="";if(!await saveOrRestore("イベント削除を保存できませんでした。最新状態に戻しました"))return;draw()})}
 function events(){
 const selected=S.members.some(member=>member.n===profileSessionName)?profileSessionName:"";
 const upcoming=uniqueEvents(S.events||[]).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
@@ -1532,7 +1537,7 @@ window.open("https://gemini.google.com/app","_blank","noopener");
 await copyAdminPrompt();
 toast("Geminiに依頼文を貼り付け、回答を下の欄に戻してください")
 }
-function publishAdminContent(){
+async function publishAdminContent(){
 const text=$("admin_draft").value.trim();
 if(!text){alert("公開する文章を入力してください");return}
 if($("admin_kind").value==="recruit"){
@@ -1542,10 +1547,10 @@ const eventTime=$("admin_event_time").value||"";
 rememberAdminTime();
 S.posts.unshift({w:text,l:$("admin_level").value,r:capacity,c:capacity,m:[],wl:[],dl:"",eventDate,eventTime,eventPlace:$("admin_place").value.trim(),onePersonOK:!!$("admin_one_person").checked,beginnerWelcome:!!$("admin_beginner").checked,rentalAvailable:!!$("admin_rental").checked})
 }else{S.news.unshift(text)}
-save();draw();toast("投稿を公開しました")
+if(!await saveOrRestore("投稿を公開できませんでした。最新状態に戻しました"))return;draw();toast("投稿を公開しました")
 }
-function deleteAdminPost(i){ask("この募集を削除しますか？",()=>{S.posts.splice(i,1);save();draw()})}
-function deleteAdminNews(i){ask("このお知らせを削除しますか？",()=>{S.news.splice(i,1);save();draw()})}
+function deleteAdminPost(i){ask("この募集を削除しますか？",async()=>{S.posts.splice(i,1);if(!await saveOrRestore("募集の削除を保存できませんでした。最新状態に戻しました"))return;draw()})}
+function deleteAdminNews(i){ask("このお知らせを削除しますか？",async()=>{S.news.splice(i,1);if(!await saveOrRestore("お知らせの削除を保存できませんでした。最新状態に戻しました"))return;draw()})}
 function adminSuggestionOptions(key){
 return (S.adminSuggestions&&S.adminSuggestions[key]||[]).map(value=>`<option value="${esc(value)}"></option>`).join("")
 }
