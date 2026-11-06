@@ -1669,7 +1669,7 @@ S.players.splice(i,1);S.tournamentTeams=[];if(!isMember(n)&&S.rt)delete S.rt[n];
 function sesSlots(){return SES.size===2?[["a",0],["a",1],["b",0],["b",1]]:[["a",0],["b",0]]}
 function sesPick(i){const e=sesSlots().find(([t,k])=>SES[t][k]==null);if(!e){alert("枠がいっぱいです。「この対戦を追加」を押すか、枠をタップして外してください");return}SES[e[0]][e[1]]=i;draw()}
 function sesClear(t,k){SES[t][k]=null;draw()}
-async function sesAddMatch(){const sl=sesSlots();if(sl.some(([t,k])=>SES[t][k]==null)){alert("すべての枠に人を入れてください");return}
+async async function sesAddMatch(){const sl=sesSlots();if(sl.some(([t,k])=>SES[t][k]==null)){alert("すべての枠に人を入れてください");return}
 const a=SES.a.filter(x=>x!=null),b=SES.b.filter(x=>x!=null);try{await rpc("session_match_add",{p_a:a,p_b:b,p_court:SES.court});SES.a=[null,null];SES.b=[null,null];await reloadState(false);draw();toast("対戦を追加しました")}catch(e){console.error("session match add failed",e);alert(String(e.message||"").includes("forbidden")?"自分が参加する対戦のみ追加できます。":"対戦カードを保存できませんでした。")} }
 function sesAuto(){const n=S.players.length;if(n<4){alert("4人以上いると、おまかせでペアを作れます");return}
 const{g,pc,oc}=stats(),R=i=>(S.rt&&S.rt[S.players[i]])||3,K=(u,v)=>[u,v].sort((x,y)=>x-y).join(":"),byeC=S.players.map(()=>0);
