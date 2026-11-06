@@ -900,15 +900,38 @@ matches=best||[]
 }
 S.rounds.push({m:matches,bye});save();draw()}
 function teamLabel(team){return team.map(i=>P(i)).join("・")}
-function round(r,ri){const admin=ROLE==="admin";const b=(k,mi,d)=>`<button class="g pm" aria-label="${k=="sa"?"左":"右"}チーム得点${d>0?"+1":"-1"}" onclick="modSc(${ri},${mi},'${k}',${d})">${d>0?"+":"−"}</button>`;
-const inp=(k,mi,v)=>`<input class="sc" inputmode="numeric" aria-label="${k=="sa"?"左":"右"}チーム得点" value="${v}" onchange="setSc(${ri},${mi},'${k}',this.value)">`;
-return `<h2>ラウンド ${ri+1}</h2>${r.m.map((m,mi)=>`<div class="court"><div class="t">コート ${m.court||mi+1}<span class="st">${(m.sa!==""&&m.sb!==""&&m.sa!==m.sb)?"FINISHED 🏁":(ri===S.rounds.length-1?"LIVE 🔴":"—")}</span></div>
+function canEditTournamentSide(team){return ROLE==="admin"||(ROLE==="member"&&team.some(i=>S.players[i]===ME))}
+function scoreControl(ri,mi,k,v,team){
+const editable=canEditTournamentSide(team);
+if(!editable)return `<span class="score-view">${v===""?"–":v}</span>`;
+const b=d=>`<button class="g pm" aria-label="${k==="sa"?"左":"右"}チーム得点${d>0?"+1":"-1"}" onclick="modSc(${ri},${mi},'${k}',${d})">${d>0?"+":"−"}</button>`;
+const inp=`<input class="sc" inputmode="numeric" aria-label="${k==="sa"?"左":"右"}チーム得点" value="${v}" onchange="setSc(${ri},${mi},'${k}',this.value)">`;
+return `${b(-1)}${inp}${b(1)}`
+}
+function round(r,ri){return `<h2>ラウンド ${ri+1}</h2>${r.m.map((m,mi)=>`<div class="court"><div class="t">コート ${m.court||mi+1}<span class="st">${(m.sa!==""&&m.sb!==""&&m.sa!==m.sb)?"FINISHED 🏁":(ri===S.rounds.length-1?"LIVE 🔴":"—")}</span></div>
 <div class="m"><div class="${wn(m)==1?"win":""}">${teamLabel(m.a)}</div>
-<div>${admin?`${b("sa",mi,-1)}${inp("sa",mi,m.sa)}${b("sa",mi,1)}`: `<span class="score-view">${m.sa===""?"–":m.sa}</span>`}<span class="sub" style="margin:0">:</span>${admin?`${b("sb",mi,-1)}${inp("sb",mi,m.sb)}${b("sb",mi,1)}`: `<span class="score-view">${m.sb===""?"–":m.sb}</span>`}</div>
+<div>${scoreControl(ri,mi,"sa",m.sa,m.a)}<span class="sub" style="margin:0">:</span>${scoreControl(ri,mi,"sb",m.sb,m.b)}</div>
 <div class="${wn(m)==2?"win":""}">${teamLabel(m.b)}</div></div></div>`).join("")}
 ${r.bye.length?`<div class="bye">お休み: ${r.bye.map(P).join("、")}</div>`:""}`}
 const wn=m=>m.sa===""||m.sb===""?0:m.sa>m.sb?1:m.sa<m.sb?2:0;
-function setSc(ri,mi,k,v){if(ROLE!=="admin"){alert("スコアの編集は管理者のみです");return}const m=S.rounds[ri].m[mi];m[k]=v===""?"":+v;maybeRecord(m);save();draw()}
+async function writeTournamentScore(ri,mi,k,value){
+const raw=String(value).trim();
+if(raw!==""&&(!/^\\d{1,3}$/.test(raw)||+raw>999)){alert("スコアは0〜999の整数で入力してください");draw();return}
+const score=raw===""?null:+raw;
+const m=S.rounds[ri]&&S.rounds[ri].m[mi];if(!m)return;
+if(ROLE==="admin"){
+m[k]=score===null?"":score;maybeRecord(m);save();draw();return
+}
+if(ROLE!=="member"||!canEditTournamentSide(m[k==="sa"?"a":"b"])){alert("自分が出場するチームのスコアのみ入力できます");draw();return}
+if(score===null){alert("会員のスコア入力は数値で行ってください。空欄への変更は管理者に依頼してください");draw();return}
+try{
+const result=await rpc("save_tournament_score",{p_round:ri,p_match:mi,p_side:k,p_score:score});
+if(!result||!result.ok)throw new Error("score save failed");
+m[k]=score;S._v=result.v;maybeRecord(m);draw()
+}catch(e){console.error(e);toast("スコアを保存できませんでした。再読み込みして確認してください");try{await reloadState()}catch(x){}}
+}
+function setSc(ri,mi,k,v){writeTournamentScore(ri,mi,k,v)}
+function modSc(ri,mi,k,d){const m=S.rounds[ri]&&S.rounds[ri].m[mi];if(!m)return;const current=m[k]===""?0:+m[k];writeTournamentScore(ri,mi,k,Math.max(0,current+d))}
 function undoR(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}if(S.rounds.length)ask("最新のラウンドを取り消しますか？",()=>{S.rounds.pop();save();draw()})}
 function shareR(){shareTxt("【PICKLE HUB 試合結果】\n"+table().map((r,k)=>(k+1)+". "+S.players[r.i]+" "+r.w+"勝"+r.l+"敗 ("+(r.d>0?"+":"")+r.d+")").join("\n"))}
 function big(){const r=S.rounds[S.rounds.length-1];if(!r){alert("先にラウンドを組んでください");return}const d=document.createElement("div");d.id="bg";d.onclick=()=>d.remove();d.innerHTML="<h1 style='color:var(--ac)'>ラウンド "+S.rounds.length+"</h1>"+r.m.map((m,i)=>'<div class="court"><div class="t">コート '+(i+1)+'</div><div class="m"><div style="font-size:18px">'+teamLabel(m.a)+'</div><div style="font-size:22px;font-weight:900">VS</div><div style="font-size:18px">'+teamLabel(m.b)+'</div></div></div>').join("")+(r.bye.length?'<p class="bye">お休み: '+r.bye.map(P).join("、")+'</p>':"")+'<p class="sub" style="text-align:center;margin-top:20px">タップして閉じる</p>';document.body.appendChild(d)}
