@@ -1498,13 +1498,15 @@ function adminAnalytics(){return `<h2>アクセス分析</h2><p class="sub">ア�
 function adminSettings(){return `<h2>管理者設定</h2><div class="box"><label>管理者パスワード変更</label><div class="row"><input id="new_pw" type="password" placeholder="新しいパスワード"><button onclick="changePw()">変更する</button></div></div><h2>レーティング</h2><div class="box"><p class="sub">計算パラメータ（rating_params）を変えたあとに、全試合を最初から再計算します。</p><button onclick="rmRecalc()">全試合を再計算する</button></div><h2>自動バックアップ</h2><p class="sub">アプリを開いた最初の日ごとに自動で保存されます(直近7日分)。間違えて消したときは、ここから戻せます。</p><div class="box" id="bk_list"><p class="sub">読み込み中…</p></div>`}
 function financeTotals(){const records=S.financeRecords||[],total=records.reduce((sum,item)=>({income:sum.income+item.income,expense:sum.expense+item.expense,profit:sum.profit+item.profit,fee:sum.fee+item.fee}),{income:0,expense:0,profit:0,fee:0});return `<div class="box"><div class="row" style="justify-content:space-between"><span>保存件数</span><b>${records.length}件</b></div><div class="row" style="justify-content:space-between"><span>累計総収入</span><b>${total.income.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計総支出</span><b>${total.expense.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計決済手数料</span><b>${total.fee.toLocaleString()}円</b></div><div class="row" style="justify-content:space-between"><span>累計差引利益</span><b>${total.profit.toLocaleString()}円</b></div></div>`}
 function currentFinance(){const value=id=>Math.max(0,Number($(id)?.value)||0),price=value("b1"),participants=value("b2"),feeRate=Math.min(100,value("b5")),ticket=price*participants,fee=ticket*feeRate/100,sponsor=value("b4"),otherIncome=value("b6"),courtCost=value("b3"),otherCost=value("b7"),income=ticket+sponsor+otherIncome,expense=courtCost+otherCost+fee,profit=income-expense,denominator=price*(1-feeRate/100);return {name:$("bname")?.value.trim()||"大会",price,participants,ticket,feeRate,fee,sponsor,otherIncome,courtCost,otherCost,income,expense,profit,perPerson:participants?profit/participants:0,breakEven:denominator>0?Math.max(0,Math.ceil((courtCost+otherCost-sponsor-otherIncome)/denominator)):0}}
-function saveFinanceRecord(){
+async function saveFinanceRecord(){
 const result=currentFinance();
 if(!result.name.trim()){alert("大会名を入力してください");return}
 if(result.participants<1){alert("参加人数を1人以上入力してください");return}
 S.financeRecords=S.financeRecords||[];
  S.financeRecords.unshift({...result,date:new Date().toLocaleString("ja-JP")});
-/* 収支履歴は件数で間引かず保持する */save();toast("収支を保存しました");draw()
+/* 収支履歴は件数で間引かず保持する */
+if(!await save()){await reloadState(false);draw();alert("収支記録を保存できませんでした。最新データに戻しました");return}
+toast("収支を保存しました");draw()
 }
 function loadFinanceRecord(index){const record=S.financeRecords[index];if(!record)return;S.bz=[0,record.price,record.participants,record.courtCost,record.sponsor,record.feeRate];S.adminForm=S.adminForm||{};S.adminForm.bname=record.name;S.adminForm.b6=record.otherIncome;S.adminForm.b7=record.otherCost;S.adminSheet="finance";save();draw()}
 function deleteFinanceRecord(index){ask("この収支記録を削除しますか？",()=>{S.financeRecords.splice(index,1);save();draw()})}
