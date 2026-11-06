@@ -920,7 +920,7 @@ if(raw!==""&&(!/^\d{1,3}$/.test(raw)||+raw>999)){alert("スコアは0〜999の�
 const score=raw===""?null:+raw;
 const m=S.rounds[ri]&&S.rounds[ri].m[mi];if(!m)return;
 if(ROLE==="admin"){
-m[k]=score===null?"":score;maybeRecord(m);save();draw();return
+m[k]=score===null?"":score;if(!await save()){await reloadState(false);toast("大会スコアを保存できませんでした。最新状態に戻しました");return}const saved=S.rounds[ri]?.m[mi];if(saved&&saved.sa!==""&&saved.sb!==""&&saved.sa!==saved.sb)maybeRecord(saved);draw();return
 }
 if(ROLE!=="member"||!canEditTournamentSide(m[k==="sa"?"a":"b"])){alert("自分が出場するチームのスコアのみ入力できます");draw();return}
 if(score===null){alert("会員のスコア入力は数値で行ってください。空欄への変更は管理者に依頼してください");draw();return}
@@ -1656,15 +1656,17 @@ function sesStep1(){return `<p class="sub">その場にいる人の名前（ニ�
 <h2>参加メンバー（${S.players.length}人）</h2>
 ${S.players.map((n,i)=>`<div class="box" style="display:flex;align-items:center;gap:10px;margin:8px 0;padding:10px"><span>${popAvatar(n,40)}</span><b style="flex:1;word-break:break-all">${esc(n)}</b><button class="g" onclick="sesLv(${i})" aria-label="レベルを切り替え">${LVT[lvOf(n)]}</button><button class="x" onclick="sesDel(${i})" aria-label="${esc(n)}を削除">✕</button></div>`).join("")||mnote("green","まだ誰もいません。上のフォームから追加しましょう！")}
 ${S.players.length>=2?'<div class="row"><button onclick="SEV=2;draw()" style="width:100%">次へ：対戦ペアをつくる ➡️</button></div>':""}`}
-function sesAdd(){const n=($("ses_name").value||"").trim();if(!n){alert("名前を入れてください");return}
+async function sesAdd(){if(ROLE!=="admin"){alert("セッション参加者の登録は管理者のみ行えます");return}const f=$("ses_name"),n=(f?.value||"").trim();if(!n){alert("名前を入れてください");return}
 if(S.players.some(p=>normName(p)===normName(n))){alert("同じ名前の人がすでにいます");return}
 S.players.push(n);if(!isMember(n)){S.rt=S.rt||{};S.rt[n]=LVN[SES.lv]}
-$("ses_name").value="";save();draw();const f=$("ses_name");if(f)f.focus()}
-function sesLv(i){const n=S.players[i];if(isMember(n)){alert("メンバーのレベルは、プロフィールの自己評価が使われます");return}const o=["b","i","a"],k=o[(o.indexOf(lvOf(n))+1)%3];S.rt=S.rt||{};S.rt[n]=LVN[k];save();draw()}
-function sesDel(i){const n=S.players[i];if(n==null)return;ask(`${n}さんを外します。この人の試合も消えます。よろしいですか？`,()=>{
+if(!await save()){await reloadState(false);draw();alert("参加者を保存できませんでした。最新状態に戻しました");return}
+if(f)f.value="";draw();const next=$("ses_name");if(next)next.focus()}
+async function sesLv(i){if(ROLE!=="admin"){alert("参加者のレベル変更は管理者のみ行えます");return}const n=S.players[i];if(isMember(n)){alert("メンバーのレベルは、プロフィールの自己評価が使われます");return}const o=["b","i","a"],k=o[(o.indexOf(lvOf(n))+1)%3];S.rt=S.rt||{};S.rt[n]=LVN[k];if(!await save()){await reloadState(false);alert("レベルを保存できませんでした")}draw()}
+function sesDel(i){if(ROLE!=="admin"){alert("参加者の削除は管理者のみ行えます");return}const n=S.players[i];if(n==null)return;ask(`${n}さんを外します。この人の試合も削除されます。よろしいですか？`,async()=>{
 const f=j=>j>i?j-1:j;
 S.rounds=S.rounds.map(r=>({...r,m:r.m.filter(x=>![...x.a,...x.b].includes(i)).map(x=>({...x,a:x.a.map(f),b:x.b.map(f)})),bye:(r.bye||[]).filter(j=>j!==i).map(f)})).filter(r=>r.m.length);
-S.players.splice(i,1);S.tournamentTeams=[];if(!isMember(n)&&S.rt)delete S.rt[n];SES.a=[null,null];SES.b=[null,null];save();draw()})}
+S.players.splice(i,1);S.tournamentTeams=[];if(!isMember(n)&&S.rt)delete S.rt[n];SES.a=[null,null];SES.b=[null,null];
+if(!await save()){await reloadState(false);draw();alert("削除を保存できませんでした。最新状態に戻しました");return}draw()})}
 /* 2. 対戦ペア作成 */
 function sesSlots(){return SES.size===2?[["a",0],["a",1],["b",0],["b",1]]:[["a",0],["b",0]]}
 function sesPick(i){const e=sesSlots().find(([t,k])=>SES[t][k]==null);if(!e){alert("枠がいっぱいです。「この対戦を追加」を押すか、枠をタップして外してください");return}SES[e[0]][e[1]]=i;draw()}
@@ -2002,7 +2004,9 @@ function scDraw(){
 }
 const teamPlain=t=>t.map(i=>S.players[i]).join("・");
 function scPick(v){SCS.mi=+v;const lr=S.rounds[S.rounds.length-1];if(SCS.mi>=0&&lr&&lr.m[SCS.mi]){const m=lr.m[SCS.mi];SCS.names=[teamPlain(m.a),teamPlain(m.b)];SCS.mode=m.a.length>1?"d":"s"}scReset();scDraw()}
-function scApply(){const lr=S.rounds[S.rounds.length-1],m=lr&&lr.m[SCS.mi];if(!m){alert("反映する試合を選んでください");return}m.sa=SCS.sc[0];m.sb=SCS.sc[1];m.st="completed";maybeRecord(m);save();toast("対戦表に反映しました")}
+async function scApply(){const ri=S.rounds.length-1,lr=S.rounds[ri],mi=SCS&&SCS.mi,m=lr&&mi>=0&&lr.m[mi];if(!m){alert("反映する試合を選んでください");return}
+const a=Number(SCS.sc[0]),b=Number(SCS.sc[1]);if(!Number.isInteger(a)||!Number.isInteger(b)||a<0||b<0){alert("正しいスコアを入力してください");return}
+try{await rpc("session_match_result",{p_round:ri,p_match:mi,p_score_a:a,p_score_b:b});await reloadState(false);const saved=S.rounds[ri]?.m[mi];if(saved&&a!==b)maybeRecord(saved);draw();toast(a===b?"同点の途中経過を保存しました":"対戦表にスコアを保存しました")}catch(e){console.error("score apply failed",e);alert("対戦表への保存に失敗しました。権限とログイン状態を確認してください");try{await reloadState(false);draw()}catch(x){}}}
 function scShare(){shareTxt(`【スコア】\n${SCS.names[0]} ${SCS.sc[0]} - ${SCS.sc[1]} ${SCS.names[1]}`)}
 function scWin(){const w=SCS.done,em=["🎉","🎊","⭐","🏆","✨","🎾"];
 return `${Array.from({length:28},(_,i)=>`<span class="cf" style="left:${Math.round(Math.random()*96)}vw;animation-delay:${(Math.random()*1.2).toFixed(2)}s">${em[i%em.length]}</span>`).join("")}<div class="winov"><div class="box">${mon("pink",130,"hop")}<h2>WINNER! 🏆</h2><p class="big" style="font-size:30px;margin:6px 0">${esc(SCS.names[w])}</p><p style="font-size:26px;font-weight:900;margin:4px 0">${SCS.sc[0]} - ${SCS.sc[1]}</p><div class="row" style="justify-content:center"><button class="line-btn" onclick="scShare()">LINEで共有</button>${!SC_DEMO&&SCS.sessionTarget?'<button onclick="sesScApply()">対戦結果に保存</button>':(!SC_DEMO&&SCS.mi>=0?'<button onclick="scApply()">対戦表に反映</button>':"")}<button type="button" class="g" onclick="sesScAgain()">もう一度</button><button class="g" onclick="scUndo()">↩ 戻す</button></div></div></div>`}
