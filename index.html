@@ -1669,9 +1669,8 @@ S.players.splice(i,1);S.tournamentTeams=[];if(!isMember(n)&&S.rt)delete S.rt[n];
 function sesSlots(){return SES.size===2?[["a",0],["a",1],["b",0],["b",1]]:[["a",0],["b",0]]}
 function sesPick(i){const e=sesSlots().find(([t,k])=>SES[t][k]==null);if(!e){alert("枠がいっぱいです。「この対戦を追加」を押すか、枠をタップして外してください");return}SES[e[0]][e[1]]=i;draw()}
 function sesClear(t,k){SES[t][k]=null;draw()}
-function sesAddMatch(){const sl=sesSlots();if(sl.some(([t,k])=>SES[t][k]==null)){alert("すべての枠に人を入れてください");return}
-const a=SES.a.filter(x=>x!=null),b=SES.b.filter(x=>x!=null);S.rounds.push({m:[{a:SES.size===2?a:[a[0]],b:SES.size===2?b:[b[0]],sa:"",sb:"",court:SES.court,manual:true}],bye:[]});
-SES.a=[null,null];SES.b=[null,null];save();draw();toast("対戦を追加しました")}
+async function sesAddMatch(){const sl=sesSlots();if(sl.some(([t,k])=>SES[t][k]==null)){alert("すべての枠に人を入れてください");return}
+const a=SES.a.filter(x=>x!=null),b=SES.b.filter(x=>x!=null);try{await rpc("session_match_add",{p_a:a,p_b:b,p_court:SES.court});SES.a=[null,null];SES.b=[null,null];await reloadState(false);draw();toast("対戦を追加しました")}catch(e){console.error("session match add failed",e);alert(String(e.message||"").includes("forbidden")?"自分が参加する対戦のみ追加できます。":"対戦カードを保存できませんでした。")} }
 function sesAuto(){const n=S.players.length;if(n<4){alert("4人以上いると、おまかせでペアを作れます");return}
 const{g,pc,oc}=stats(),R=i=>(S.rt&&S.rt[S.players[i]])||3,K=(u,v)=>[u,v].sort((x,y)=>x-y).join(":"),byeC=S.players.map(()=>0);
 S.rounds.forEach(r=>(r.bye||[]).forEach(i=>{if(byeC[i]!=null)byeC[i]++}));
@@ -1681,7 +1680,7 @@ for(let t=0;t<500;t++){const sh=play.slice().sort(()=>Math.random()-.5);let sc=0
 for(let i=0;i<sh.length;i+=4){const[a,b,x,y]=sh.slice(i,i+4);sc+=25*((pc[K(a,b)]||0)**2+(pc[K(x,y)]||0)**2);[[a,x],[a,y],[b,x],[b,y]].forEach(([u,v])=>sc+=(oc[K(u,v)]||0)**2*5);sc+=Math.abs(R(a)+R(b)-R(x)-R(y))*4;ms.push({a:[a,b],b:[x,y],sa:"",sb:"",court:i/4+1,manual:true})}
 if(sc<bs){bs=sc;best=ms}}
 S.rounds.push({m:best,bye});save();draw();toast("おまかせでペアを作りました 🎲")}
-function sesDelMatch(r,m){ask("この対戦を削除します。よろしいですか？",async()=>{const rd=S.rounds[r];if(!rd||!rd.m[m])return;const dm=rd.m[m];const backup=JSON.parse(JSON.stringify(S.rounds));rd.m.splice(m,1);if(!rd.m.length)S.rounds.splice(r,1);const ok=await save();if(!ok){S.rounds=backup;try{await reloadState(false)}catch(e){}draw();alert("対戦カードを削除できませんでした。権限または保存競合を確認してください。");return}if(dm&&dm.k){try{await rpc("void_match",{p_key:dm.k})}catch(e){console.error("match void failed",e)}}draw();toast("対戦カードを削除しました")})}
+function sesDelMatch(r,m){ask("この対戦を削除します。よろしいですか？",async()=>{const rd=S.rounds[r];if(!rd||!rd.m[m])return;const dm=rd.m[m];try{await rpc("session_match_delete",{p_round:r,p_match:m});if(dm&&dm.k){try{await rpc("void_match",{p_key:dm.k})}catch(e){console.error("match void failed",e)}}await reloadState(false);draw();toast("対戦カードを削除しました")}catch(e){console.error("session match delete failed",e);alert(String(e.message||"").includes("forbidden")?"自分が参加する対戦のみ削除できます。":"対戦カードを削除できませんでした。");try{await reloadState(false);draw()}catch(x){}}})}
 function matchList(){const o=[];S.rounds.forEach((r,ri)=>r.m.forEach((m,mi)=>o.push({r:ri,m:mi,x:m})));return o}
 const isDone=x=>x.sa!==""&&x.sb!==""&&x.sa!==x.sb;
 function sesStep2(){const used=new Set([...SES.a,...SES.b].filter(x=>x!=null)),list=matchList();
