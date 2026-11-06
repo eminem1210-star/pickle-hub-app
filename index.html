@@ -1106,8 +1106,6 @@ function toEv2(i){const p=S.posts[i],f=()=>{S.players=p.m.slice();S.rounds=[];sa
 function join(i){const p=S.posts[i],nm=ME;if(!nm){alert("ログインしてください");return}p.m=p.m||[];p.wl=p.wl||[];if(p.m.includes(nm)||p.wl.includes(nm)){alert("すでに参加登録されています");return}if(p.r>0){p.m.push(nm);p.r--}else{p.wl.push(nm)}save();draw()}
 function leave(i,k){const p=S.posts[i],nm=p.m&&p.m[k];if(ROLE!=="admin"&&nm!==ME){alert("自分の参加登録だけ取り消せます");return}p.m.splice(k,1);p.r++;if(p.wl&&p.wl.length){p.m.push(p.wl.shift());p.r--}save();draw()}
 function deleteOwnPost(i){const p=S.posts[i];if(!p||!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ削除できます");return}S.posts.splice(i,1);save();draw()}
-function srch(){const a=$("ar").value.trim();window.open("https://www.google.com/maps/search/"+encodeURIComponent("ピックルボール コート "+a),"_blank")}
-
 /* ---------- クラブ ---------- */
 function cl(){
 const due=S.members.reduce((a,m)=>a+(m.paid?1:0),0);
@@ -1858,7 +1856,6 @@ function heroBlock(login){return `<div class="box hero"><div style="display:flex
 <div class="feat"><span>🎲 対戦ペアづくり・結果集計</span><span>📅 イベントの募集・出欠</span><span>💬 掲示板・連絡</span><span>🏆 勝率ランキング・表彰</span></div>
 <p class="catch">集まって、名前を入れて、打つだけ！🎾<br>今日のピックルボールをもっと楽しく</p>
 ${login?'<div class="hero-btns"><button onclick="document.getElementById(\'lgbox\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">🔑 メンバーのログインはこちら ▼</button></div>':""}</div>`}
-function findCourt(){window.open("https://www.google.com/maps/search/"+encodeURIComponent("ピックルボール コート 近く"),"_blank")}
 function sessionCard(e,me){const c=eventCounts(e),cap=+e.capacity||0,left=cap?Math.max(0,cap-c.yes.length):null,r=e.responses&&e.responses[me],lv=e.level||"all",full=cap&&left===0&&r!=="yes",fee=e.dues&&+e.dues.amount>0?+e.dues.amount:0;
 const stk=(left!=null&&left>0&&left<=2?`<span class="stk">✦ 残り${left}枠！</span>`:"")+(lv==="b"?`<span class="stk r">初参加大歓迎 🌱</span>`:"")+(full?`<span class="stk">満員 🈵</span>`:"");
 return `<div class="box scard">${stk}<div class="row" style="justify-content:space-between;margin:0"><h2 style="margin:0">${esc(e.title)}</h2><span class="lvl">${LVL_LABEL[lv]||""}</span></div>
