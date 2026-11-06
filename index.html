@@ -1320,6 +1320,11 @@ function eventAdminCard(event,index){
 const counts=eventCounts(event);
 return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">🌐 一般公開 ・ ${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="sub">不参加: ${counts.no.map(member=>esc(member.n)).join("、")||"なし"}</div>${counts.wait.length?`<div class="sub">キャンセル待ち: ${counts.wait.map(member=>esc(member.n)).join("、")}</div>`:""}<div class="sub">未回答: ${counts.unanswered.map(member=>esc(member.n)).join("、")||"なし"}</div><div class="event-paddle" data-mode="admin" data-event-id="${esc(event.id)}"><p class="sub">🏓 レンタル状況を確認中…</p></div><div class="row"><button onclick="openEventMatches(${jsArg(event.id)})">🏟️ 試合・スコア管理</button><button onclick="goDues(${jsArg(event.id)})">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
 }
+function clearEventDraft(){
+const defaults={event_title:"",event_date:"",event_time:"",event_end:"",event_level:"all",event_place:"",event_capacity:"0",event_details:""};
+S.adminForm=S.adminForm||{};
+Object.entries(defaults).forEach(([id,value])=>{S.adminForm[id]=value;const field=$(id);if(field)field.value=value});
+}
 function saveEvent(){
 const title=$("event_title").value.trim(),date=$("event_date").value,place=$("event_place").value.trim();
 if(!title){alert("イベント名を入力してください");return}
@@ -1331,10 +1336,10 @@ const event={...previous,id:S.adminEventEdit||`${Date.now()}-${Math.random().toS
 S.events=S.events||[];
 const index=S.events.findIndex(item=>item.id===event.id);
 if(index>=0){S.events[index]=event}else S.events.push(event);
-rememberAdminSuggestion("place");S.adminEventEdit="";["event_title","event_date","event_time","event_end","event_level","event_place","event_capacity","event_details"].forEach(id=>{if(S.adminForm)delete S.adminForm[id]});save();draw();toast("イベントを保存しました（一般公開）")
+rememberAdminSuggestion("place");S.adminEventEdit="";clearEventDraft();save();draw();toast("イベントを保存しました（一般公開）")
 }
 function editEvent(index){const event=S.events[index];if(!event)return;S.adminEventEdit=event.id;draw()}
-function cancelEditEvent(){S.adminEventEdit="";draw()}
+function cancelEditEvent(){S.adminEventEdit="";clearEventDraft();draw()}
 function deleteEvent(index){ask("このイベントと参加回答を削除しますか？",()=>{S.events.splice(index,1);S.adminEventEdit="";save();draw()})}
 function events(){
 const selected=S.members.some(member=>member.n===profileSessionName)?profileSessionName:"";
