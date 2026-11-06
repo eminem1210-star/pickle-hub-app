@@ -1155,7 +1155,7 @@ return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管�
 const view=S.adminSheet==="members"?adminMembers()+"<hr>"+adminProfiles():({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,analytics:adminAnalytics,settings:adminSettings})[S.adminSheet]();
 return `<div class="row" style="justify-content:space-between;align-items:center"><button class="g" onclick="setAdminSheet('menu')">← 管理者メニューに戻る</button><span class="badge" style="background:var(--warn)">ADMIN</span></div><h1>${labels[S.adminSheet]||"管理者"}</h1>${view}`
 }
-function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;if(sheet==="updates")markSeen("admin_updates");if(sheet==="feedbacks")markSeen("admin_feedbacks");S.adminSheet=sheet;save();draw();if(sheet==="settings")loadBackups();if(sheet==="profiles")loadPinStatus();if(sheet==="analytics"&&!analyticsCache)loadAdminAnalytics()}
+function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;if(sheet==="updates")markSeen("admin_updates");if(sheet==="feedbacks")markSeen("admin_feedbacks");S.adminSheet=sheet;draw();if(sheet==="settings")loadBackups();if(sheet==="profiles")loadPinStatus();if(sheet==="analytics"&&!analyticsCache)loadAdminAnalytics()}
 
 /* ---------- 管理者への連絡(DM)・掲示板 ---------- */
 let adminSession=false,bch="notice";
@@ -1332,7 +1332,7 @@ const index=S.events.findIndex(item=>item.id===event.id);
 if(index>=0){S.events[index]=event}else S.events.push(event);
 rememberAdminSuggestion("place");S.adminEventEdit="";["event_title","event_date","event_time","event_end","event_level","event_place","event_capacity","event_details"].forEach(id=>{if(S.adminForm)delete S.adminForm[id]});save();draw();toast("イベントを保存しました（一般公開）")
 }
-function editEvent(index){const event=S.events[index];if(!event)return;S.adminEventEdit=event.id;save();draw()}
+function editEvent(index){const event=S.events[index];if(!event)return;S.adminEventEdit=event.id;draw()}
 function cancelEditEvent(){S.adminEventEdit="";draw()}
 function deleteEvent(index){ask("このイベントと参加回答を削除しますか？",()=>{S.events.splice(index,1);S.adminEventEdit="";save();draw()})}
 function events(){
