@@ -702,7 +702,7 @@ return `<header class="topbar"><div class="tb-brand">🏓 PICKLE HUB</div>${sub?
 }
 function draw(){
 const _keep=keepCap();
-if(tab==="bz")captureAdminForm();
+captureAdminForm();
 checkTournamentDay();
 $("app").innerHTML=topBar()+noticeBanner()+({hm:homeTab,se:sessionTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th,gr,ap,rh})[tab]();
 restoreAdminForm();
