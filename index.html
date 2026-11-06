@@ -701,20 +701,25 @@ const sub=!MAIN.includes(tab);
 return `<header class="topbar"><div class="tb-brand">🏓 PICKLE HUB</div>${sub?'<button class="g tb-ic" onclick="navBack()">← 戻る</button>':`<div class="tb-path">${esc(ME||"地域クラブ")}</div>`}</header>`
 }
 function draw(){
+const _keep=keepCap();
+if(tab==="bz")captureAdminForm();
 checkTournamentDay();
 $("app").innerHTML=topBar()+noticeBanner()+({hm:homeTab,se:sessionTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th,gr,ap,rh})[tab]();
+restoreAdminForm();
 if(tab=="pr")showT();
 if(tab=="hm")loadTodayAccess();
 addTabMon();
 fillStats();fillGear();fillEventPaddles();
-if(tab=="bz")calcB();
+if(tab=="bz"){calcB();calcDues();}
 if(tab=="bz"&&S.adminSheet==="settings")loadBackups();
 if(tab=="bz"&&S.adminSheet==="profiles")loadPinStatus();
+if(tab=="bz"&&S.adminSheet==="analytics"&&!analyticsCache)loadAdminAnalytics();
 if(tab=="bd")markSeen("bd");
 if(tab=="pf"&&profileSessionName)markSeen("dm");
 if(tab=="nt")markSeen("nt");
 const u=unread(),dot=' <span style="color:var(--dg)" aria-label="未読あり">●</span>';
 $("nav").innerHTML=TABS.map(([k,n])=>`<button role="tab" aria-selected="${k===(MAIN.includes(tab)?tab:ROOT)}" onclick="go('${k}')">${n}${(k==="bd"&&u.bd)||(k==="mo"&&(u.dm||u.nt))?dot:""}</button>`).join("");
+keepRes(_keep);
 if(lastTab!=tab){window.scrollTo(0,0);lastTab=tab}}
 
 
@@ -1524,7 +1529,7 @@ const adminFormIds=["dues_amount","bname","b6","b7","event_title","event_date","
 function captureAdminForm(){
 const values={...(S.adminForm||{})};
 let changed=false;
-adminFormIds.forEach(id=>{const field=$(id);if(field){values[id]=field.value;changed=true}});
+adminFormIds.forEach(id=>{const field=$(id);if(field&&values[id]!==field.value){values[id]=field.value;changed=true}});
 if(changed){S.adminForm=values;save()}
 }
 function restoreAdminForm(){
@@ -1535,7 +1540,7 @@ $("admin_place")?.addEventListener("change",()=>rememberAdminSuggestion("place")
 }
 function calcDues(){
 const input=$("dues_amount");if(!input)return;
-const amount=Math.max(0,parseInt(input.value,10)||0);S.duesAmount=amount;save();
+const amount=Math.max(0,parseInt(input.value,10)||0);if(Number(S.duesAmount||0)!==amount){S.duesAmount=amount;save()}
 const collected=S.members.filter(m=>m.paid).length*amount;
 $("dues_collected").textContent=collected.toLocaleString()+"円";
 $("dues_remaining").textContent=((S.members.length*amount)-collected).toLocaleString()+"円";
@@ -1548,8 +1553,8 @@ shareTxt("【会費のお知らせ】\n会費: "+(S.duesAmount||0).toLocaleStrin
 }
 function calcB(){
 if(!$('b1'))return;
-S.bz=[0,1,2,3,4,5].map(i=>i?+$("b"+i).value||0:0);save();
-captureAdminForm();
+const next=[0,1,2,3,4,5].map(i=>i?+$("b"+i).value||0:0);
+if(JSON.stringify(S.bz||[])!==JSON.stringify(next)){S.bz=next;save()}
 const result=currentFinance(),yen=value=>Math.round(value).toLocaleString()+"円";
 $("br_ticket").textContent=yen(result.ticket);$("br_sponsor").textContent=yen(result.sponsor);$("br_other_income").textContent=yen(result.otherIncome);$("br_income").textContent=yen(result.income);$("br_cost").textContent=yen(result.courtCost);$("br_other_cost").textContent=yen(result.otherCost);$("br_fee").textContent=yen(result.fee);$("br_expense").textContent=yen(result.expense);
 const profit=$("bo");profit.textContent=yen(result.profit);profit.style.color=result.profit<0?"var(--dg)":"var(--ac2)";
@@ -2074,8 +2079,6 @@ streakTick();
 // ▼ アプリ初期化の呼び出しに変更
 trackVisit("/hm");
 initApp();
-const _d=draw;draw=function(){_d();if(tab=="bz"){calcB();calcDues();if(S.adminSheet==="analytics"&&!analyticsCache)loadAdminAnalytics()}};
-const _drawWithAdminForm=draw;draw=function(){captureAdminForm();_drawWithAdminForm();restoreAdminForm();if(tab=="bz"){calcB();calcDues();if(S.adminSheet==="analytics"&&!analyticsCache)loadAdminAnalytics()}};
-const _drawKeep=draw;draw=function(){const k=keepCap();_drawKeep();keepRes(k)};
+// 画面更新・入力保持・集計は draw() 内で一元管理する
 scheduleTournamentDayCheck();
 </script></body></html>
