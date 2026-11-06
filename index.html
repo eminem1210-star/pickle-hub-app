@@ -465,7 +465,6 @@ async function flushSave(){
   }
   return false}
 const save=()=>{pending++;saveQ=saveQ.then(flushSave).catch(e=>{console.error(e);return false}).finally(()=>{pending--});return saveQ};
-function showLoadError(){if($("ld"))return;const d=document.createElement("div");d.id="ld";d.setAttribute("role","alert");d.style.cssText="position:fixed;top:0;left:0;right:0;z-index:65;background:var(--dg);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;font-weight:700;display:flex;gap:10px;align-items:center;justify-content:space-between";d.innerHTML='<span>サーバーに接続できないため、保存を止めています(保存済みのデータは消えません)。</span><button class="g" style="color:#fff;border-color:#fff;padding:6px 12px" onclick="location.reload()">再読み込み</button>';document.body.appendChild(d)}
 async function loadBackups(){const el=$("bk_list");if(!el)return;try{const days=await rpc("admin_list_backups");el.innerHTML=(days||[]).map(d=>`<div class="row" style="justify-content:space-between"><span>${esc(d)}</span><button class="g" onclick="restoreBackup(${jsArg(d)})">この日の変更前に戻す</button></div>`).join("")||'<p class="sub">バックアップはまだありません。</p>'}catch(e){el.innerHTML='<p class="sub">バックアップを読み込めませんでした。</p>'}}
 function restoreBackup(d){ask("この日の最初の変更前の状態に全体を戻します。現在の内容は上書きされます。よろしいですか？",async()=>{try{await rpc("admin_restore_backup",{p_day:d});await reloadState();toast("バックアップから復元しました")}catch(e){alert("復元できませんでした")}})}
 async function loadPinStatus(){try{const r=await rpc("admin_member_status"),k=JSON.stringify(r);if(k!==JSON.stringify(PINST)){PINST=r;draw()}}catch(e){}}
@@ -913,31 +912,6 @@ const LEVEL_QUESTIONS=[
 ];
 function lv(){return `<span class="badge">PLAYER LEVEL</span><h1>メンバーのレベル</h1><h2>🏅 レーティングランキング（参考値）</h2>${lbBox()}<h2>メンバーのレベル</h2><p class="sub">カードをタップすると、成績・ギア・成長が見られます。</p><div class="lvgrid">${S.members.map((m,i)=>{const a=S.levelAnswers&&S.levelAnswers[m.n],h=S.levelHistory&&S.levelHistory[m.n]||[],pv=h[h.length-1],cr=S.rt&&S.rt[m.n],d=pv&&cr!=null?Math.round((cr-pv.rating)*10)/10:0,ok=Array.isArray(a)&&a.length===5&&a.every(v=>Number.isFinite(+v));
 return `<button class="lvcard" onclick="lvOpen(${i})"><span>${memberIcon(m.n,28)} ${esc(m.n)}</span>${ok?radarSvg(m.n,a,140,pv&&pv.answers):'<span class="sub" style="margin:30px 0">未評価</span>'}<span style="font-size:18px;color:var(--ac)">${cr!=null?Number(cr).toFixed(1):"-"}${d?` <small style="color:${d>0?"var(--ac2)":"var(--dg)"}">${d>0?"▲+":"▼"}${d.toFixed(1)}</small>`:""}</span></button>`}).join("")||'<p class="sub">メンバーを登録してください。</p>'}</div>`}
-function selectLevelMember(name){S.levelMember=name;levelDraft=null;save();draw()}
-function saveLevelAnswers(){
-const name=$("level_member").value;if(!name)return;
-levelDraft=null;
-S.levelAnswers=S.levelAnswers||{};
-S.levelAnswers[name]=[...document.querySelectorAll(".level_question")].map(field=>field.value===""?null:+field.value);
-save()
-}
-function calculateLevel(){
-const name=$("level_member").value;if(!name){alert("メンバーを選択してください");return}
-saveLevelAnswers();
-const answers=S.levelAnswers[name]||[];
-if(!answers.length)return;
-if(answers.some(answer=>!Number.isFinite(answer))){alert("5つの質問すべてに回答してください");return}
-const value=Math.round(answers.reduce((sum,answer)=>sum+answer,0)/answers.length*10)/10;
-levelDraft={name,value};$("level_value").value=value;draw()
-}
-function saveLevel(){
-const name=$("level_member").value,value=Number($("level_value").value);
-if(!name){alert("メンバーを選択してください");return}
-if(!levelDraft||levelDraft.name!==name){alert("質問に回答して目安を出してから、評価を保存してください");return}
-if(!Number.isFinite(value)||value<1||value>5){alert("レベルは1.0〜5.0で入力してください");return}
-S.rt=S.rt||{};S.rt[name]=Math.round(value*10)/10;S.levelMember=name;save();draw();toast(`${name}さんのレベルを保存しました`)
-}
-function clearLevel(){const name=$("level_member").value;if(!name||!S.rt||S.rt[name]==null)return;delete S.rt[name];S.levelMember=name;save();draw()}
 function profileData(name){S.profiles=S.profiles||{};if(S.profiles[name])return S.profiles[name];const d={bio:"",avatar:""};if(name===profileSessionName||ROLE==="admin")S.profiles[name]=d;return d}
 function logMemberUpdate(name,action){if(TOKEN)rpc("audit_log",{p_member:name,p_action:action}).catch(()=>{})}
 function memberIcon(name,size=32){
@@ -1125,8 +1099,6 @@ function cpN(i){shareTxt(S.news[i])}
 const normName=t=>String(t).normalize("NFKC").replace(/\s/g,"").toLowerCase();
 function addM(){const v=$("mn").value.trim();if(!v)return;if(v.length>20){alert("名前は20文字以内にしてください");return}if(S.members.some(m=>normName(m.n)===normName(v))||v==="管理者"){alert("同じ名前がすでにあります");return}S.members.push({n:v,at:true,paid:false});syncClubPlayers();draw()}
 function removeM(i){const m=S.members[i];if(!m)return;ask(`${m.n}さんをメンバーから削除します。ログイン情報も削除されます。よろしいですか？`,()=>{S.members.splice(i,1);syncClubPlayers();draw()})}
-function toEv(){syncClubPlayers();go("ev")}
-
 /* ---------- 収益・要望管理（管理者専用裏画面） ---------- */
 const BD=[0,1500,0,12000,10000,3.6];
 const B=i=>S.bz&&S.bz[i]!=null?S.bz[i]:(i==2?(S.players.length||16):BD[i]);
@@ -1387,7 +1359,6 @@ async function eventPaddleRespond(eventId,choice){
   }catch(e){alert(String(e.message||"").includes("attending")?"先にイベント参加の回答をしてください":"パドル回答を保存できませんでした");}
 }
 
-function openProfileLogin(){go("pf")}
 async function respondEvent(eventId,status){
 const event=(S.events||[]).find(i=>i.id===eventId);if(!event||!profileSessionName){alert("ログインし直してください");return}
 try{
@@ -1576,7 +1547,6 @@ const MONANIMS=[["bob","ゆらゆら"],["hop","ぴょんぴょん"],["wiggle","�
 const TABMON={hm:"pink",se:"green",ev:"orange",sc:"blue",events:"orange",bd:"blue",mo:"pink",cl:"green",pf:"pink",pr:"orange",eq:"blue",lv:"green",nt:"pink",th:"orange",rules:"blue",bz:"green"};
 const monAnim=()=>themeGet().monAnim||"bob";
 const mon=(k,size=120,anim)=>`<img class="mon-img mon-${anim||monAnim()}" src="${MONIMG[k]}" alt="${MONN[k]||""}" role="button" onclick="monTap(this,'${k}')" style="width:${size}px;animation-delay:${(Math.random()*1.2).toFixed(2)}s">`;
-function monScene(){return `<div class="scene" role="group" aria-label="ピックルボールをするモンスターたち">${["pink","blue","orange","green"].map((k,i)=>`<img class="mon-img mon-${monAnim()}" src="${MONIMG[k]}" alt="${MONN[k]}" role="button" onclick="monTap(this,'${k}')" style="animation-delay:${i*.25}s">`).join("")}</div>`}
 const mnote=(k,t)=>`<div style="text-align:center;padding:8px 0">${mon(k,130)}<p class="sub">${t}</p></div>`;
 function monSay(el,t){const r=el.getBoundingClientRect();let b=document.getElementById("monb");if(!b){b=document.createElement("div");b.id="monb";b.setAttribute("role","status");document.body.appendChild(b)}
 b.textContent=t;b.style.display="block";b.style.left=Math.min(Math.max(8,r.left+r.width/2-70),innerWidth-156)+"px";b.style.top=Math.max(8,r.top-46)+"px";clearTimeout(monSay.i);monSay.i=setTimeout(()=>{b.style.display="none"},1800)}
