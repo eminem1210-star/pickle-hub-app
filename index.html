@@ -1728,11 +1728,17 @@ function sesScApply(){const t=SCS&&SCS.sessionTarget;if(!t)return;const x=S.roun
 function sesRank(){const t=table().filter(r=>r.g>0).map(r=>({...r,n:S.players[r.i],rate:r.w/r.g}));return t.sort((a,b)=>b.rate-a.rate||b.w-a.w||b.d-a.d)}
 function sesQuickResult(r,m){const a=$(`quick_ra_${r}_${m}`)?.value.trim()||"",b=$(`quick_rb_${r}_${m}`)?.value.trim()||"";sesSaveResult(r,m,a,b)}
 function sesResult(r,m){const a=$(`ra_${r}_${m}`).value.trim(),b=$(`rb_${r}_${m}`).value.trim();sesSaveResult(r,m,a,b)}
-function sesSaveResult(r,m,a,b){
-if(a===""||b===""||isNaN(+a)||isNaN(+b)||+a<0||+b<0){alert("両チームの点数を入れてください（例: 11 と 8）");return}
+async function sesSaveResult(r,m,a,b){
+if(a===""||b===""||isNaN(+a)||isNaN(+b)||+a<0||+b<0||!Number.isInteger(+a)||!Number.isInteger(+b)){alert("両チームの点数を整数で入力してください（例: 11 と 8）");return}
 if(+a===+b){alert("同点は入力できません。勝ったチームが上回るようにしてください");return}
-const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;x.sa=+a;x.sb=+b;x.st="completed";maybeRecord(x);save();draw();
-const all=matchList();if(all.length&&all.every(o=>isDone(o.x)))toast("全試合終了！表彰を見てみよう 🏆")}
+const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;
+try{
+ await rpc("session_match_result",{p_round:r,p_match:m,p_score_a:+a,p_score_b:+b});
+ x.sa=+a;x.sb=+b;x.st="completed";maybeRecord(x);
+ await reloadState(false);draw();
+ const all=matchList();if(all.length&&all.every(o=>isDone(o.x)))toast("全試合終了！表彰を見てみよう 🏆");else toast("試合結果を保存しました");
+}catch(e){console.error("session match result failed",e);alert(String(e.message||"").includes("forbidden")?"自分が参加する対戦のみ結果を保存できます。":"試合結果を保存できませんでした。");try{await reloadState(false);draw()}catch(x){}}
+}
 function sesStep3(){const list=matchList();
 if(!list.length)return mnote("blue","まだ対戦がありません。")+'<div class="row"><button onclick="SEV=2;draw()">⚔️ 対戦ペアをつくる</button></div>';
 const fin=list.filter(o=>isDone(o.x)),rank=sesRank(),maxW=rank.length?Math.max(...rank.map(r=>r.w)):0,top=rank.filter(r=>r.w===maxW&&maxW>0).map(r=>r.n),allDone=fin.length===list.length;
