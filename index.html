@@ -1133,12 +1133,13 @@ function toEv(){syncClubPlayers();go("ev")}
 /* ---------- 収益・要望管理（管理者専用裏画面） ---------- */
 const BD=[0,1500,0,12000,10000,3.6];
 const B=i=>S.bz&&S.bz[i]!=null?S.bz[i]:(i==2?(S.players.length||16):BD[i]);
+function adminSheetUnread(key){if(ROLE!=="admin")return false;if(key==="updates")return (S.memberAudit||[]).some(x=>Number(x.ts||0)>seenGet("admin_updates"));if(key==="feedbacks"){const latest=new Map();dmRows.forEach(x=>{const old=latest.get(x.member);if(!old||x.ts>old.ts)latest.set(x.member,x)});return [...latest.values()].some(x=>x.f==="m"&&Number(x.ts||0)>seenGet("admin_feedbacks"))}return false}
 function bz(){
 S.adminSheet=S.adminSheet||"finance";
 const sheets=[["finance","収支"],["feedbacks","ご意見・要望"],["notify","通知"],["members","メンバー"],["dues","会費"],["events","イベント"],["posts","募集・お知らせ"],["updates","更新履歴"],["profiles","PIN承認"],["analytics","アクセス分析"],["settings","設定"]];
-return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者</h1><div class="row" role="tablist">${sheets.map(([key,label])=>`<button class="${S.adminSheet===key?"":"g"}" role="tab" aria-selected="${S.adminSheet===key}" onclick="setAdminSheet('${key}')">${label}</button>`).join("")}</div>${({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,members:adminMembers,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,analytics:adminAnalytics,settings:adminSettings})[S.adminSheet]()}`
+return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者</h1><div class="row" role="tablist">${sheets.map(([key,label])=>`<button class="${S.adminSheet===key?"":"g"}" role="tab" aria-selected="${S.adminSheet===key}" onclick="setAdminSheet('${key}')">${label}${adminSheetUnread(key)?' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;margin-left:4px" aria-label="未確認"></span>':""}</button>`).join("")}</div>${({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,members:adminMembers,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,analytics:adminAnalytics,settings:adminSettings})[S.adminSheet]()}`
 }
-function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;S.adminSheet=sheet;save();draw()}
+function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;if(sheet==="updates")markSeen("admin_updates");if(sheet==="feedbacks")markSeen("admin_feedbacks");S.adminSheet=sheet;save();draw()}
 
 /* ---------- 管理者への連絡(DM)・掲示板 ---------- */
 let adminSession=false,bch="notice";
