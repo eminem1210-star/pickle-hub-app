@@ -429,6 +429,42 @@ body.pop .big{color:#000}
 <body>
 <main id="app"></main>
 <nav id="nav" role="tablist"></nav>
+<!-- 起動診断：後続スクリプトの構文エラー・実行エラーでも画面に原因を表示する -->
+<script>
+(function(){
+  function showBootError(title, detail){
+    try{
+      var root=document.getElementById("app");
+      if(!root)return;
+      var box=document.getElementById("ph_boot_error");
+      if(!box){
+        box=document.createElement("div");
+        box.id="ph_boot_error";
+        box.style.cssText="position:relative;z-index:99999;max-width:620px;margin:24px auto;padding:20px;background:#fff;color:#222;border:3px solid #d33;border-radius:14px;font:15px/1.6 sans-serif;overflow-wrap:anywhere";
+        document.body.style.background="#f4f4f4";
+        document.body.style.color="#222";
+        root.innerHTML="";
+        root.appendChild(box);
+      }
+      box.innerHTML="<h2 style='margin:0 0 10px;color:#b00'>PICKLE HUB 起動エラー</h2><p><b>"+String(title||"起動処理で問題が発生しました").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})+"</b></p><pre style='white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f3f3;padding:10px;border-radius:8px'>"+String(detail||"詳細なし").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})+"</pre><p>この表示が出た場合、会員情報やイベント情報を削除せず、そのまま画面を共有してください。</p><button onclick='location.reload()' style='padding:12px 18px'>再読み込み</button>";
+    }catch(ignore){}
+  }
+  window.__phShowBootError=showBootError;
+  window.addEventListener("error",function(e){
+    if(e&&e.error)showBootError("JavaScriptの実行エラー",String(e.message||e.error)+(e.filename?"\n"+e.filename+":"+e.lineno+":"+e.colno:""));
+  });
+  window.addEventListener("unhandledrejection",function(e){
+    var r=e&&e.reason;
+    showBootError("非同期処理のエラー",r&&r.stack?String(r.stack):String(r&&r.message||r||"詳細なし"));
+  });
+  window.setTimeout(function(){
+    var root=document.getElementById("app");
+    if(root&&!root.textContent.trim()&&!document.getElementById("ph_boot_error")){
+      showBootError("画面の起動が完了しませんでした","初期化スクリプトが実行されていないか、読み込み途中で停止した可能性があります。");
+    }
+  },25000);
+})();
+</script>
 <script>
 // --- Supabase 接続設定 ---
 const SUPABASE_URL = 'https://slhfhxwddtxhqarkyldk.supabase.co';
