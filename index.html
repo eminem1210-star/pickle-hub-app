@@ -427,7 +427,7 @@ body.pop .big{color:#000}
 </style>
 </head>
 <body>
-<main id="app"></main>
+<main id="app"><section id="ph_static_boot" style="max-width:560px;margin:28px auto;padding:24px 18px;text-align:center;background:#fff;color:#222;border:2px solid #222;border-radius:16px;font:16px/1.6 sans-serif"><div style="font-size:38px">🏓</div><h1 style="color:#222">PICKLE HUB</h1><p>アプリを起動しています…</p><p style="font-size:13px;color:#555">この画面から変わらない場合は、起動診断を表示します。</p></section></main>
 <nav id="nav" role="tablist"></nav>
 <!-- 起動診断：後続スクリプトの構文エラー・実行エラーでも画面に原因を表示する -->
 <script>
@@ -458,11 +458,11 @@ body.pop .big{color:#000}
     showBootError("非同期処理のエラー",r&&r.stack?String(r.stack):String(r&&r.message||r||"詳細なし"));
   });
   window.setTimeout(function(){
-    var root=document.getElementById("app");
-    if(root&&!root.textContent.trim()&&!document.getElementById("ph_boot_error")){
-      showBootError("画面の起動が完了しませんでした","初期化スクリプトが実行されていないか、読み込み途中で停止した可能性があります。");
+    var waiting=document.getElementById("ph_static_boot");
+    if(waiting&&!document.getElementById("ph_boot_error")){
+      showBootError("アプリ本体の起動スクリプトが動いていません","最初の画面は表示できていますが、アプリ本体の初期化が開始されませんでした。通信・ブラウザキャッシュ・外部スクリプトの読み込みを確認してください。");
     }
-  },25000);
+  },12000);
 })();
 </script>
 <script>
