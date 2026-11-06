@@ -1145,7 +1145,7 @@ function co(){
 return `<span class="badge">COMMUNITY</span><h1>仲間・募集</h1><p class="sub">クラブの練習募集や交流イベントを確認して参加できます。</p>
 ${ROLE==="admin"?'<div class="box"><p class="sub">募集の作成・編集は管理者ページで行えます。</p><button onclick="go(&quot;bz&quot;);setAdminSheet(&quot;posts&quot;)">募集・お知らせを管理する</button></div>':'<p class="sub">募集の作成はクラブ管理者が行います。参加やキャンセル待ちは、下の募集から操作できます。</p>'}
 ${S.posts.map(postCard).join("")||'<p class="sub">現在、公開中の募集はありません。</p>'}`}
-function addPost(){const w=$("pw").value.trim();if(!w){alert("日時や場所を入力してください");return}const c=Math.max(1,parseInt($("pk").value)||1);S.posts.unshift({w,l:$("pl").value,r:c,c,m:[],wl:[],dl:$("pd2").value||"",by:ME});save();draw()}
+async function addPost(){const w=$("pw").value.trim();if(!w){alert("日時や場所を入力してください");return}const c=Math.max(1,parseInt($("pk").value)||1);S.posts.unshift({w,l:$("pl").value,r:c,c,m:[],wl:[],dl:$("pd2").value||"",by:ME});if(!await saveOrRestore("募集を保存できませんでした。最新データに戻しました"))return;draw()}
 const closed=p=>p.dl&&Date.now()>new Date(p.dl).getTime();
 function postCard(p,i){const m=p.m||[],wl=p.wl||[],rr=p.r==null?0:p.r,full=rr<=0,cl=closed(p);
 return `<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(p.w)}</div>
@@ -1158,11 +1158,11 @@ ${cl?"":`<div class="row"><button onclick="join(${i})" ${!ME||m.includes(ME)||wl
 <div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpP(${i})">LINE共有</button>${ROLE==="admin"?`<button class="g" onclick="dupP(${i})">来週も募集</button>`:""}${ROLE==="admin"&&m.length?`<button class="g" onclick="toEv2(${i})">大会へ</button>`:""}${ROLE==="admin"?`<button class="x" onclick="deleteOwnPost(${i})">削除</button>`:""}</div></div>`}
 function formatEventDate(value){const [year,month,day]=value.split("-");return `${year}年${Number(month)}月${Number(day)}日`}
 function cpP(i){const p=S.posts[i],m=p.m||[],t="【ピックルボール募集】\n"+p.w+(p.eventDate?"\n開催日: "+formatEventDate(p.eventDate):"")+(p.eventTime?" "+p.eventTime:"")+(p.eventPlace?"\n場所: "+p.eventPlace:"")+"\n"+p.l+" / "+(p.r>0?"あと"+p.r+"人":"満員")+(p.dl?"\n締切 "+p.dl.replace("T"," "):"")+(m.length?"\n参加: "+m.join("、"):"");shareTxt(t)}
-function dupP(i){const p=S.posts[i];if(!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ複製できます");return}let dl="";if(p.dl){const t=new Date(p.dl),z=n=>String(n).padStart(2,"0");t.setDate(t.getDate()+7);dl=t.getFullYear()+"-"+z(t.getMonth()+1)+"-"+z(t.getDate())+"T"+z(t.getHours())+":"+z(t.getMinutes())}const c=p.c||(p.r||0)+(p.m||[]).length||4;S.posts.unshift({w:p.w,l:p.l,r:c,c,m:[],wl:[],dl,by:ME});save();draw()}
-function toEv2(i){const p=S.posts[i],f=()=>{S.players=p.m.slice();S.rounds=[];save();go("ev")};S.players.length?ask("大会参加者をこのメンバーに置き換えますか？",f):f()}
-function join(i){const p=S.posts[i],nm=ME;if(!nm){alert("ログインしてください");return}p.m=p.m||[];p.wl=p.wl||[];if(p.m.includes(nm)||p.wl.includes(nm)){alert("すでに参加登録されています");return}if(p.r>0){p.m.push(nm);p.r--}else{p.wl.push(nm)}save();draw()}
-function leave(i,k){const p=S.posts[i],nm=p.m&&p.m[k];if(ROLE!=="admin"&&nm!==ME){alert("自分の参加登録だけ取り消せます");return}p.m.splice(k,1);p.r++;if(p.wl&&p.wl.length){p.m.push(p.wl.shift());p.r--}save();draw()}
-function deleteOwnPost(i){const p=S.posts[i];if(!p||!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ削除できます");return}S.posts.splice(i,1);save();draw()}
+async function dupP(i){const p=S.posts[i];if(!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ複製できます");return}let dl="";if(p.dl){const t=new Date(p.dl),z=n=>String(n).padStart(2,"0");t.setDate(t.getDate()+7);dl=t.getFullYear()+"-"+z(t.getMonth()+1)+"-"+z(t.getDate())+"T"+z(t.getHours())+":"+z(t.getMinutes())}const c=p.c||(p.r||0)+(p.m||[]).length||4;S.posts.unshift({w:p.w,l:p.l,r:c,c,m:[],wl:[],dl,by:ME});if(!await saveOrRestore("募集の複製を保存できませんでした。最新データに戻しました"))return;draw()}
+function toEv2(i){const p=S.posts[i],f=async()=>{S.players=p.m.slice();S.rounds=[];if(!await saveOrRestore("大会参加者への反映を保存できませんでした。最新データに戻しました"))return;go("ev")};S.players.length?ask("大会参加者をこのメンバーに置き換えますか？",f):f()}
+async function join(i){const p=S.posts[i],nm=ME;if(!nm){alert("ログインしてください");return}p.m=p.m||[];p.wl=p.wl||[];if(p.m.includes(nm)||p.wl.includes(nm)){alert("すでに参加登録されています");return}if(p.r>0){p.m.push(nm);p.r--}else{p.wl.push(nm)}if(!await saveOrRestore("参加登録を保存できませんでした。最新データに戻しました"))return;draw()}
+async function leave(i,k){const p=S.posts[i],nm=p.m&&p.m[k];if(ROLE!=="admin"&&nm!==ME){alert("自分の参加登録だけ取り消せます");return}p.m.splice(k,1);p.r++;if(p.wl&&p.wl.length){p.m.push(p.wl.shift());p.r--}if(!await saveOrRestore("参加取消を保存できませんでした。最新データに戻しました"))return;draw()}
+async function deleteOwnPost(i){const p=S.posts[i];if(!p||!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ削除できます");return}S.posts.splice(i,1);if(!await saveOrRestore("募集の削除を保存できませんでした。最新データに戻しました"))return;draw()}
 /* ---------- クラブ ---------- */
 function cl(){
 const due=S.members.reduce((a,m)=>a+(m.paid?1:0),0);
@@ -1177,7 +1177,7 @@ ${ROLE==="admin"&&S.rounds.length?'<p class="sub">試合記録中は欠席に変
 `}
 function newsBoard(){return `<h2>お知らせボード</h2>${ROLE==="admin"?`<div class="row"><textarea id="nw" rows="2" style="flex:1" placeholder="例: 次回は新球を使います！"></textarea><button onclick="addN()" class="g">投稿</button></div>`:""}
 ${S.news.map((n,i)=>`<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(n)}</div><div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpN(${i})" style="font-size:12px;padding:8px 14px">LINE共有</button>${ROLE==="admin"?`<button class="x" onclick="S.news.splice(${i},1);save();draw()">削除</button>`:""}</div></div>`).join("")}`}
-function addN(){const v=$("nw").value.trim();if(!v){alert("内容を入力してください");return}S.news.unshift(v);save();draw()}
+async function addN(){const v=$("nw").value.trim();if(!v){alert("内容を入力してください");return}S.news.unshift(v);if(!await saveOrRestore("お知らせを保存できませんでした。最新データに戻しました"))return;draw()}
 function cpN(i){shareTxt(S.news[i])}
 const normName=t=>String(t).normalize("NFKC").replace(/\s/g,"").toLowerCase();
 async function addM(){const v=$("mn").value.trim();if(!v)return;if(v.length>20){alert("名前は20文字以内にしてください");return}if(S.members.some(m=>normName(m.n)===normName(v))||v==="管理者"){alert("同じ名前がすでにあります");return}S.members.push({n:v,at:true,paid:false});if(!await syncClubPlayers()){await saveOrRestore("メンバー追加を保存できませんでした。最新状態に戻しました");return}draw()}
@@ -1282,7 +1282,7 @@ function shareNoticeLine(){const t=$("nt_text").value.trim();if(!t){alert("内�
 function delNotice(id){if(!adminSession)return;ask("この通知を削除しますか？",async()=>{await mutate("notices",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)});draw()})}
 function adminMembers(){return `<h2>会員の追加・退会</h2><p class="sub">新しい会員を追加したあと、下の「招待・PIN再発行」で本人用の招待リンクを発行してください。退会・削除は会員一覧から行えます。</p><div class="box"><div class="row"><input id="mn" placeholder="会員名（20文字まで）" onkeydown="if(event.key=='Enter')addM()"><button onclick="addM()">会員を追加</button></div></div>
 <h2>会員一覧（${S.members.length}人）</h2><p class="sub">名前の変更は会員本人のプロフィール画面から行います。管理者は不適切なプロフィール情報や投稿の削除ができます。</p>${S.members.map((m,i)=>`<div class="box"><div class="row" style="justify-content:space-between;margin:0"><b>${memberIcon(m.n,24)} ${esc(m.n)}</b><div class="row" style="margin:0"><button class="g" onclick="clearMemberProfile(${i},'avatar')" style="font-size:12px;padding:6px 10px">画像を削除</button><button class="g" onclick="clearMemberProfile(${i},'bio')" style="font-size:12px;padding:6px 10px">自己紹介を削除</button><button class="g" onclick="purgePosts(${i})" style="font-size:12px;padding:6px 10px">投稿を削除</button><button class="x" onclick="removeM(${i})">退会・削除</button></div></div></div>`).join("")||'<p class="sub">会員がいません。</p>'}`}
-function clearMemberProfile(i,field){const m=S.members[i];if(!m)return;const label=field==="avatar"?"プロフィール画像":"自己紹介";ask(`${m.n}さんの${label}を削除します。よろしいですか？`,()=>{profileData(m.n)[field]="";logMemberUpdate(m.n,"管理者が"+label+"を削除");save();draw();toast("削除しました")})}
+function clearMemberProfile(i,field){const m=S.members[i];if(!m)return;const label=field==="avatar"?"プロフィール画像":"自己紹介";ask(`${m.n}さんの${label}を削除します。よろしいですか？`,async()=>{profileData(m.n)[field]="";logMemberUpdate(m.n,"管理者が"+label+"を削除");if(!await saveOrRestore(label+"の削除を保存できませんでした。最新データに戻しました"))return;draw();toast("削除しました")})}
 function purgePosts(i){const m=S.members[i];if(!m)return;ask(`${m.n}さんの掲示板の投稿をすべて削除します。よろしいですか？`,async()=>{try{await rpc("admin_purge_member_posts",{p_name:m.n});await refreshRows(false);draw();toast("削除しました")}catch(e){alert("削除できませんでした")}})}
 function renameMember(i){const m=S.members[i];if(!m)return;editDlg(m.n,async v=>{try{await save();await rpc("admin_rename_member",{p_old:m.n,p_new:v});await reloadState(false);await loadPinStatus();draw();toast("名前を変更しました")}catch(e){alert(String(e.message||"").includes("exists")?"その名前はすでに使われています":"変更できませんでした")}},"新しい名前")}
 function adminFinance(){return `<h2>大会収支</h2><div class="box">
@@ -1299,8 +1299,8 @@ function adminFinance(){return `<h2>大会収支</h2><div class="box">
 const evTime=e=>e.time?(e.endTime?`${e.time}〜${e.endTime}`:e.time):"";
 function goDues(id){S.duesEvent=id;go("bz");S.adminSheet="dues";save();draw()}
 function duesOf(e){e.dues=e.dues||{amount:0,paid:{}};e.dues.paid=e.dues.paid||{};return e.dues}
-function setEventDues(id,v){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;duesOf(e).amount=Math.max(0,parseInt(v,10)||0);save();draw()}
-function toggleEventDues(id,i){const e=(S.events||[]).find(x=>x.id===id),m=S.members[i];if(!e||!m)return;const d=duesOf(e);if(d.paid[m.n])delete d.paid[m.n];else d.paid[m.n]=Date.now();save();draw()}
+async function setEventDues(id,v){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;duesOf(e).amount=Math.max(0,parseInt(v,10)||0);if(!await saveOrRestore("イベント会費を保存できませんでした。最新データに戻しました"))return;draw()}
+async function toggleEventDues(id,i){const e=(S.events||[]).find(x=>x.id===id),m=S.members[i];if(!e||!m)return;const d=duesOf(e);if(d.paid[m.n])delete d.paid[m.n];else d.paid[m.n]=Date.now();if(!await saveOrRestore("イベントの入金状況を保存できませんでした。最新データに戻しました"))return;draw()}
 function shareEventDues(id){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const d=e.dues||{amount:0,paid:{}},un=eventCounts(e).yes.filter(m=>!(d.paid||{})[m.n]).map(m=>m.n);if(!un.length){alert("未納のメンバーはいません");return}
 shareTxt(`【会費のお知らせ】\n${e.title}（${e.date}）\n会費: ${(+d.amount||0).toLocaleString()}円\n未納: ${un.join("、")}\nご確認をお願いします。`)}
 const duesNote=(e,n,r)=>{const d=e.dues;if(!d||!(+d.amount>0)||r!=="yes")return"";const p=d.paid&&d.paid[n];return `<p class="sub">会費 ${Number(d.amount).toLocaleString()}円：${p?"支払い済み":"未払い（管理者にお渡しください）"}</p>`};
@@ -1514,7 +1514,7 @@ if(!await save()){await reloadState(false);draw();alert("収支記録を保存�
 toast("収支を保存しました");draw()
 }
 function loadFinanceRecord(index){const record=S.financeRecords[index];if(!record)return;S.bz=[0,record.price,record.participants,record.courtCost,record.sponsor,record.feeRate];S.adminForm=S.adminForm||{};S.adminForm.bname=record.name;S.adminForm.b6=record.otherIncome;S.adminForm.b7=record.otherCost;S.adminSheet="finance";save();draw()}
-function deleteFinanceRecord(index){ask("この収支記録を削除しますか？",()=>{S.financeRecords.splice(index,1);save();draw()})}
+function deleteFinanceRecord(index){ask("この収支記録を削除しますか？",async()=>{S.financeRecords.splice(index,1);if(!await saveOrRestore("収支記録の削除を保存できませんでした。最新データに戻しました"))return;draw()})}
 function buildAdminPrompt(){
 const kind=$("admin_kind").value==="recruit"?"練習・イベントの募集":"クラブのお知らせ";
 rememberAdminTime();
@@ -1606,7 +1606,7 @@ const collected=S.members.filter(m=>m.paid).length*amount;
 $("dues_collected").textContent=collected.toLocaleString()+"円";
 $("dues_remaining").textContent=((S.members.length*amount)-collected).toLocaleString()+"円";
 }
-function toggleDues(i){S.members[i].paid=!S.members[i].paid;save();draw()}
+async function toggleDues(i){if(!S.members[i])return;S.members[i].paid=!S.members[i].paid;if(!await saveOrRestore("会費の入金状況を保存できませんでした。最新データに戻しました"))return;draw()}
 function shareDues(){
 const unpaid=S.members.filter(m=>!m.paid).map(m=>m.n);
 if(!unpaid.length){alert("未納のメンバーはいません");return}
