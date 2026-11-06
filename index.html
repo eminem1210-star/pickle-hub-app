@@ -797,7 +797,7 @@ ${admin?`<div class="row"><label style="margin:0">大会形式 <select id="tourn
 ${admin?`<div class="row"><input id="pn" placeholder="名前 (例: 田中 3.5, 佐藤)" onkeydown="if(event.key=='Enter')addP()"><button onclick="addP()">追加</button></div>`: ""}
 <div>${S.players.map((p,i)=>`<span class="chip">${P(i)}${S.rt&&S.rt[p]!=null?' <small style="color:var(--ac)">'+Number(S.rt[p]).toFixed(1)+'</small>':''}${admin?`<button class="x" aria-label="削除" onclick="delP(${i})">×</button>`:""}</span>`).join("")||'<p class="sub">大会参加者はまだ登録されていません。</p>'}${admin&&!S.players.length?'<button class="g" onclick="demo()">✨ サンプル8人で試す</button>':""}</div>
 ${admin?`<div class="row"><label style="margin:0">コート数
-<select id="cn" onchange="S.courts=+this.value;save()">${[1,2,3,4,5,6].map(n=>`<option ${n==S.courts?"selected":""}>${n}</option>`).join("")}</select></label>
+<select id="cn" onchange="setCourtCount(this.value)">${[1,2,3,4,5,6].map(n=>`<option ${n==S.courts?"selected":""}>${n}</option>`).join("")}</select></label>
 <button onclick="nextRound()">次のラウンドを組む</button><button class="g" onclick="undoR()">直前取消</button><button class="g" onclick="resetEv()">全消去</button></div>`: ""}
 <div class="row"><button class="line-btn" onclick="shareR()">LINEで結果共有</button><button class="g" onclick="big()">大画面</button>${admin?'<button class="g" onclick="saveH()">履歴保存</button>':""}</div><textarea id="sh" rows="7" style="display:none;width:100%" aria-label="結果テキスト"></textarea>
 ${S.rounds.slice().reverse().map((r,ri)=>round(r,S.rounds.length-1-ri)).join("")}
@@ -811,6 +811,7 @@ const apply=async()=>{S.tournamentFormat=format;S.rounds=[];S.tournamentTeams=[]
 if(S.rounds.length){ask("大会形式を変更すると進行中のラウンドとスコアが消えます。変更しますか？",apply);const dialog=$("dg"),cancel=dialog&&dialog.querySelector("#n");if(cancel)cancel.onclick=()=>{dialog.remove();draw()}}
 else{S.tournamentFormat=format;S.tournamentTeams=[];apply()}
 }
+async function setCourtCount(value){const n=Math.max(1,Math.min(6,parseInt(value,10)||1));S.courts=n;if(!await saveOrRestore("コート数を保存できませんでした。最新データに戻しました"))return;draw()}
 function tournamentPlayers(){return S.players.map((_,index)=>index)}
 function resetEv(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("ラウンドを全て消しますか？",async()=>{S.rounds=[];S.tournamentTeams=[];if(!await syncClubPlayers()){await saveOrRestore("ラウンドのリセットを保存できませんでした。最新データに戻しました");return}draw()})}
 function syncClubPlayers(removeAbsent=false){
@@ -1173,13 +1174,13 @@ return `<span class="badge">MEMBERS</span><h1>メンバー</h1><p class="sub">�
 ${ROLE==="admin"?`<div class="box"><div style="font-weight:700;margin-bottom:8px">会費納入: ${due} / ${S.members.length}人 完了</div></div>`:""}
 <div class="box">${S.members.map((m,i)=>`<div class="row" style="justify-content:space-between;border-bottom:2px solid var(--ln);padding:8px 0"><span style="font-weight:700;display:flex;align-items:center;gap:8px">${memberIcon(m.n)}<span>${esc(m.n)}</span></span>
 <div class="row" style="margin:0">${ROLE==="admin"?`<button class="${m.at?"":"g"}" onclick="setAttendance(${i})" style="font-size:12px;padding:6px 10px">${m.at?"出席":"欠席"}</button>`:`<span class="sub" style="margin:0">${m.at?"出席":"欠席"}</span>`}
-${ROLE==="admin"?`<button class="${m.paid?"":"g"}" onclick="S.members[${i}].paid=!S.members[${i}].paid;save();draw()" style="font-size:12px;padding:6px 10px">${m.paid?"会費済":"未納"}</button>`:""}
+${ROLE==="admin"?`<button class="${m.paid?"":"g"}" onclick="toggleMemberPaid(${i})" style="font-size:12px;padding:6px 10px">${m.paid?"会費済":"未納"}</button>`:""}
 </div></div>`).join("")||'<p class="sub" style="margin:0">メンバーがいません</p>'}</div>
 ${ROLE==="admin"&&S.members.some(m=>m.at)?'<p class="sub">出席にしたメンバーは大会参加者へ自動反映されます。</p>':""}
 ${ROLE==="admin"&&S.rounds.length?'<p class="sub">試合記録中は欠席に変更したメンバーも名簿に残ります。記録を全消去すると出席状況に合わせて同期されます。</p>':""}
 `}
 function newsBoard(){return `<h2>お知らせボード</h2>${ROLE==="admin"?`<div class="row"><textarea id="nw" rows="2" style="flex:1" placeholder="例: 次回は新球を使います！"></textarea><button onclick="addN()" class="g">投稿</button></div>`:""}
-${S.news.map((n,i)=>`<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(n)}</div><div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpN(${i})" style="font-size:12px;padding:8px 14px">LINE共有</button>${ROLE==="admin"?`<button class="x" onclick="S.news.splice(${i},1);save();draw()">削除</button>`:""}</div></div>`).join("")}`}
+${S.news.map((n,i)=>`<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(n)}</div><div class="row" style="margin-top:10px"><button class="line-btn" onclick="cpN(${i})" style="font-size:12px;padding:8px 14px">LINE共有</button>${ROLE==="admin"?`<button class="x" onclick="deleteAdminNews(${i})">削除</button>`:""}</div></div>`).join("")}`}
 async function addN(){const v=$("nw").value.trim();if(!v){alert("内容を入力してください");return}S.news.unshift(v);if(!await saveOrRestore("お知らせを保存できませんでした。最新データに戻しました"))return;draw()}
 function cpN(i){shareTxt(S.news[i])}
 const normName=t=>String(t).normalize("NFKC").replace(/\s/g,"").toLowerCase();
@@ -1300,7 +1301,7 @@ function adminFinance(){return `<h2>大会収支</h2><div class="box">
 <h3 style="font-size:14px;margin-top:20px">集計</h3><div class="row" style="justify-content:space-between"><span>参加費収入</span><b id="br_ticket">0円</b></div><div class="row" style="justify-content:space-between"><span>協賛金</span><b id="br_sponsor">0円</b></div><div class="row" style="justify-content:space-between"><span>その他収入</span><b id="br_other_income">0円</b></div><div class="row" style="justify-content:space-between"><span>総収入</span><b id="br_income">0円</b></div><div class="row" style="justify-content:space-between"><span>大会費用</span><b id="br_cost">0円</b></div><div class="row" style="justify-content:space-between"><span>その他支出</span><b id="br_other_cost">0円</b></div><div class="row" style="justify-content:space-between"><span>決済手数料</span><b id="br_fee">0円</b></div><div class="row" style="justify-content:space-between"><span>総支出</span><b id="br_expense">0円</b></div><div class="row" style="justify-content:space-between"><span>差引利益</span><b id="bo" class="big" style="font-size:28px">0円</b></div><div id="bs" class="sub"></div><div class="row" style="justify-content:space-between"><span>一人あたり差引</span><b id="br_per_person">0円</b></div><button onclick="saveFinanceRecord()">この収支を保存</button></div>
 <h2>保存済み収支の総計</h2>${financeTotals()}<h2>保存履歴</h2>${(S.financeRecords||[]).map((record,index)=>`<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(record.name||"大会")}</b><span class="sub">${esc(record.date)}</span></div><div class="row" style="justify-content:space-between"><span>収入 ${record.income.toLocaleString()}円</span><b>${record.profit.toLocaleString()}円</b></div><div class="row"><button class="g" onclick="loadFinanceRecord(${index})">読み込む</button><button class="x" onclick="deleteFinanceRecord(${index})">削除</button></div></div>`).join("")||'<p class="sub">保存された収支はありません。</p>'}`}
 const evTime=e=>e.time?(e.endTime?`${e.time}〜${e.endTime}`:e.time):"";
-function goDues(id){S.duesEvent=id;go("bz");S.adminSheet="dues";save();draw()}
+function goDues(id){S.duesEvent=id;S.adminSheet="dues";go("bz")}
 function duesOf(e){e.dues=e.dues||{amount:0,paid:{}};e.dues.paid=e.dues.paid||{};return e.dues}
 async function setEventDues(id,v){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;duesOf(e).amount=Math.max(0,parseInt(v,10)||0);if(!await saveOrRestore("イベント会費を保存できませんでした。最新データに戻しました"))return;draw()}
 async function toggleEventDues(id,i){const e=(S.events||[]).find(x=>x.id===id),m=S.members[i];if(!e||!m)return;const d=duesOf(e);if(d.paid[m.n])delete d.paid[m.n];else d.paid[m.n]=Date.now();if(!await saveOrRestore("イベントの入金状況を保存できませんでした。最新データに戻しました"))return;draw()}
@@ -1516,7 +1517,7 @@ S.financeRecords=S.financeRecords||[];
 if(!await save()){await reloadState(false);draw();alert("収支記録を保存できませんでした。最新データに戻しました");return}
 toast("収支を保存しました");draw()
 }
-function loadFinanceRecord(index){const record=S.financeRecords[index];if(!record)return;S.bz=[0,record.price,record.participants,record.courtCost,record.sponsor,record.feeRate];S.adminForm=S.adminForm||{};S.adminForm.bname=record.name;S.adminForm.b6=record.otherIncome;S.adminForm.b7=record.otherCost;S.adminSheet="finance";save();draw()}
+async function loadFinanceRecord(index){const record=S.financeRecords[index];if(!record)return;S.bz=[0,record.price,record.participants,record.courtCost,record.sponsor,record.feeRate];S.adminForm=S.adminForm||{};S.adminForm.bname=record.name;S.adminForm.b6=record.otherIncome;S.adminForm.b7=record.otherCost;S.adminSheet="finance";if(!await saveOrRestore("収支内容の読み込みを保存できませんでした。最新データに戻しました"))return;draw()}
 function deleteFinanceRecord(index){ask("この収支記録を削除しますか？",async()=>{S.financeRecords.splice(index,1);if(!await saveOrRestore("収支記録の削除を保存できませんでした。最新データに戻しました"))return;draw()})}
 function buildAdminPrompt(){
 const kind=$("admin_kind").value==="recruit"?"練習・イベントの募集":"クラブのお知らせ";
@@ -1610,6 +1611,7 @@ $("dues_collected").textContent=collected.toLocaleString()+"円";
 $("dues_remaining").textContent=((S.members.length*amount)-collected).toLocaleString()+"円";
 }
 async function toggleDues(i){if(!S.members[i])return;S.members[i].paid=!S.members[i].paid;if(!await saveOrRestore("会費の入金状況を保存できませんでした。最新データに戻しました"))return;draw()}
+async function toggleMemberPaid(i){if(ROLE!=="admin"||!S.members[i])return;S.members[i].paid=!S.members[i].paid;if(!await saveOrRestore("会費の入金状況を保存できませんでした。最新データに戻しました"))return;draw()}
 function shareDues(){
 const unpaid=S.members.filter(m=>!m.paid).map(m=>m.n);
 if(!unpaid.length){alert("未納のメンバーはいません");return}
@@ -2052,15 +2054,15 @@ const inp=k=>x.bye||x.a==null||x.b==null?"":canScore?`<input class="sc" inputmod
 return `<div class="brm"><span class="st" style="margin:0 0 4px">${st}</span><div class="brl ${x.w!=null&&x.w===x.a?"win":""}"><span>${nm(x.a)}</span>${inp(0)}</div><div class="brl ${x.w!=null&&x.w===x.b?"win":""}"><span>${nm(x.b)}</span>${inp(1)}</div></div>`}).join("")}</div>`).join("");
 const champ=m[R-1][0].w;
 return head+`<div class="brwrap">${col}</div>${champ!=null?`<div class="box" style="text-align:center"><h2 style="justify-content:center">🏆 CHAMPION</h2><div class="big" style="font-size:26px">${esc(brName(champ))}</div></div>`:""}`}
-function brCreate(){if(ROLE!=="admin"){alert("ブラケットの作成は管理者のみです");return}
+async function brCreate(){if(ROLE!=="admin"){alert("ブラケットの作成は管理者のみです");return}
 const singles=S.tournamentFormat==="singles",n=S.players.length;if(n<(singles?3:6)){alert(singles?"3人以上の参加者が必要です":"6人以上（3ペア以上）の参加者が必要です");return}
 const R=i=>(S.rt&&S.rt[S.players[i]])||3;let teams;
 if(singles)teams=S.players.map((_,i)=>[i]);else{const saved=S.tournamentTeams;teams=makeTournamentTeams(tournamentPlayers());S.tournamentTeams=saved||[]}
 teams.sort((a,b)=>b.reduce((x,i)=>x+R(i),0)-a.reduce((x,i)=>x+R(i),0));
 let p=2;while(p<teams.length)p*=2;
-S.br={teams:teams.map(t=>t.map(i=>S.players[i])),size:p,sc:{},ts:Date.now()};save();draw()}
+S.br={teams:teams.map(t=>t.map(i=>S.players[i])),size:p,sc:{},ts:Date.now()};if(!await saveOrRestore("ブラケットを保存できませんでした。最新データに戻しました"))return;draw()}
 function brAsk(){S.br?ask("今の参加者でブラケットを組み直します。入力済みのスコアは消えます。",brCreate):brCreate()}
-function brClear(){ask("ブラケットを削除します。よろしいですか？",()=>{S.br=null;save();draw()})}
+function brClear(){ask("ブラケットを削除します。よろしいですか？",async()=>{S.br=null;if(!await saveOrRestore("ブラケットの削除を保存できませんでした。最新データに戻しました"))return;draw()})}
 async function brScore(r,i,k,v){
 if(ROLE!=="admin"&&ROLE!=="member"){alert("スコア入力にはメンバーログインが必要です");return}
 if(v!==""&&(!/^\d{1,3}$/.test(v)||+v<0||+v>999)){alert("0〜999の整数で入力してください");draw();return}
