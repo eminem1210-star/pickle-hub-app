@@ -680,8 +680,26 @@ function checkTournamentDay(){
 const today=localDateKey();
 if(!S.tournamentDate){S.tournamentDate=today;save();return false}
 if(S.tournamentDate===today)return false;
+// 日付が変わる前に、進行中の大会結果を履歴へ自動保存する
+if(Array.isArray(S.rounds)&&S.rounds.length){
+  S.hist=Array.isArray(S.hist)?S.hist:[];
+  const archivedDay=S.tournamentDate;
+  if(!S.hist.some(h=>h&&h.day===archivedDay)){
+    S.hist.unshift({
+      day:archivedDay,
+      d:archivedDay+"（自動保存）",
+      p:JSON.parse(JSON.stringify(S.players||[])),
+      r:JSON.parse(JSON.stringify(S.rounds)),
+      c:S.courts,
+      t:JSON.parse(JSON.stringify(S.rt||{})),
+      teams:JSON.parse(JSON.stringify(S.tournamentTeams||[])),
+      format:S.tournamentFormat||"doubles"
+    });
+    S.hist=S.hist.slice(0,10);
+  }
+}
 S.tournamentDate=today;S.players=[];S.rounds=[];S.clubPlayerNames=[];S.tournamentTeams=[];
-syncClubPlayers();save();toast("日付が変わったため大会参加者とラウンドをリセットしました");
+syncClubPlayers();save();toast("前日の大会結果を履歴に保存し、新しい日の大会を開始しました");
 return true
 }
 function scheduleTournamentDayCheck(){
