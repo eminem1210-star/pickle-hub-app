@@ -1090,8 +1090,6 @@ return `<span class="badge">COMMUNITY</span><h1>仲間・募集</h1><p class="su
 ${ROLE==="admin"?'<div class="box"><p class="sub">募集の作成・編集は管理者ページで行えます。</p><button onclick="go(\\'bz\\');setAdminSheet(\\'posts\\')">募集・お知らせを管理する</button></div>':'<p class="sub">募集の作成はクラブ管理者が行います。参加やキャンセル待ちは、下の募集から操作できます。</p>'}
 ${S.posts.map(postCard).join("")||'<p class="sub">現在、公開中の募集はありません。</p>'}`}
 function addPost(){const w=$("pw").value.trim();if(!w){alert("日時や場所を入力してください");return}const c=Math.max(1,parseInt($("pk").value)||1);S.posts.unshift({w,l:$("pl").value,r:c,c,m:[],wl:[],dl:$("pd2").value||"",by:ME});save();draw()}
-function queueJoin(){if(!ME||S.queue.includes(ME))return;S.queue.push(ME);save();draw()}
-function queueLeave(i){const q=S.queue[i];if(ROLE!=="admin"&&q!==ME){alert("自分の順番待ちだけ操作できます");return}S.queue.splice(i,1);save();draw()}
 const closed=p=>p.dl&&Date.now()>new Date(p.dl).getTime();
 function postCard(p,i){const m=p.m||[],wl=p.wl||[],rr=p.r==null?0:p.r,full=rr<=0,cl=closed(p);
 return `<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(p.w)}</div>
