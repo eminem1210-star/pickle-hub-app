@@ -683,9 +683,12 @@ const jsArg=s=>JSON.stringify(String(s)).replace(/</g,"\\u003c").replace(/>/g,"\
 const P=i=>`<span style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle">${memberIcon(S.players[i]||"?",24)}<span>${esc(S.players[i]||"?")}</span></span>`;
 let lastTab="",profileUnlockedName="",profileSessionName="",profilePhotoDraft="",levelDraft=null,profileAnswersEditedName="",profileBaseline=null,adminSetupCodeDisplay=null;
 function localDateKey(date=new Date()){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`}
-function checkTournamentDay(){
+let tournamentDayCheckPromise=null;
+async function checkTournamentDay(){
+if(tournamentDayCheckPromise)return tournamentDayCheckPromise;
+tournamentDayCheckPromise=(async()=>{
 const today=localDateKey();
-if(!S.tournamentDate){S.tournamentDate=today;save();return false}
+if(!S.tournamentDate){S.tournamentDate=today;if(!await save()){try{await reloadState(false)}catch(e){console.error(e)}}return false}
 if(S.tournamentDate===today)return false;
 // 日付が変わる前に、進行中の大会結果を履歴へ自動保存する
 if(Array.isArray(S.rounds)&&S.rounds.length){
@@ -706,14 +709,21 @@ if(Array.isArray(S.rounds)&&S.rounds.length){
   }
 }
 S.tournamentDate=today;S.players=[];S.rounds=[];S.clubPlayerNames=[];S.tournamentTeams=[];
-syncClubPlayers();save();toast("前日の大会結果を履歴に保存し、新しい日の大会を開始しました");
+if(!await syncClubPlayers()){
+  try{await reloadState(false)}catch(e){console.error(e)}
+  toast("日付切替の保存に失敗したため、前日の大会データを維持しました");
+  return false
+}
+toast("前日の大会結果を履歴に保存し、新しい日の大会を開始しました");
 return true
+})();
+try{return await tournamentDayCheckPromise}finally{tournamentDayCheckPromise=null}
 }
 function scheduleTournamentDayCheck(){
 const now=new Date(),next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,1);
-setTimeout(()=>{checkTournamentDay();draw();scheduleTournamentDayCheck()},next-now)
+setTimeout(async()=>{if(await checkTournamentDay())draw();scheduleTournamentDayCheck()},next-now)
 }
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&checkTournamentDay())draw()});
+document.addEventListener("visibilitychange",async()=>{if(!document.hidden&&await checkTournamentDay())draw()});
 function toast(m){let t=$("ts");if(!t){t=document.createElement("div");t.id="ts";t.setAttribute("role","status");document.body.appendChild(t)}t.textContent=m;t.style.display="block";clearTimeout(toast.i);toast.i=setTimeout(()=>t.style.display="none",2500)}
 window.alert=toast;
 function ask(m,f){const d=document.createElement("div");d.id="dg";d.innerHTML='<div class="box"><p style="font-weight:700;font-size:16px;margin-bottom:16px;">'+esc(m)+'</p><div class="row"><button id="y">はい</button><button class="g" id="n">やめる</button></div></div>';document.body.appendChild(d);d.querySelector("#y").onclick=()=>{d.remove();f()};d.querySelector("#n").onclick=()=>d.remove()}
@@ -764,7 +774,7 @@ return `<header class="topbar"><div class="tb-brand">🏓 PICKLE HUB</div>${sub?
 function draw(){
 const _keep=keepCap();
 captureAdminForm();
-checkTournamentDay();
+checkTournamentDay().then(changed=>{if(changed)draw()}).catch(e=>console.error(e));
 $("app").innerHTML=topBar()+noticeBanner()+({hm:homeTab,se:sessionTab,sc:scoreTab,ev,events,pr,eq,lv,pf,rules,co,cl,bz,bd,mo,nt,th,gr,ap,rh})[tab]();
 restoreAdminForm();
 if(tab=="pr")showT();
