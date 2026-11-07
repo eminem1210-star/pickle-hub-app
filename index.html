@@ -823,7 +823,7 @@ else{S.tournamentFormat=format;S.tournamentTeams=[];apply()}
 }
 async function setCourtCount(value){const n=Math.max(1,Math.min(6,parseInt(value,10)||1));S.courts=n;if(!await saveOrRestore("コート数を保存できませんでした。最新データに戻しました"))return;draw()}
 function tournamentPlayers(){return S.players.map((_,index)=>index)}
-function resetEv(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("ラウンドを全て消しますか？",async()=>{S.rounds=[];S.tournamentTeams=[];if(!await syncClubPlayers()){await saveOrRestore("ラウンドのリセットを保存できませんでした。最新データに戻しました");return}draw()})}
+function resetEv(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("ラウンドを全て消しますか？",async()=>{S.rounds=[];S.tournamentTeams=[];if(!await syncClubPlayers()){try{await reloadState(false)}catch(e){console.error(e)}draw();alert("ラウンドのリセットを保存できませんでした。最新データに戻しました");return}draw()})}
 function syncClubPlayers(removeAbsent=false){
 S.clubPlayerNames=Array.isArray(S.clubPlayerNames)?S.clubPlayerNames:[];
 const attended=[...new Set(S.members.filter(member=>member.at).map(member=>member.n))];
@@ -835,7 +835,7 @@ S.clubPlayerNames=S.clubPlayerNames.filter(name=>attended.includes(name));
 attended.forEach(name=>{if(!S.players.includes(name)){S.players.push(name);S.clubPlayerNames.push(name)}});
 return save()
 }
-async function setAttendance(i){if(!S.members[i])return;S.members[i].at=!S.members[i].at;if(!await syncClubPlayers()){await saveOrRestore("出欠の変更を保存できませんでした。最新状態に戻しました");return}draw()}
+async function setAttendance(i){if(!S.members[i])return;S.members[i].at=!S.members[i].at;if(!await syncClubPlayers()){try{await reloadState(false)}catch(e){console.error(e)}draw();alert("出欠の変更を保存できませんでした。最新状態に戻しました");return}draw()}
 function stats(){
 const g=S.players.map(()=>0),pc={},oc={};
 S.rounds.forEach(r=>r.m.forEach(m=>{[...m.a,...m.b].forEach(i=>g[i]++);
@@ -1194,8 +1194,8 @@ ${S.news.map((n,i)=>`<div class="box"><div style="white-space:pre-wrap;font-weig
 async function addN(){const v=$("nw").value.trim();if(!v){alert("内容を入力してください");return}S.news.unshift(v);if(!await saveOrRestore("お知らせを保存できませんでした。最新データに戻しました"))return;draw()}
 function cpN(i){shareTxt(S.news[i])}
 const normName=t=>String(t).normalize("NFKC").replace(/\s/g,"").toLowerCase();
-async function addM(){const v=$("mn").value.trim();if(!v)return;if(v.length>20){alert("名前は20文字以内にしてください");return}if(S.members.some(m=>normName(m.n)===normName(v))||v==="管理者"){alert("同じ名前がすでにあります");return}S.members.push({n:v,at:true,paid:false});if(!await syncClubPlayers()){await saveOrRestore("メンバー追加を保存できませんでした。最新状態に戻しました");return}draw()}
-function removeM(i){const m=S.members[i];if(!m)return;ask(`${m.n}さんをメンバーから削除します。ログイン情報も削除されます。よろしいですか？`,async()=>{S.members.splice(i,1);if(!await syncClubPlayers(true)){await saveOrRestore("メンバー削除を保存できませんでした。最新状態に戻しました");return}draw()})}
+async function addM(){const v=$("mn").value.trim();if(!v)return;if(v.length>20){alert("名前は20文字以内にしてください");return}if(S.members.some(m=>normName(m.n)===normName(v))||v==="管理者"){alert("同じ名前がすでにあります");return}S.members.push({n:v,at:true,paid:false});if(!await syncClubPlayers()){try{await reloadState(false)}catch(e){console.error(e)}draw();alert("メンバー追加を保存できませんでした。最新状態に戻しました");return}draw()}
+function removeM(i){const m=S.members[i];if(!m)return;ask(`${m.n}さんをメンバーから削除します。ログイン情報も削除されます。よろしいですか？`,async()=>{S.members.splice(i,1);if(!await syncClubPlayers(true)){try{await reloadState(false)}catch(e){console.error(e)}draw();alert("メンバー削除を保存できませんでした。最新状態に戻しました");return}draw()})}
 /* ---------- 収益・要望管理（管理者専用裏画面） ---------- */
 const BD=[0,1500,0,12000,10000,3.6];
 const B=i=>S.bz&&S.bz[i]!=null?S.bz[i]:(i==2?(S.players.length||16):BD[i]);
@@ -1231,7 +1231,7 @@ function dmBox(name){const th=dmRows.filter(x=>x.member===name).sort((a,b)=>a.ts
 return `<div class="box" style="margin-top:20px"><h2 style="margin-top:0">管理者への連絡</h2><p class="sub">ログイン中のあなたと管理者の連絡欄です。他のメンバーの画面には表示されません。送った後も「編集」できます。</p>
 <div class="chat" id="dm_log">${th.map(x=>`<div class="msg ${x.f==="m"?"me":"ot"}"><div class="bub">${esc(x.t)}</div><div class="meta">${x.f==="a"?"管理者 ・ ":""}${fmtT(x.ts)}${x.f==="m"?" ・ "+link("編集",`dmEdit(${jsArg(x.id)})`):""}</div></div>`).join("")||'<p class="sub">まだメッセージはありません。</p>'}</div>
 <div class="row"><textarea id="dm_text" data-keep rows="2" style="flex:1" placeholder="意見・要望・質問を入力"></textarea><button onclick="dmSend()">送信</button></div></div>`}
-async function dmSend(){const f=$("dm_text"),t=f.value.trim();if(!t)return;f.value="";try{await rpc("dm_send",{p_text:t});await refreshRows(false);draw();toast("送信しました")}catch(e){alert("送信できませんでした")}}
+async function dmSend(){const f=$("dm_text"),t=f.value.trim();if(!t)return;try{await rpc("dm_send",{p_text:t});f.value="";await refreshRows(false);draw();toast("送信しました")}catch(e){alert("送信できませんでした。入力内容は残しています")}}
 function dmEdit(id){const x=dmRows.find(y=>y.id===id);if(!x||x.f!=="m")return;editDlg(x.t,async v=>{try{await rpc("dm_edit",{p_id:id,p_text:v});await refreshRows(false);draw()}catch(e){alert("編集できませんでした")}})}
 function dmNames(){const last={};dmRows.forEach(x=>{last[x.member]=Math.max(last[x.member]||0,x.ts)});return Object.keys(last).sort((a,b)=>last[b]-last[a])}
 function adminFeedbacks(){const names=dmNames();
@@ -1293,12 +1293,12 @@ function notifyDiff(o,n){if(ROLE==="admin")return;const on=new Set((o.notices||[
 function adminNotify(){return `<h2>全員に通知を送る</h2><p class="sub">送信すると、メンバーの画面に「新しいお知らせ」が表示され、アプリを開いている端末にはリアルタイムで通知されます。アプリを閉じている人には届かないので、必要ならLINEにも送ってください。</p><div class="box"><textarea id="nt_text" data-keep rows="3" style="width:100%" placeholder="例: 明日の練習は体育館に変更です"></textarea><div class="row"><button onclick="sendNotice()">通知を送る</button><button class="line-btn" onclick="shareNoticeLine()">LINEにも送る</button></div></div><h2>送信済み</h2>${(S.notices||[]).slice().sort((a,b)=>b.ts-a.ts).map(x=>`<div class="box"><div class="sub">${fmtT(x.ts)}</div><div style="white-space:pre-wrap">${esc(x.text)}</div><button class="x" onclick="delNotice(${jsArg(x.id)})">削除</button></div>`).join("")||'<p class="sub">まだありません。</p>'}`}
 async function sendNotice(){if(!adminSession)return;const f=$("nt_text"),t=f.value.trim();if(!t){alert("内容を入力してください");return}const ok=await mutate("notices",a=>{a.unshift({id:uid(),ts:Date.now(),text:t})});if(!ok){alert("通知を保存できませんでした。入力内容は残しています");return}f.value="";draw();toast("通知を送りました")}
 function shareNoticeLine(){const t=$("nt_text").value.trim();if(!t){alert("内容を入力してください");return}shareTxt("【お知らせ】\n"+t)}
-function delNotice(id){if(!adminSession)return;ask("この通知を削除しますか？",async()=>{await mutate("notices",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)});draw()})}
+function delNotice(id){if(!adminSession)return;ask("この通知を削除しますか？",async()=>{if(!await mutate("notices",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)})){await reloadState(false);alert("通知を削除できませんでした。最新データに戻しました")}draw()})}
 function adminMembers(){return `<h2>会員の追加・退会</h2><p class="sub">新しい会員を追加したあと、下の「招待・PIN再発行」で本人用の招待リンクを発行してください。退会・削除は会員一覧から行えます。</p><div class="box"><div class="row"><input id="mn" placeholder="会員名（20文字まで）" onkeydown="if(event.key=='Enter')addM()"><button onclick="addM()">会員を追加</button></div></div>
 <h2>会員一覧（${S.members.length}人）</h2><p class="sub">名前の変更は会員本人のプロフィール画面から行います。管理者は不適切なプロフィール情報や投稿の削除ができます。</p>${S.members.map((m,i)=>`<div class="box"><div class="row" style="justify-content:space-between;margin:0"><b>${memberIcon(m.n,24)} ${esc(m.n)}</b><div class="row" style="margin:0"><button class="g" onclick="clearMemberProfile(${i},'avatar')" style="font-size:12px;padding:6px 10px">画像を削除</button><button class="g" onclick="clearMemberProfile(${i},'bio')" style="font-size:12px;padding:6px 10px">自己紹介を削除</button><button class="g" onclick="purgePosts(${i})" style="font-size:12px;padding:6px 10px">投稿を削除</button><button class="x" onclick="removeM(${i})">退会・削除</button></div></div></div>`).join("")||'<p class="sub">会員がいません。</p>'}`}
 function clearMemberProfile(i,field){const m=S.members[i];if(!m)return;const label=field==="avatar"?"プロフィール画像":"自己紹介";ask(`${m.n}さんの${label}を削除します。よろしいですか？`,async()=>{profileData(m.n)[field]="";logMemberUpdate(m.n,"管理者が"+label+"を削除");if(!await saveOrRestore(label+"の削除を保存できませんでした。最新データに戻しました"))return;draw();toast("削除しました")})}
 function purgePosts(i){const m=S.members[i];if(!m)return;ask(`${m.n}さんの掲示板の投稿をすべて削除します。よろしいですか？`,async()=>{try{await rpc("admin_purge_member_posts",{p_name:m.n});await refreshRows(false);draw();toast("削除しました")}catch(e){alert("削除できませんでした")}})}
-function renameMember(i){const m=S.members[i];if(!m)return;editDlg(m.n,async v=>{try{await save();await rpc("admin_rename_member",{p_old:m.n,p_new:v});await reloadState(false);await loadPinStatus();draw();toast("名前を変更しました")}catch(e){alert(String(e.message||"").includes("exists")?"その名前はすでに使われています":"変更できませんでした")}},"新しい名前")}
+function renameMember(i){const m=S.members[i];if(!m)return;editDlg(m.n,async v=>{try{if(!await save()){await reloadState(false);draw();alert("先に変更内容を保存できませんでした。名前変更は行っていません");return}await rpc("admin_rename_member",{p_old:m.n,p_new:v});await reloadState(false);await loadPinStatus();draw();toast("名前を変更しました")}catch(e){alert(String(e.message||"").includes("exists")?"その名前はすでに使われています":"変更できませんでした")}},"新しい名前")}
 function adminFinance(){return `<h2>大会収支</h2><div class="box">
 <label>大会名</label><input id="bname" value="${esc(S.adminForm&&S.adminForm.bname||"")}" oninput="captureAdminForm()" placeholder="例: 週末クラブ大会" style="width:100%">
 <label>参加費 (1人・円)</label><input id="b1" type="number" min="0" value="${B(1)}" oninput="calcB()" style="width:100%">
