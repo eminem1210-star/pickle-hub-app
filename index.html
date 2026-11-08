@@ -501,6 +501,8 @@ async function flushSave(){
   }
   return false}
 const save=()=>{pending++;saveQ=saveQ.then(flushSave).catch(e=>{console.error(e);return false}).finally(()=>{pending--});return saveQ};
+// 保存処理中の再読み込み・ページ離脱による未保存を防ぐ
+window.addEventListener("beforeunload",e=>{if(pending>0){e.preventDefault();e.returnValue=""}});
 async function saveOrRestore(message){
   if(await save())return true;
   try{await reloadState(false)}catch(e){console.error(e)}
