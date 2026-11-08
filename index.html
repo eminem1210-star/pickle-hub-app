@@ -1165,7 +1165,7 @@ function co(){
 return `<span class="badge">COMMUNITY</span><h1>仲間・募集</h1><p class="sub">クラブの練習募集や交流イベントを確認して参加できます。</p>
 ${ROLE==="admin"?'<div class="box"><p class="sub">募集の作成・編集は管理者ページで行えます。</p><button onclick="go(&quot;bz&quot;);setAdminSheet(&quot;posts&quot;)">募集を管理する</button></div>':'<p class="sub">募集の作成はクラブ管理者が行います。参加やキャンセル待ちは、下の募集から操作できます。</p>'}
 ${(S.posts||[]).map(postCard).join("")||'<p class="sub">現在、公開中の募集はありません。</p>'}`}
-async function addPost(){const w=$("pw").value.trim();if(!w){alert("日時や場所を入力してください");return}const c=Math.max(1,parseInt($("pk").value)||1);S.posts.unshift({w,l:$("pl").value,r:c,c,m:[],wl:[],dl:$("pd2").value||"",by:ME});if(!await saveOrRestore("募集を保存できませんでした。最新データに戻しました"))return;draw()}
+async function addPost(){const w=$("pw").value.trim();if(!w){alert("日時や場所を入力してください");return}const c=Math.max(1,parseInt($("pk").value)||1);S.posts.unshift({w,l:$("pl").value,r:c,c,m:[],wl:[],dl:$("pd2").value||"",by:ME});if(!await saveOrRestore("募集を保存できませんでした。最新データに戻しました"))return;logMemberUpdate(ME,"仲間・練習募集を投稿");draw()}
 const closed=p=>p.dl&&Date.now()>new Date(p.dl).getTime();
 function postCard(p,i){const m=p.m||[],wl=p.wl||[],rr=p.r==null?0:p.r,full=rr<=0,cl=closed(p);
 return `<div class="box"><div style="white-space:pre-wrap;font-weight:700">${esc(p.w)}</div>
@@ -1182,7 +1182,7 @@ async function dupP(i){const p=S.posts[i];if(!(ROLE==="admin"||p.by===ME)){alert
 function toEv2(i){const p=S.posts[i],f=async()=>{const removed=S.rounds.flatMap(round=>round.m||[]);S.players=p.m.slice();S.rounds=[];if(!await saveOrRestore("大会参加者への反映を保存できませんでした。最新データに戻しました"))return;await voidRemovedRatings(removed);go("ev")};S.players.length?ask(S.rounds.length?"大会参加者をこのメンバーに置き換え、現在のラウンドと関連レーティング試合を取り消しますか？":"大会参加者をこのメンバーに置き換えますか？",f):f()}
 async function join(i){const p=S.posts[i],nm=ME;if(!nm){alert("ログインしてください");return}p.m=p.m||[];p.wl=p.wl||[];if(p.m.includes(nm)||p.wl.includes(nm)){alert("すでに参加登録されています");return}if(p.r>0){p.m.push(nm);p.r--}else{p.wl.push(nm)}if(!await saveOrRestore("参加登録を保存できませんでした。最新データに戻しました"))return;draw()}
 async function leave(i,k){const p=S.posts[i],nm=p.m&&p.m[k];if(ROLE!=="admin"&&nm!==ME){alert("自分の参加登録だけ取り消せます");return}p.m.splice(k,1);p.r++;if(p.wl&&p.wl.length){p.m.push(p.wl.shift());p.r--}if(!await saveOrRestore("参加取消を保存できませんでした。最新データに戻しました"))return;draw()}
-async function deleteOwnPost(i){const p=S.posts[i];if(!p||!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ削除できます");return}S.posts.splice(i,1);if(!await saveOrRestore("募集の削除を保存できませんでした。最新データに戻しました"))return;draw()}
+async function deleteOwnPost(i){const p=S.posts[i];if(!p||!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ削除できます");return}S.posts.splice(i,1);if(!await saveOrRestore("募集の削除を保存できませんでした。最新データに戻しました"))return;logMemberUpdate(ME,"仲間・練習募集を削除");draw()}
 /* ---------- クラブ ---------- */
 function cl(){
 const due=S.members.reduce((a,m)=>a+(m.paid?1:0),0);
@@ -1237,7 +1237,7 @@ function dmBox(name){const th=dmRows.filter(x=>x.member===name).sort((a,b)=>a.ts
 return `<div class="box" style="margin-top:20px"><h2 style="margin-top:0">管理者への連絡</h2><p class="sub">ログイン中のあなたと管理者の連絡欄です。他のメンバーの画面には表示されません。送った後も「編集」できます。</p>
 <div class="chat" id="dm_log">${th.map(x=>`<div class="msg ${x.f==="m"?"me":"ot"}"><div class="bub">${esc(x.t)}</div><div class="meta">${x.f==="a"?"管理者 ・ ":""}${fmtT(x.ts)}${x.f==="m"?" ・ "+link("編集",`dmEdit(${jsArg(x.id)})`):""}</div></div>`).join("")||'<p class="sub">まだメッセージはありません。</p>'}</div>
 <div class="row"><textarea id="dm_text" data-keep rows="2" style="flex:1" placeholder="意見・要望・質問を入力"></textarea><button onclick="dmSend()">送信</button></div></div>`}
-async function dmSend(){const f=$("dm_text"),t=f.value.trim();if(!t)return;try{await rpc("dm_send",{p_text:t})}catch(e){console.error(e);alert("送信できませんでした。入力内容は残しています");return}if(f)f.value="";try{await refreshRows(false);draw();toast("送信しました")}catch(e){console.error(e);alert("メッセージは送信済みですが、一覧の更新に失敗しました。再読み込みしてください")}}
+async function dmSend(){const f=$("dm_text"),t=f.value.trim();if(!t)return;try{await rpc("dm_send",{p_text:t})}catch(e){console.error(e);alert("送信できませんでした。入力内容は残しています");return}if(f)f.value="";logMemberUpdate(ME||"管理者","メンバー連絡を送信");try{await refreshRows(false);draw();toast("送信しました")}catch(e){console.error(e);alert("メッセージは送信済みですが、一覧の更新に失敗しました。再読み込みしてください")}}
 function dmEdit(id){const x=dmRows.find(y=>y.id===id);if(!x||x.f!=="m")return;editDlg(x.t,async v=>{try{await rpc("dm_edit",{p_id:id,p_text:v})}catch(e){console.error(e);alert("編集を保存できませんでした。入力内容は残しています");return false}try{await refreshRows(false);draw()}catch(e){console.error(e);alert("編集は保存済みですが、一覧更新に失敗しました。再読み込みしてください")}return true})}
 function dmNames(){const last={};dmRows.forEach(x=>{last[x.member]=Math.max(last[x.member]||0,x.ts)});return Object.keys(last).sort((a,b)=>last[b]-last[a])}
 function adminFeedbacks(){const names=dmNames();
@@ -1297,7 +1297,7 @@ async function askNotify(){try{await Notification.requestPermission()}catch(e){}
 function pushNote(t,b){if(!notifyOn())return;const m=b.length>60?b.slice(0,60)+"…":b;if(!document.hidden)toast(t+"："+m);else if("Notification" in window&&Notification.permission==="granted"){try{new Notification(t,{body:m})}catch(e){}}}
 function notifyDiff(o,n){if(ROLE==="admin")return;const on=new Set((o.notices||[]).map(x=>x.id)),oe=new Set((o.events||[]).map(x=>x.id));(n.notices||[]).forEach(x=>{if(!on.has(x.id))pushNote("お知らせ",x.text)});(n.events||[]).forEach(x=>{if(!oe.has(x.id))pushNote("新しいイベント",x.title);if(ME){const w=String((((o.events||[]).find(y=>y.id===x.id)||{}).responses||{})[ME]||"");if(w.startsWith("wait")&&x.responses&&x.responses[ME]==="yes"){toast(`🎉 キャンセル待ちから繰り上がりました！「${x.title}」に参加できます`);celebrate()}}})}
 function adminNotify(){return `<h2>全員に通知を送る</h2><p class="sub">送信すると、メンバーの画面に「新しいお知らせ」が表示され、アプリを開いている端末にはリアルタイムで通知されます。アプリを閉じている人には届かないので、必要ならLINEにも送ってください。</p><div class="box"><textarea id="nt_text" data-keep rows="3" style="width:100%" placeholder="例: 明日の練習は体育館に変更です"></textarea><div class="row"><button onclick="sendNotice()">通知を送る</button><button class="line-btn" onclick="shareNoticeLine()">LINEにも送る</button></div></div><h2>送信済み</h2>${(S.notices||[]).slice().sort((a,b)=>b.ts-a.ts).map(x=>`<div class="box"><div class="sub">${fmtT(x.ts)}</div><div style="white-space:pre-wrap">${esc(x.text)}</div><button class="x" onclick="delNotice(${jsArg(x.id)})">削除</button></div>`).join("")||'<p class="sub">まだありません。</p>'}`}
-async function sendNotice(){if(!adminSession)return;const f=$("nt_text"),t=f.value.trim();if(!t){alert("内容を入力してください");return}const ok=await mutate("notices",a=>{a.unshift({id:uid(),ts:Date.now(),text:t})});if(!ok){alert("通知を保存できませんでした。入力内容は残しています");return}f.value="";draw();toast("通知を送りました")}
+async function sendNotice(){if(!adminSession)return;const f=$("nt_text"),t=f.value.trim();if(!t){alert("内容を入力してください");return}const ok=await mutate("notices",a=>{a.unshift({id:uid(),ts:Date.now(),text:t})});if(!ok){alert("通知を保存できませんでした。入力内容は残しています");return}f.value="";logMemberUpdate("管理者","全メンバー向けのお知らせを送信");draw();toast("通知を送りました")}
 function shareNoticeLine(){const t=$("nt_text").value.trim();if(!t){alert("内容を入力してください");return}shareTxt("【お知らせ】\n"+t)}
 function delNotice(id){if(!adminSession)return;ask("この通知を削除しますか？",async()=>{if(!await mutate("notices",a=>{const k=a.findIndex(z=>z.id===id);if(k>=0)a.splice(k,1)})){await reloadState(false);alert("通知を削除できませんでした。最新データに戻しました")}draw()})}
 function adminMembers(){return `<h2>会員の追加・退会</h2><p class="sub">新しい会員を追加したあと、下の「招待・PIN再発行」で本人用の招待リンクを発行してください。退会・削除は会員一覧から行えます。</p><div class="box"><div class="row"><input id="mn" placeholder="会員名（20文字まで）" onkeydown="if(event.key=='Enter')addM()"><button onclick="addM()">会員を追加</button></div></div>
@@ -1437,13 +1437,14 @@ S.adminSuggestions=S.adminSuggestions||{time:[],place:[],eventTime:[]};
 const places=S.adminSuggestions.place||[];
 S.adminSuggestions.place=[place,...places.filter(value=>value!==place)].slice(0,20);
 if(!await saveOrRestore("イベントを保存できませんでした。最新状態に戻しました"))return;
+logMemberUpdate("管理者",(index>=0?"イベントを更新: ":"イベントを作成: ")+title);
 S.adminEventEdit="";clearEventDraft();
 if(!await save()){try{await reloadState(false)}catch(e){console.error(e)}draw();toast("イベントは保存済みですが、入力欄の初期化は保存できませんでした。再読み込みしてください");return}
 draw();toast("イベントを保存しました（一般公開）")
 }
 function editEvent(index){const event=S.events[index];if(!event)return;S.adminEventEdit=event.id;draw()}
 function cancelEditEvent(){S.adminEventEdit="";clearEventDraft();draw()}
-function deleteEvent(index){ask("このイベントと参加回答を削除しますか？",async()=>{S.events.splice(index,1);S.adminEventEdit="";if(!await saveOrRestore("イベント削除を保存できませんでした。最新状態に戻しました"))return;draw()})}
+function deleteEvent(index){const eventTitle=S.events[index]?.title||"イベント";ask("このイベントと参加回答を削除しますか？",async()=>{S.events.splice(index,1);S.adminEventEdit="";if(!await saveOrRestore("イベント削除を保存できませんでした。最新状態に戻しました"))return;logMemberUpdate("管理者","イベントを削除: "+(eventTitle||"イベント"));draw()})}
 function events(){
 const selected=S.members.some(member=>member.n===profileSessionName)?profileSessionName:"";
 const upcoming=uniqueEvents(S.events||[]).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
@@ -1506,9 +1507,14 @@ let st=status;try{const r=await rpc("event_respond",{p_event:eventId,p_status:st
 logMemberUpdate(profileSessionName,(st==="yes"?"イベント参加回答: ":st==="wait"?"キャンセル待ち登録: ":"イベント不参加回答: ")+event.title);
 try{await reloadState();toast(st==="yes"?"参加で回答しました":st==="wait"?"満員のため、キャンセル待ちに登録しました。空きが出たら自動で繰り上がります":"不参加で回答しました")}catch(e){console.error(e);alert("回答は保存済みですが、画面更新に失敗しました。再読み込みしてください")}
 }
+let auditFilter="all";
+function auditKind(action){const a=String(action||"");if(/イベント参加|キャンセル待ち|不参加|イベントを作成|イベントを更新|イベントを削除/.test(a))return "events";if(/募集|投稿/.test(a))return "posts";if(/連絡|メッセージ/.test(a))return "messages";if(/プロフィール|自己評価|PIN/.test(a))return "profile";return "other"}
+function filterAdminAudit(){const q=String($("audit_search")?.value||"").toLowerCase();document.querySelectorAll(".audit-item").forEach(el=>{const match=(auditFilter==="all"||el.dataset.kind===auditFilter)&&(!q||el.textContent.toLowerCase().includes(q));el.style.display=match?"":"none"})}
+function setAuditFilter(kind){auditFilter=kind;document.querySelectorAll("[data-audit-filter]").forEach(b=>b.classList.toggle("g",b.dataset.auditFilter!==kind));filterAdminAudit()}
 function adminUpdates(){
-const audit=S.memberAudit||[];
-return `<h2>メンバー更新履歴</h2><p class="sub">プロフィール、自己評価、イベント参加回答の更新記録です。</p>${audit.length?audit.map(item=>`<div class="box"><div class="row" style="justify-content:space-between"><b>${memberIcon(item.member,24)} ${esc(item.member)}</b><span class="sub">${esc(item.date)}</span></div><div>${esc(item.action)}</div></div>`).join(""):'<p class="sub">更新履歴はありません。</p>'}`
+const audit=S.memberAudit||[],week=Date.now()-7*86400000,recent=audit.filter(x=>Number(x.ts||0)>=week),active=new Set(recent.map(x=>x.member)).size;
+const filters=[["all","すべて"],["events","イベント"],["posts","投稿・募集"],["messages","連絡"],["profile","プロフィール"],["other","その他"]];
+return `<h2>クラブ活動・更新履歴</h2><p class="sub">メンバーや管理者がアプリ内で行った操作を、誰が・いつ・何をしたかで確認できます。内容の本文や個人情報は記録せず、操作の種類を記録します。</p><div class="grid2"><div class="box"><b>直近7日間の活動</b><div style="font-size:26px;font-weight:900">${recent.length}件</div></div><div class="box"><b>活動した人数</b><div style="font-size:26px;font-weight:900">${active}人</div></div></div><input id="audit_search" type="search" placeholder="メンバー名・操作内容で検索" oninput="filterAdminAudit()" style="width:100%;margin:8px 0"><div class="hscroll">${filters.map(([k,label])=>`<button class="${auditFilter===k?"":"g"}" data-audit-filter="${k}" onclick="setAuditFilter('${k}')">${label}</button>`).join("")}</div><p class="sub">新しい記録から表示 ／ 保存上限を超えた古い記録は自動整理されます。</p>${audit.length?audit.map(item=>{const kind=auditKind(item.action);return `<div class="box audit-item" data-kind="${kind}"><div class="row" style="justify-content:space-between;align-items:center"><b>${memberIcon(item.member,26)} ${esc(item.member||"不明")}</b><span class="sub">${esc(item.date||"日時不明")}</span></div><div style="font-weight:700;margin-top:7px">${esc(item.action||"操作内容不明")}</div></div>`}).join(""):'<p class="sub">活動記録はまだありません。</p>'}`;
 }
 const inviteLink=c=>location.origin+location.pathname+"?invite="+c;
 function adminProfiles(){
