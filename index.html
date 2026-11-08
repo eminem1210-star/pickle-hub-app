@@ -477,7 +477,7 @@ let tab="hm",S={players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:
 
 // データの保存（Supabaseに書き込み ＆ localStorageにも一時保存）
 const defaultS=()=>({players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[]});
-let loaded=false,saveQ=Promise.resolve(),pending=0,TOKEN=localStorage.getItem("ph_tok")||"",ROLE="",ME="",bdRows=[],dmRows=[],PINST={},pollKey="",pollTimer=null;
+let loaded=false,saveQ=Promise.resolve(),pending=0,RALLY_DIRTY=false,TOKEN=localStorage.getItem("ph_tok")||"",ROLE="",ME="",bdRows=[],dmRows=[],PINST={},pollKey="",pollTimer=null;
 const LOCAL_KEYS=["profileMember","levelMember","radarCompareIndex","rentalMember","adminSheet","adminEventEdit","duesEvent"];
 function relogin(msg){TOKEN="";ROLE="";ME="";loaded=false;try{localStorage.removeItem("ph_tok")}catch(e){}showLogin(msg)}
 let syncCh=null;
@@ -503,7 +503,7 @@ async function flushSave(){
   return false}
 const save=()=>{pending++;saveQ=saveQ.then(flushSave).catch(e=>{console.error(e);return false}).finally(()=>{pending--});return saveQ};
 // 保存処理中の再読み込み・ページ離脱による未保存を防ぐ
-window.addEventListener("beforeunload",e=>{if(pending>0){e.preventDefault();e.returnValue=""}});
+window.addEventListener("beforeunload",e=>{if(pending>0||RALLY_DIRTY){e.preventDefault();e.returnValue=""}});
 async function saveOrRestore(message){
   if(await save())return true;
   try{await reloadState(false)}catch(e){console.error(e)}
@@ -1730,19 +1730,19 @@ ${list.length?'<div class="row"><button onclick="SEV=3;draw()" style="width:100%
 /* セッション対戦：デモと同じラリー単位のスコア入力 */
 function sesOpenRally(r,m){
  const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;
- SC_DEMO=false;SCS=scDef();SCS.names=[teamPlain(x.a),teamPlain(x.b)];SCS.mode=x.a.length>1?"d":"s";
+ SC_DEMO=false;RALLY_DIRTY=false;SCS=scDef();SCS.names=[teamPlain(x.a),teamPlain(x.b)];SCS.mode=x.a.length>1?"d":"s";
  SCS.sessionTarget={r,m};SCS.mi=-2;SCS.sc=[Number(x.sa)||0,Number(x.sb)||0];SCS.srv=0;SCS.no=SCS.mode==="d"?2:1;SCS.done=-1;SCS.hist=[];SCS.msg="既存の点数がある場合は引き継いで続けられます。";scCheck();
  const d=document.createElement("div");d.id="ses-rally";d.className="demo-ov";
  d.innerHTML=`<main><div class="row" style="justify-content:space-between"><span class="badge">SESSION SCORE</span><button class="g" onclick="sesScApply()">保存して戻る</button></div><h1>ラリーごとにスコア</h1><p class="sub">ラリーを取ったチームをタップしてください。点数は「保存して戻る」で対戦カードに反映されます。途中経過も保存できます。</p><div class="sc_root">${scBody()}</div><div class="row" style="margin-top:18px"><button style="width:100%" onclick="sesScApply()">💾 この点数を保存して対戦カードに戻る</button></div></main>`;
  document.body.appendChild(d);
 }
-function sesCloseRally(){const d=document.getElementById("ses-rally");if(d)d.remove();if(SCS)SCS.sessionTarget=null;}
+function sesCloseRally(){const d=document.getElementById("ses-rally");if(d)d.remove();RALLY_DIRTY=false;if(SCS)SCS.sessionTarget=null;}
 // 「もう一度」はスコア画面だけでなく、元のセッション対戦カードの点数も初期化する
 async function sesScAgain(){
  const t=SCS&&SCS.sessionTarget;
  if(t){
    const before=S.rounds[t.r]&&S.rounds[t.r].m[t.m],oldKey=before&&before.k;
-   try{await rpc("session_match_result",{p_round:t.r,p_match:t.m,p_score_a:0,p_score_b:0});await reloadState(false)}catch(e){console.error("PICKLE HUB session score reset:",e);toast("対戦カードへのリセット保存に失敗しました");return}
+   try{await rpc("session_match_result",{p_round:t.r,p_match:t.m,p_score_a:0,p_score_b:0});RALLY_DIRTY=false;await reloadState(false)}catch(e){console.error("PICKLE HUB session score reset:",e);toast("対戦カードへのリセット保存に失敗しました");return}
    if(oldKey)await voidRemovedRatings([{k:oldKey}]);
  }
  scReset();
@@ -1752,7 +1752,7 @@ async function sesScAgain(){
 }
 async function sesScApply(){const t=SCS&&SCS.sessionTarget;if(!t)return;const x=S.rounds[t.r]&&S.rounds[t.r].m[t.m];if(!x)return;
  const a=Number(SCS.sc[0]),b=Number(SCS.sc[1]);
- try{await rpc("session_match_result",{p_round:t.r,p_match:t.m,p_score_a:a,p_score_b:b})}catch(e){console.error("PICKLE HUB rally score save:",e);alert("スコアを保存できませんでした。入力内容は残しています");return}
+ try{await rpc("session_match_result",{p_round:t.r,p_match:t.m,p_score_a:a,p_score_b:b});RALLY_DIRTY=false}catch(e){console.error("PICKLE HUB rally score save:",e);alert("スコアを保存できませんでした。入力内容は残しています");return}
  x.sa=a;x.sb=b;x.st=a===b?"in_progress":"completed";
  try{await reloadState(false);const saved=S.rounds[t.r]?.m[t.m];if(a!==b&&saved)await maybeRecord(saved);sesCloseRally();draw();toast(a===b?"同点の途中経過を保存しました":"ラリーのスコアを対戦結果に保存しました！")}catch(e){console.error(e);alert("スコアは保存済みですが、画面更新に失敗しました。再読み込みしてください")}
 }
@@ -1989,16 +1989,17 @@ function scCheck(){
   const a=Number(SCS.sc[0])||0,b=Number(SCS.sc[1])||0,t=Math.max(1,Number(SCS.t)||11),d=SCS.w2===false?1:2;
   SCS.done=a>=t&&a-b>=d?0:b>=t&&b-a>=d?1:-1;
 }
-function scRally(w){if(SCS.done>=0)return;scSnap();const n=SCS.names;
+function scRally(w){if(SCS.done>=0)return;if(SCS.sessionTarget)RALLY_DIRTY=true;scSnap();const n=SCS.names;
 if(SCS.rs){ /* ラリーポイント制：ラリーを取ったチームに必ず1点。レシーブ側が取るとサーブ権も移る */
 SCS.sc[w]++;if(w===SCS.srv)SCS.msg=`${n[w]} が得点！（ラリーポイント制：ラリーを取ったチームに1点。サーブは続けます）`;else{SCS.srv=w;SCS.msg=`${n[w]} が得点！（ラリーポイント制：ラリーを取ったチームに1点が入り、サーブ権も移ります）`}SCS.no=1}
 else if(w===SCS.srv){SCS.sc[w]++;SCS.msg=`${n[w]} が得点！（サーブ側がラリーを取ったので、1点。サーブは続けます）`}
 else if(SCS.mode==="d"&&SCS.no===1){SCS.no=2;SCS.msg="レシーブ側がラリーを取りました。点は入らず、サーブは同じチームの相方（Server 2）へ。"}
 else{SCS.srv=1-SCS.srv;SCS.no=1;SCS.msg=`サイドアウト！ラリーを取った ${n[SCS.srv]} にサーブ権が移ります（点は入りません）。`}
 scCheck();scDraw()}
-function scAdj(t,d){if(SCS.done>=0&&d>0)return;scSnap();SCS.sc[t]=Math.max(0,SCS.sc[t]+d);scCheck();scDraw()}
+function scAdj(t,d){if(SCS.done>=0&&d>0)return;if(SCS.sessionTarget)RALLY_DIRTY=true;scSnap();SCS.sc[t]=Math.max(0,SCS.sc[t]+d);scCheck();scDraw()}
 function scUndo(){
   if(!SCS||!Array.isArray(SCS.hist)||SCS.hist.length===0){toast("戻せる履歴がありません");return;}
+  if(SCS.sessionTarget)RALLY_DIRTY=true;
   try{
     const previous=JSON.parse(SCS.hist.pop());
     if(!Array.isArray(previous.sc)||previous.sc.length!==2)throw new Error("invalid score history");
