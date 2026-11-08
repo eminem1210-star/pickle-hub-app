@@ -1636,7 +1636,7 @@ const amounts=Array.from({length:501},(_,i)=>i*100);
 if(!amounts.includes(current))amounts.push(current);
 return amounts.sort((a,b)=>a-b).map(amount=>`<option value="${amount}" ${amount===current?"selected":""}>${amount.toLocaleString()}円</option>`).join("")
 }
-const adminFormIds=["dues_amount","bname","b6","b7","event_title","event_date","event_time","event_end","event_level","event_place","event_capacity","event_details","admin_kind","admin_goal","admin_audience","admin_tone","admin_level","admin_place","admin_details","admin_capacity","admin_event_date","admin_event_time","admin_prompt","admin_draft"];
+const adminFormIds=["dues_amount","bname","b6","b7","event_title","event_date","event_time","event_end","event_level","event_place","event_capacity","event_details","event_goal","event_audience","event_tone","event_promo","admin_kind","admin_goal","admin_audience","admin_tone","admin_level","admin_place","admin_details","admin_capacity","admin_event_date","admin_event_time","admin_prompt","admin_draft"];
 function captureAdminForm(){
 const values={...(S.adminForm||{})};
 let changed=false;
