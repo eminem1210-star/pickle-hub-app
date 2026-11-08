@@ -1073,7 +1073,7 @@ function levelAnsChanged(){const name=ME;S.levelAnswers=S.levelAnswers||{};if(!l
 const a=[...document.querySelectorAll(".profile_level_question")].map(f=>f.value===""?null:+f.value);S.levelAnswers[name]=a;
 if(a.every(v=>v!=null)){const sug=Math.round(a.reduce((x,y)=>x+y,0)/5*10)/10;$("profile_level_value").value=sug;$("lvhint").textContent="質問からの目安は"+sug.toFixed(1)+"です。必要なら調整してください。"}}
 async function saveProfileBasic(){const name=ME;if(!name)return;const p=profileData(name);p.bio=$("profile_bio").value.trim().slice(0,500);if(profilePhotoDraft)p.avatar=profilePhotoDraft;
-const ok=await save();if(ok){profilePhotoDraft="";logMemberUpdate(name,"プロフィール更新");toast("保存しました");draw()}}
+const ok=await save();if(ok){profilePhotoDraft="";logMemberUpdate(name,"プロフィール更新");toast("保存しました");draw()}else{try{await reloadState(false)}catch(e){console.error(e)}toast("プロフィールを保存できませんでした。最新データに戻しました");draw()}}
 async function saveProfileLevel(){const name=ME;if(!name)return;const a=S.levelAnswers&&S.levelAnswers[name]||[];
 if(a.length!==5||a.some(v=>!Number.isFinite(+v))){alert("5つの質問すべてに回答してください");return}
 const v=Math.round(Number($("profile_level_value").value)*10)/10;if(!(v>=1&&v<=5)){alert("評価は1.0〜5.0で入力してください");return}
@@ -1081,7 +1081,7 @@ const base=lvBase[name]||{answers:a.slice(),rating:S.rt&&S.rt[name]},oldR=base.r
 const changed=JSON.stringify(a)!==JSON.stringify(base.answers||[])||Number(oldR)!==v;
 if(changed&&Number.isFinite(Number(oldR))){S.levelHistory=S.levelHistory||{};const h=S.levelHistory[name]=S.levelHistory[name]||[];const snap=Array.isArray(base.answers)&&base.answers.length===5&&base.answers.every(x=>Number.isFinite(+x))?base.answers.slice():Array(5).fill(Number(oldR));h.push({date:new Date().toLocaleString("ja-JP"),rating:Number(oldR),answers:snap})}
 S.rt=S.rt||{};S.rt[name]=v;delete lvBase[name];
-const ok=await save();if(ok){logMemberUpdate(name,"レベル自己評価更新");toast("レベルを保存しました");draw()}}
+const ok=await save();if(ok){logMemberUpdate(name,"レベル自己評価更新");toast("レベルを保存しました");draw()}else{try{await reloadState(false)}catch(e){console.error(e)}delete lvBase[name];toast("レベル評価を保存できませんでした。最新データに戻しました");draw()}}
 function renameSelf(){const nn=$("profile_newname").value.trim();if(!nn||nn===ME){alert("新しい名前を入力してください");return}
 ask(`名前を「${nn}」に変更します。よろしいですか？`,async()=>{try{if(!await save()){await reloadState(false);draw();alert("先に変更内容を保存できませんでした。名前変更は行っていません");return}const r=await rpc("member_rename",{p_new:nn});ME=r.name;profileSessionName=ME;profileUnlockedName=ME;await reloadState(false);await refreshRows(false);draw();toast("名前を変更しました")}catch(e){alert(String(e.message||"").includes("exists")?"その名前はすでに使われています":"変更できませんでした")}})}
 async function changeMyPin(){const a=$("profile_new_pin").value,b=$("profile_new_pin_confirm").value;if(!/^\d{4}$/.test(a)||a!==b){alert("4桁のPINを2回同じように入力してください");return}
