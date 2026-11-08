@@ -471,7 +471,7 @@ const SUPABASE_URL = 'https://slhfhxwddtxhqarkyldk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_6ai48uMR372DwW-K6Looxw_MIWT91mp';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const TABS=[["hm","<span class=ni>🏠</span>ホーム"],["se","<span class=ni>🎲</span>セッション"],["events","<span class=ni>📅</span>イベント"],["bd","<span class=ni>💬</span>掲示板"],["mo","<span class=ni>☰</span>メニュー"]];
+const TABS=[["hm","<span class=ni>🏠</span>ホーム"],["se","<span class=ni>🎲</span>セッション"],["events","<span class=ni>📅</span>イベント募集"],["bd","<span class=ni>💬</span>掲示板"],["mo","<span class=ni>☰</span>メニュー"]];
 const MORE=[["ev","🏆 大会モード（トーナメントなど）"],["sc","🎯 スコア記録（リアルタイム）"],["cl","メンバー"],["nt","通知"],["pf","プロフィール"],["pr","練習"],["eq","貸出"],["rules","ルール"],["lv","レベル一覧"],["th","見た目"]];
 let tab="hm",S={players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[],feedbacks:[]};
 
@@ -764,7 +764,7 @@ function trackPage(){trackVisit("/"+tab);if(_gaLast===tab)return;_gaLast=tab;con
 ga("page_view",{page_title:(TITLES[tab]||ROOTN[tab]||"ホーム")+" | PICKLE HUB",page_path:"/"+tab,page_location:base+"#/"+tab})}
 const MAIN=["hm","se","events","bd","mo"];
 const TITLES={ev:"大会モード",sc:"スコア記録",cl:"メンバー",co:"仲間・募集",nt:"通知",pf:"プロフィール",pr:"練習ドリル",eq:"用具の貸出",rules:"ルール",lv:"ランキング・レベル",ap:"試合の承認",rh:"レーティングのしくみ",th:"見た目の設定",bz:"管理者",gr:"マイギア"};
-const ROOTN={hm:"ホーム",se:"セッション",events:"イベント",bd:"掲示板",mo:"メニュー"};
+const ROOTN={hm:"ホーム",se:"セッション",events:"イベント募集",bd:"掲示板",mo:"メニュー"};
 let ROOT="hm";
 function go(t){if(t===tab)return;if(t==="bz"&&tab!=="bz")S.adminSheet="menu";if(tab==="bz"&&t!=="bz")adminSetupCodeDisplay=null;if(t!=="pf")profilePhotoDraft="";
 ROOT=MAIN.includes(t)?t:(MAIN.includes(tab)?tab:ROOT);tab=t;
@@ -1161,10 +1161,7 @@ function startT(i){stopT();T.left=DR[i][1];T.name=DR[i][0];$("tn").textContent=T
 T.id=setInterval(()=>{T.left--;showT();if(T.left<=0){stopT();$("tn").textContent="終了！お疲れさまでした 🎉";try{navigator.vibrate&&navigator.vibrate(300)}catch(e){}}},1000);showT()}
 function stopT(){clearInterval(T.id);T.id=null}
 /* ---------- 仲間 ---------- */
-function co(){
-return `<span class="badge">COMMUNITY</span><h1>仲間・募集</h1><p class="sub">クラブの練習募集や交流イベントを確認して参加できます。</p>
-${ROLE==="admin"?'<div class="box"><p class="sub">募集の作成・編集は管理者ページで行えます。</p><button onclick="go(&quot;bz&quot;);setAdminSheet(&quot;posts&quot;)">募集・お知らせを管理する</button></div>':'<p class="sub">募集の作成はクラブ管理者が行います。参加やキャンセル待ちは、下の募集から操作できます。</p>'}
-${S.posts.map(postCard).join("")||'<p class="sub">現在、公開中の募集はありません。</p>'}`}
+function co(){return events()}
 async function addPost(){const w=$("pw").value.trim();if(!w){alert("日時や場所を入力してください");return}const c=Math.max(1,parseInt($("pk").value)||1);S.posts.unshift({w,l:$("pl").value,r:c,c,m:[],wl:[],dl:$("pd2").value||"",by:ME});if(!await saveOrRestore("募集を保存できませんでした。最新データに戻しました"))return;draw()}
 const closed=p=>p.dl&&Date.now()>new Date(p.dl).getTime();
 function postCard(p,i){const m=p.m||[],wl=p.wl||[],rr=p.r==null?0:p.r,full=rr<=0,cl=closed(p);
@@ -1209,17 +1206,17 @@ function adminSheetUnread(key){if(ROLE!=="admin")return false;if(key==="updates"
 function bz(){
 S.adminSheet=S.adminSheet||"menu";
 const groups=[
-{title:"① 日々の運営",desc:"イベントや参加者への対応、連絡・お知らせ",items:[["events","イベント・参加者","日程登録／参加者・キャンセル待ち"],["feedbacks","メンバーからの連絡","メンバーから届いた相談・質問への返信"],["posts","募集・お知らせ","練習会の募集やクラブのお知らせを作成"],["notify","全員への通知","メンバー全員へ連絡を送信"]]},
+{title:"① 日々の運営",desc:"イベントや参加者への対応、連絡・お知らせ",items:[["events","イベント募集・参加者","イベント作成／参加者・キャンセル待ち"],["feedbacks","メンバーからの連絡","メンバーから届いた相談・質問への返信"],["notify","全員への通知","メンバー全員へ連絡を送信"]]},
 {title:"② 会員管理",desc:"会員の登録、ログイン、プロフィールを管理",items:[["members","会員一覧・追加・削除","会員の追加・招待／退会・削除／招待リンク・PIN再発行"]]},
 {title:"③ クラブ運営",desc:"会費や大会のお金、アプリの利用状況を確認",items:[["dues","会費の回収状況","イベント会費・クラブ会費の入金確認"],["finance","大会収支","大会の参加費・協賛金・支出を集計"],["analytics","アクセス分析","利用者数や閲覧状況を確認"]]},
 {title:"④ 詳細・管理",desc:"アプリの保守や重要な設定",items:[["updates","更新履歴","メンバーによるプロフィール等の更新記録"],["settings","バックアップ・復元／設定","データ復元、管理者パスワード、レーティング設定"]]}
 ];
-const labels={events:"イベント・参加者",feedbacks:"メンバーからの連絡",posts:"募集・お知らせ",notify:"全員への通知",members:"会員一覧・追加・削除",profiles:"招待・PIN再発行",dues:"会費の回収状況",finance:"大会収支",analytics:"アクセス分析",updates:"更新履歴",settings:"バックアップ・復元／設定"};
+const labels={events:"イベント募集・参加者",feedbacks:"メンバーからの連絡",posts:"イベント募集",notify:"全員への通知",members:"会員一覧・追加・削除",profiles:"招待・PIN再発行",dues:"会費の回収状況",finance:"大会収支",analytics:"アクセス分析",updates:"更新履歴",settings:"バックアップ・復元／設定"};
 if(S.adminSheet==="menu"){
 const nav=groups.map(g=>`<section style="margin:14px 0"><h2 style="margin:0 0 4px">${g.title}</h2><p class="sub" style="margin:0 0 8px">${g.desc}</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px">${g.items.map(([key,label,help])=>`<button class="g" style="text-align:left;min-height:58px;white-space:normal" onclick="setAdminSheet('${key}')"><span style="font-weight:800">${label}${adminSheetUnread(key)?' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;margin-left:4px" aria-label="未確認"></span>':""}</span><small style="display:block;font-weight:400;opacity:.75;margin-top:4px">${help}</small></button>`).join("")}</div></section>`).join("");
 return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者メニュー</h1><p class="sub">目的に合った項目を選んでください。</p>${nav}`
 }
-const view=S.adminSheet==="members"?adminMembers()+"<hr>"+adminProfiles():({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,analytics:adminAnalytics,settings:adminSettings})[S.adminSheet]();
+const view=S.adminSheet==="members"?adminMembers()+"<hr>"+adminProfiles():({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,dues:adminDues,events:adminEvents,posts:adminEvents,updates:adminUpdates,profiles:adminProfiles,analytics:adminAnalytics,settings:adminSettings})[S.adminSheet]();
 return `<div class="row" style="justify-content:space-between;align-items:center"><button class="g" onclick="setAdminSheet('menu')">← 管理者メニューに戻る</button><span class="badge" style="background:var(--warn)">ADMIN</span></div><h1>${labels[S.adminSheet]||"管理者"}</h1>${view}`
 }
 function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;if(sheet==="updates")markSeen("admin_updates");if(sheet==="feedbacks")markSeen("admin_feedbacks");S.adminSheet=sheet;draw();if(sheet==="settings")loadBackups();if(sheet==="profiles")loadPinStatus();if(sheet==="analytics"&&!analyticsCache)loadAdminAnalytics()}
@@ -1256,7 +1253,7 @@ ${who?`<div class="row"><textarea id="bd_text" data-keep rows="2" style="flex:1"
 async function bdSend(){const f=$("bd_text"),t=f.value.trim();if(!t)return;try{await rpc("board_post",{p_c:bch,p_text:t})}catch(e){console.error(e);alert("投稿できませんでした。入力内容は残しています");return}if(f)f.value="";try{await refreshRows(false);draw();toast("投稿しました")}catch(e){console.error(e);alert("投稿は保存済みですが、一覧の更新に失敗しました。再読み込みしてください")}}
 function bdEdit(id){const x=bdRows.find(y=>y.id===id);if(!x||x.n!==whoAmI())return;editDlg(x.t,async v=>{try{await rpc("board_edit",{p_id:id,p_text:v})}catch(e){console.error(e);alert("編集を保存できませんでした。入力内容は残しています");return false}try{await refreshRows(false);draw()}catch(e){console.error(e);alert("編集は保存済みですが、一覧更新に失敗しました。再読み込みしてください")}return true})}
 function bdDel(id){ask("この投稿を削除しますか？",async()=>{try{await rpc("board_delete",{p_id:id})}catch(e){alert("削除できませんでした");return}try{await refreshRows(false);draw()}catch(e){console.error(e);alert("投稿は削除済みですが、一覧更新に失敗しました。再読み込みしてください")}})}
-const MENU=[["試合・スコア",[["ev","🏆","大会モード","大会・トーナメントを進行"],["sc","🎯","スコア記録","試合中の得点を記録"],["lv","🏅","ランキング","成績・レベルを確認"],["ap","✅","試合の承認","登録された試合結果を確認"]]],["クラブ活動",[["cl","👥","メンバー","クラブの仲間を確認"],["co","🤝","仲間・募集","練習募集・交流イベント"],["pr","⏱️","練習ドリル","練習メニュー・タイマー"],["eq","🏓","用具の貸出","パドルなどの貸出・返却"]]],["マイページ",[["pf","👤","プロフィール","自己紹介・レベル・成績"],["gr","🎒","マイギア","自分のパドルを登録・管理"]]],["お知らせ・ヘルプ",[["nt","🔔","通知","クラブからのお知らせ"],["rules","📖","ルール","初めての人向けルールガイド"],["rh","📐","レーティングのしくみ","評価方法と注意点"],["th","🎨","見た目の設定","配色・文字・キャラクター"]]]];
+const MENU=[["試合・スコア",[["ev","🏆","大会モード","大会・トーナメントを進行"],["sc","🎯","スコア記録","試合中の得点を記録"],["lv","🏅","ランキング","成績・レベルを確認"],["ap","✅","試合の承認","登録された試合結果を確認"]]],["クラブ活動",[["cl","👥","メンバー","クラブの仲間を確認"],["events","📅","イベント募集","日程・場所を見て参加／不参加を回答"],["pr","⏱️","練習ドリル","練習メニュー・タイマー"],["eq","🏓","用具の貸出","パドルなどの貸出・返却"]]],["マイページ",[["pf","👤","プロフィール","自己紹介・レベル・成績"],["gr","🎒","マイギア","自分のパドルを登録・管理"]]],["お知らせ・ヘルプ",[["nt","🔔","通知","クラブからのお知らせ"],["rules","📖","ルール","初めての人向けルールガイド"],["rh","📐","レーティングのしくみ","評価方法と注意点"],["th","🎨","見た目の設定","配色・文字・キャラクター"]]]];
 function mo(){const me=ME&&S.members.some(m=>m.n===ME)?ME:null,st=lsGet("ph_st",{n:1}),lv=me&&S.rt&&S.rt[me]!=null?Number(S.rt[me]):null,u=unread();
 return `<span class="badge">MENU</span><h1>メニュー</h1>
 <div class="box" style="display:flex;gap:12px;align-items:center">${me?popAvatar(me,56):'<span style="font-size:36px">🔒</span>'}<div style="flex:1;min-width:0"><b style="font-size:18px;word-break:break-all">${esc(me||"管理者")}</b><div class="sub" style="margin:0">${me?`会員番号 ${esc(String(window.MYNO||"-"))}${lv!=null?` ／ LV ${lv.toFixed(1)}`:""} ／ 🔥${st.n||1}日連続`:"管理者としてログイン中"}</div></div>${me?'<button class="g" onclick="go(\'pf\')">プロフィール</button>':""}</div>
@@ -1349,10 +1346,41 @@ const editing=(S.events||[]).find(event=>event.id===S.adminEventEdit);
 const draft=S.adminForm||{};
 const dateValue=editing?.date||draft.event_date||"";
 const timeValue=editing?.time||draft.event_time||"",endValue=editing?.endTime||draft.event_end||"";
+const val=(key,fallback="")=>editing?.[key]??draft[key]??fallback;
 const sorted=(S.events||[]).map((event,index)=>({event,index})).sort((a,b)=>(a.event.date||"").localeCompare(b.event.date||""));
-return `<h2>${editing?"イベントを編集":"イベント日程を登録"}</h2><div class="box"><label>イベント名</label><input id="event_title" value="${esc(editing?.title||draft.event_title||"")}" placeholder="例: 週末ピックルボール練習会" style="width:100%"><label>開催日 <span class="sub">必須</span></label><input id="event_date" type="date" value="${esc(dateValue)}" style="width:100%"><label>開始時刻</label><select id="event_time" style="width:100%">${eventTimeOptions(timeValue)}</select><label>終了時刻</label><select id="event_end" style="width:100%">${eventTimeOptions(endValue)}</select><label>場所 <span class="sub">必須</span></label><input id="event_place" value="${esc(editing?.place||draft.event_place||"")}" list="event_place_options" placeholder="例: 中央公園テニスコート" style="width:100%"><datalist id="event_place_options">${adminSuggestionOptions("place")}</datalist><label>対象レベル</label><select id="event_level" style="width:100%">${[["all","全レベル"],["b","🌱 初心者歓迎"],["i","⚡ 中級"],["a","🔥 上級"]].map(([k,l])=>`<option value="${k}" ${(editing?.level||draft.event_level||"all")===k?"selected":""}>${l}</option>`).join("")}</select><label>募集人数（0は定員なし）</label><input id="event_capacity" type="number" min="0" max="999" value="${editing?.capacity??draft.event_capacity??0}" style="width:100%"><label>内容・持ち物など</label><textarea id="event_details" rows="4" style="width:100%">${esc(editing?.details||draft.event_details||"")}</textarea><p class="sub" style="margin:10px 0">🌐 イベントは常に一般公開されます。参加者の名前・個別の回答は公開画面には表示されません。</p><div class="row"><button onclick="saveEvent()">${editing?"変更を保存":"イベントを公開"}</button>${editing?'<button class="g" onclick="cancelEditEvent()">編集をやめる</button>':""}</div></div>
+return `<h2>${editing?"イベント募集を編集":"イベント募集を作成"}</h2><div class="box">
+<label>イベント名</label><input id="event_title" value="${esc(editing?.title||draft.event_title||"")}" placeholder="例: 週末ピックルボール練習会" style="width:100%">
+<label>開催日 <span class="sub">必須</span></label><input id="event_date" type="date" value="${esc(dateValue)}" style="width:100%">
+<label>開始時刻</label><select id="event_time" style="width:100%">${eventTimeOptions(timeValue)}</select>
+<label>終了時刻</label><select id="event_end" style="width:100%">${eventTimeOptions(endValue)}</select>
+<label>場所 <span class="sub">必須</span></label><input id="event_place" value="${esc(editing?.place||draft.event_place||"")}" list="event_place_options" placeholder="例: 中央公園テニスコート" style="width:100%"><datalist id="event_place_options">${adminSuggestionOptions("place")}</datalist>
+<label>募集の目的</label><select id="event_goal" style="width:100%">${["通常の参加募集","初心者向け体験会","大会・イベント告知","直前の追加募集","日時・場所の変更案内"].map(x=>`<option ${val("goal","通常の参加募集")===x?"selected":""}>${x}</option>`).join("")}</select>
+<label>届けたい相手</label><select id="event_audience" style="width:100%">${["初心者・初参加の人","クラブメンバー","経験者・中級者","家族や友人を含む地域の人","大会参加者","幅広いレベルの人"].map(x=>`<option ${val("audience","幅広いレベルの人")===x?"selected":""}>${x}</option>`).join("")}</select>
+<label>募集レベル</label><select id="event_level" style="width:100%">${[["all","全レベル"],["b","初心者歓迎"],["i","中級"],["a","上級"]].map(([k,l])=>`<option value="${k}" ${(editing?.level||draft.event_level||"all")===k?"selected":""}>${l}</option>`).join("")}</select>
+<label>文体（AI紹介文用）</label><select id="event_tone" style="width:100%">${["親しみやすく気軽","明るく元気","丁寧で落ち着いた","短く要点重視","初参加でも安心できる","スポーツらしく熱意のある"].map(x=>`<option ${val("tone","親しみやすく気軽")===x?"selected":""}>${x}</option>`).join("")}</select>
+<label>募集人数（0は定員なし）</label><input id="event_capacity" type="number" min="0" max="999" value="${editing?.capacity??draft.event_capacity??0}" style="width:100%">
+<label>内容・持ち物など</label><textarea id="event_details" rows="3" style="width:100%">${esc(editing?.details||draft.event_details||"")}</textarea>
+<label>募集の特徴</label><div class="row" style="flex-wrap:wrap">
+<label><input id="event_one_person" type="checkbox" ${(editing?.onePersonOK??draft.event_one_person??true)?"checked":""}> 一人参加OK</label>
+<label><input id="event_beginner" type="checkbox" ${(editing?.beginnerWelcome??draft.event_beginner??true)?"checked":""}> 初心者歓迎</label>
+<label><input id="event_rental" type="checkbox" ${(editing?.rentalAvailable??draft.event_rental??false)?"checked":""}> 道具貸出あり</label></div>
+<label>募集の紹介文（任意・AIで作成できます）</label><div class="row"><button type="button" onclick="askEventAI()">Geminiで紹介文を作る</button><button type="button" class="g" onclick="copyEventPrompt()">依頼文をコピー</button></div>
+<textarea id="event_promo" rows="4" style="width:100%" placeholder="参加したくなる紹介文を入力、またはAIの文章を貼り付け">${esc(editing?.promoText||draft.event_promo||"")}</textarea>
+<p class="sub" style="margin:10px 0">🌐 イベントは一般公開されます。参加者の名前・個別の回答は公開画面には表示されません。</p>
+<div class="row"><button onclick="saveEvent()">${editing?"変更を保存":"イベントを公開"}</button>${editing?'<button class="g" onclick="cancelEditEvent()">編集をやめる</button>':""}</div></div>
 <h2>イベント一覧・参加状況</h2>${sorted.map(({event,index})=>eventAdminCard(event,index)).join("")||'<p class="sub">登録済みイベントはありません。</p>'}`
 }
+function buildEventPrompt(){
+const title=$("event_title").value.trim()||"ピックルボールイベント";
+const date=$("event_date").value||"未入力",time=$("event_time").value||"未選択",end=$("event_end").value||"未選択";
+const place=$("event_place").value.trim()||"未入力",details=$("event_details").value.trim()||"追加情報なし";
+return `あなたは地域のピックルボールクラブの広報担当です。次の条件で、参加したくなる自然な日本語のイベント募集紹介文を作成してください。\nイベント名: ${title}\n目的: ${$("event_goal").value}\n対象: ${$("event_audience").value}\n募集レベル: ${$("event_level").selectedOptions[0]?.textContent||"全レベル"}\n文体: ${$("event_tone").value}\n開催日: ${date}\n時間: ${time}〜${end}\n場所: ${place}\n募集人数: ${$("event_capacity").value||"定員なし"}\n内容・持ち物: ${details}\n一人参加OK: ${$("event_one_person").checked?"はい":"いいえ"}\n初心者歓迎: ${$("event_beginner").checked?"はい":"いいえ"}\n道具貸出: ${$("event_rental").checked?"あり":"なし"}\n\n事実にない情報は追加せず、日時・場所・参加方法が分かりやすい文章にしてください。絵文字は控えめにし、本文だけを出力してください。`
+}
+async function copyEventPrompt(){
+const p=buildEventPrompt();
+try{await navigator.clipboard.writeText(p);toast("AIへの依頼文をコピーしました")}catch(e){const d=document.createElement("textarea");d.value=p;document.body.appendChild(d);d.select();toast("依頼文を選択しました。コピーしてください");d.remove()}
+}
+async function askEventAI(){const p=buildEventPrompt();window.open("https://gemini.google.com/app","_blank","noopener");try{await navigator.clipboard.writeText(p);toast("Geminiに依頼文を貼り付け、紹介文を下の欄に戻してください")}catch(e){toast("依頼文をコピーしてGeminiに貼り付けてください")}}
 function eventTimeOptions(selected=""){
 const options=Array.from({length:96},(_,index)=>`${String(Math.floor(index/4)).padStart(2,"0")}:${String(index%4*15).padStart(2,"0")}`);
 if(selected&&!options.includes(selected))options.unshift(selected);
@@ -1384,10 +1412,10 @@ async function saveEventMatchScore(id,matchId,index){const a=$("em_sa_"+index)?.
 async function setEventMatchLive(id,matchId,status){const m=(EVENT_MATCHES[id]||[]).find(x=>x.id===matchId);if(!m)return;try{await rpc("save_event_match",{p_event_id:id,p_id:matchId,p_court_number:m.court_number,p_team_a:m.team_a,p_team_b:m.team_b,p_score_a:m.score_a,p_score_b:m.score_b,p_status:status})}catch(e){console.error(e);alert("試合状態を保存できませんでした");return}try{EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw()}catch(e){console.error(e);alert("試合状態は保存済みですが、画面更新に失敗しました。再読み込みしてください")}}
 function eventAdminCard(event,index){
 const counts=eventCounts(event);
-return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">🌐 一般公開 ・ ${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="sub">不参加: ${counts.no.map(member=>esc(member.n)).join("、")||"なし"}</div>${counts.wait.length?`<div class="sub">キャンセル待ち: ${counts.wait.map(member=>esc(member.n)).join("、")}</div>`:""}<div class="sub">未回答: ${counts.unanswered.map(member=>esc(member.n)).join("、")||"なし"}</div><div class="event-paddle" data-mode="admin" data-event-id="${esc(event.id)}"><p class="sub">🏓 レンタル状況を確認中…</p></div><div class="row"><button onclick="openEventMatches(${jsArg(event.id)})">🏟️ 試合・スコア管理</button><button onclick="goDues(${jsArg(event.id)})">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
+return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">🌐 一般公開 ・ ${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.promoText?`<p style="white-space:pre-wrap;font-weight:600">${esc(event.promoText)}</p>`:""}${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row" style="gap:6px;flex-wrap:wrap">${event.onePersonOK?'<span class="chip">一人参加OK</span>':""}${event.beginnerWelcome||event.level==="b"?'<span class="chip">初心者歓迎</span>':""}${event.rentalAvailable?'<span class="chip">道具貸出あり</span>':""}</div><div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="sub">不参加: ${counts.no.map(member=>esc(member.n)).join("、")||"なし"}</div>${counts.wait.length?`<div class="sub">キャンセル待ち: ${counts.wait.map(member=>esc(member.n)).join("、")}</div>`:""}<div class="sub">未回答: ${counts.unanswered.map(member=>esc(member.n)).join("、")||"なし"}</div><div class="event-paddle" data-mode="admin" data-event-id="${esc(event.id)}"><p class="sub">🏓 レンタル状況を確認中…</p></div><div class="row"><button onclick="openEventMatches(${jsArg(event.id)})">🏟️ 試合・スコア管理</button><button onclick="goDues(${jsArg(event.id)})">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
 }
 function clearEventDraft(){
-const defaults={event_title:"",event_date:"",event_time:"",event_end:"",event_level:"all",event_place:"",event_capacity:"0",event_details:""};
+const defaults={event_title:"",event_date:"",event_time:"",event_end:"",event_level:"all",event_place:"",event_capacity:"0",event_details:"",event_goal:"通常の参加募集",event_audience:"幅広いレベルの人",event_tone:"親しみやすく気軽",event_promo:"",event_one_person:true,event_beginner:true,event_rental:false};
 S.adminForm=S.adminForm||{};
 Object.entries(defaults).forEach(([id,value])=>{S.adminForm[id]=value;const field=$(id);if(field)field.value=value});
 }
@@ -1398,7 +1426,7 @@ if(!date){alert("開催日を選択してください");return}
 if(!place){alert("開催場所を入力してください");return}
 if($("event_time").value&&$("event_end").value&&$("event_end").value<=$("event_time").value){alert("終了時刻は開始時刻より後にしてください");return}
 const previous=(S.events||[]).find(item=>item.id===S.adminEventEdit)||{};
-const event={...previous,id:S.adminEventEdit||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,title,date,level:$("event_level").value,time:$("event_time").value,endTime:$("event_end").value,place,capacity:Math.max(0,parseInt($("event_capacity").value,10)||0),details:$("event_details").value.trim(),isPublic:true,responses:previous.responses||{}};
+const event={...previous,id:S.adminEventEdit||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,title,date,level:$("event_level").value,time:$("event_time").value,endTime:$("event_end").value,place,capacity:Math.max(0,parseInt($("event_capacity").value,10)||0),details:$("event_details").value.trim(),goal:$("event_goal").value,audience:$("event_audience").value,tone:$("event_tone").value,promoText:$("event_promo").value.trim(),onePersonOK:$("event_one_person").checked,beginnerWelcome:$("event_beginner").checked,rentalAvailable:$("event_rental").checked,isPublic:true,responses:previous.responses||{}};
 S.events=S.events||[];
 const index=S.events.findIndex(item=>item.id===event.id);
 if(index>=0){S.events[index]=event}else S.events.push(event);
@@ -1424,7 +1452,7 @@ const full=event.capacity&&counts.yes.length>=event.capacity&&response!=="yes",w
 const controls=memberName?`<p class="sub">${memberIcon(memberName,24)} ${esc(memberName)}の回答: ${response==="yes"?"参加":response==="no"?"不参加":waiting?`キャンセル待ち（${wpos}番目）`:"未回答"}</p>${duesNote(event,memberName,response)}${response==="yes"?`<div class="event-paddle" data-mode="member" data-event-id="${esc(event.id)}"><p class="sub">🏓 パドル状況を確認中…</p></div>`:""}<div class="row">${waiting?"":`<button class="${response==="yes"?"":"g"}" onclick="respondEvent(${jsArg(event.id)},'yes')">${full?"⏳ キャンセル待ちに入る":response==="yes"?"✓ 参加中":"参加する"}</button>`}<button class="${response==="no"?"":"g"}" onclick="respondEvent(${jsArg(event.id)},'no')">${waiting?"キャンセル待ちをやめる":response==="no"?"✓ 不参加":"参加しない"}</button></div>${full&&!waiting?'<p class="sub">定員に達しています。「キャンセル待ち」に入ると、空きが出たとき早い順に自動で繰り上がります。</p>':""}${waiting?'<p class="sub">空きが出たら、早く並んだ順に自動で繰り上がります。</p>':""}`:'<p class="sub">参加予定メンバーと人数を表示しています。参加可否を回答するにはログインしてください。</p>';
 const memberList=(items,empty)=>items.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||empty;
 const responseLists="";
-return `<div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><p><b>場所:</b> ${esc(event.place)}</p>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div>${responseLists}${controls}<div class="row"><button class="g" onclick="openEventMatches(${jsArg(event.id)})">🏟️ 試合・スコアを見る</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
+return `<div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(event.title)}</h2><span class="sub">${esc(event.date)} ${esc(evTime(event))}</span></div><p><b>場所:</b> ${esc(event.place)}</p>${event.promoText?`<p style="white-space:pre-wrap;font-weight:600">${esc(event.promoText)}</p>`:""}${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row" style="gap:6px;flex-wrap:wrap">${event.onePersonOK?'<span class="chip">一人参加OK</span>':""}${event.beginnerWelcome||event.level==="b"?'<span class="chip">初心者歓迎</span>':""}${event.rentalAvailable?'<span class="chip">道具貸出あり</span>':""}</div><div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${event.capacity?`<span>定員 ${event.capacity}人 / 残り ${counts.remaining}人</span>`:""}</div>${responseLists}${controls}<div class="row"><button class="g" onclick="openEventMatches(${jsArg(event.id)})">🏟️ 試合・スコアを見る</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
 }
 
 async function fillEventPaddles(force=false){
