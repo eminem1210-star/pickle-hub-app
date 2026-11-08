@@ -1444,7 +1444,8 @@ function deleteEvent(index){ask("このイベントと参加回答を削除し�
 function events(){
 const selected=S.members.some(member=>member.n===profileSessionName)?profileSessionName:"";
 const upcoming=uniqueEvents(S.events||[]).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-return `<span class="badge">CLUB EVENTS</span><h1>イベント</h1><p class="sub">開催日と場所を確認し、参加可否を回答してください。</p>${selected?`<div class="row"><span>ログイン中: ${memberIcon(selected,24)} <b>${esc(selected)}</b></span></div>`:`<p class="sub">管理者アカウントでは参加の回答はできません。メンバーとしてログインして回答してください。</p>`}${upcoming.map(event=>eventMemberCard(event,selected)).join("")||'<p class="sub">公開中のイベントはありません。</p>'}${newsBoard()}`
+const legacy=(S.posts||[]).map((post,index)=>({post,index})).filter(x=>x.post.eventDate);
+return `<span class="badge">CLUB EVENTS</span><h1>イベント募集</h1><p class="sub">開催日と場所を確認し、参加・不参加を回答してください。</p>${selected?`<div class="row"><span>ログイン中: ${memberIcon(selected,24)} <b>${esc(selected)}</b></span></div>`:`<p class="sub">管理者アカウントでは参加の回答はできません。メンバーとしてログインして回答してください。</p>`}${upcoming.map(event=>eventMemberCard(event,selected)).join("")}${legacy.length?`<h2>以前の募集投稿</h2>${legacy.map(x=>postCard(x.post,x.index)).join("")}`:""}${!upcoming.length&&!legacy.length?'<p class="sub">公開中のイベントはありません。</p>':""}${newsBoard()}`
 }
 function eventMemberCard(event,memberName){
 const counts=eventCounts(event),response=event.responses&&event.responses[memberName];
