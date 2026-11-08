@@ -1563,19 +1563,40 @@ function analyticsTrendChart(daily){
   const labels=[0,Math.floor((rows.length-1)/2),rows.length-1].filter((v,i,a)=>a.indexOf(v)===i).map(i=>'<text x="'+px(i)+'" y="'+(H-10)+'" text-anchor="'+(i===0?"start":i===rows.length-1?"end":"middle")+'" font-size="11" fill="currentColor">'+esc(rows[i].day.slice(5))+'</text>').join("");
   return '<div style="width:100%;overflow:hidden"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="日別アクセス推移" style="display:block;width:100%;height:auto">'+ticks+'<path d="'+path("views")+'" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="'+path("visitors")+'" fill="none" stroke="#16a34a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>'+dots("views")+dots("visitors")+labels+'</svg></div><div class="row" style="gap:16px;flex-wrap:wrap"><span style="font-size:12px"><b style="color:#2563eb">●</b> ページ閲覧数</span><span style="font-size:12px"><b style="color:#16a34a">●</b> 訪問者数</span></div>';
 }
+function analyticsBars(items,key,labelFn){
+  const rows=(items||[]).filter(x=>Number(x[key])>0);
+  if(!rows.length)return '<p class="sub">この期間のデータはまだありません。</p>';
+  const max=Math.max(1,...rows.map(x=>Number(x[key])||0));
+  return rows.map(x=>{
+    const n=Number(x[key])||0;
+    return '<div style="margin:9px 0"><div class="row" style="justify-content:space-between;gap:8px"><span>'+esc(labelFn(x))+'</span><b>'+n.toLocaleString()+'回</b></div><div style="height:9px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:4px"><div style="height:100%;width:'+(n/max*100)+'%;background:#0d9488;border-radius:9px"></div></div></div>';
+  }).join('');
+}
 function renderAdminAnalytics(d){
   if(!d)return '<p class="sub">データがありません。</p>';
-  const pages=d.pages||[],daily=d.daily||[];
+  const pages=d.pages||[],daily=d.daily||[],members=d.members||[];
   const total=Number(d.total_views||0),visitors=Number(d.unique_visitors||0),logged=Number(d.logged_in_views||0);
   const avg=daily.length?Math.round(daily.reduce((n,x)=>n+(Number(x.views)||0),0)/daily.length):0;
   const peak=daily.reduce((best,x)=>(Number(x.views)||0)>(Number(best?.views)||0)?x:best,null);
+  const prev=Number(d.previous_views||0),delta=prev?Math.round((total-prev)/prev*100):null;
   const maxPage=Math.max(1,...pages.map(x=>Number(x.views)||0));
-  return '<div class="tiles"><div class="tile"><small>ページ閲覧数</small><b class="big">'+total.toLocaleString()+'</b><small>選択期間の合計</small></div><div class="tile"><small>訪問者数（推定）</small><b class="big">'+visitors.toLocaleString()+'</b><small>匿名ブラウザIDで集計</small></div><div class="tile"><small>ログイン済み閲覧</small><b class="big">'+logged.toLocaleString()+'</b><small>ログイン後の閲覧</small></div></div>'+
-  '<div class="grid2" style="margin-top:10px"><div class="box"><small class="sub">1日平均の閲覧数</small><div style="font-size:24px;font-weight:900">'+avg.toLocaleString()+'<small> 回</small></div></div><div class="box"><small class="sub">最も見られた日</small><div style="font-size:18px;font-weight:900">'+(peak?esc(peak.day)+' / '+Number(peak.views||0).toLocaleString()+'回':'データなし')+'</div></div></div>'+
+  const roleLabels={anon:"ログアウト・匿名",member:"会員",admin:"管理者"};
+  const memberRows=members.length?members.map(m=>{
+    const pg=(m.pages||[]).map(p=>esc(p.path)+': '+Number(p.views||0)+'回').join(' / ');
+    return '<tr><td><b>'+esc(m.member||'会員')+'</b><small class="sub" style="display:block">'+esc(roleLabels[m.role]||m.role||'')+'</small></td><td>'+Number(m.views||0).toLocaleString()+'回</td><td>'+esc(m.last_seen?new Date(m.last_seen).toLocaleString("ja-JP"):"")+'</td><td><small>'+pg+'</small></td></tr>';
+  }).join(''):'<tr><td colspan="4" class="sub">この期間に記録されたログイン会員のアクセスはありません。今後のアクセスから記録されます。</td></tr>';
+  const roles=d.roles||[];
+  return '<div class="tiles"><div class="tile"><small>ページ閲覧数</small><b class="big">'+total.toLocaleString()+'</b><small>選択期間の合計</small></div><div class="tile"><small>訪問者数（推定）</small><b class="big">'+visitors.toLocaleString()+'</b><small>ブラウザ単位</small></div><div class="tile"><small>ログイン済み閲覧</small><b class="big">'+logged.toLocaleString()+'</b><small>会員・管理者</small></div></div>'+
+  '<div class="grid2" style="margin-top:10px"><div class="box"><small class="sub">1日平均の閲覧数</small><div style="font-size:24px;font-weight:900">'+avg.toLocaleString()+'<small> 回</small></div></div><div class="box"><small class="sub">前の同じ期間との比較</small><div style="font-size:24px;font-weight:900">'+(delta===null?'比較データなし':(delta>0?'+':'')+delta+'%')+'</div><small class="sub">前期間 '+prev.toLocaleString()+'回 → 今期間 '+total.toLocaleString()+'回</small></div></div>'+
+  '<div class="box" style="margin-top:10px"><b>最も見られた日</b><div style="font-size:18px;font-weight:900;margin-top:5px">'+(peak?esc(peak.day)+' / '+Number(peak.views||0).toLocaleString()+'回':'データなし')+'</div></div>'+
   '<h3>アクセスの推移</h3><div class="box">'+analyticsTrendChart(daily)+'</div>'+
+  '<h3>アクセスが多い時間帯</h3><div class="box">'+analyticsBars(d.hourly||[],"views",x=>String(x.hour).padStart(2,"0")+ "時")+'</div>'+
+  '<h3>曜日別の利用状況</h3><div class="box">'+analyticsBars(d.weekdays||[],"views",x=>({1:"月曜日",2:"火曜日",3:"水曜日",4:"木曜日",5:"金曜日",6:"土曜日",7:"日曜日"}[Number(x.weekday)]||x.label||""))+'</div>'+
+  '<h3>利用者の内訳</h3><div class="box">'+(roles.map(x=>'<div class="row" style="justify-content:space-between;padding:5px 0"><span>'+esc(roleLabels[x.role]||x.role||'その他')+'</span><b>'+Number(x.views||0).toLocaleString()+'回 / '+Number(x.visitors||0).toLocaleString()+'人</b></div>').join('')||'<p class="sub">データなし</p>')+'</div>'+
   '<h3>よく見られているページ</h3><div class="box">'+(pages.length?pages.slice().sort((a,b)=>(Number(b.views)||0)-(Number(a.views)||0)).map(x=>{const v=Number(x.views)||0;return '<div style="margin:10px 0"><div class="row" style="justify-content:space-between;gap:8px"><b>'+esc(x.path||'/')+'</b><span>'+v.toLocaleString()+'回 <small class="sub">/ '+Number(x.visitors||0).toLocaleString()+'人</small></span></div><div style="height:9px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:5px"><div style="height:100%;width:'+(v/maxPage*100)+'%;background:#2563eb;border-radius:9px"></div></div></div>'}).join(''):'<p class="sub">まだデータがありません</p>')+'</div>'+
+  '<h3>会員別アクセス</h3><p class="sub">ログイン中に記録されたアクセスです。個人別データは管理者のみ確認できます。</p><div class="box" style="overflow:auto"><table><tr><th>会員</th><th>閲覧数</th><th>最終アクセス</th><th>閲覧ページ</th></tr>'+memberRows+'</table></div>'+
   '<details class="box"><summary style="font-weight:800;cursor:pointer">日別の数字を一覧で見る</summary><div style="overflow:auto;margin-top:10px"><table><tr><th>日付</th><th>閲覧数</th><th>訪問者数</th></tr>'+daily.slice().reverse().map(x=>'<tr><td>'+esc(x.day||'')+'</td><td>'+Number(x.views||0).toLocaleString()+'</td><td>'+Number(x.visitors||0).toLocaleString()+'</td></tr>').join('')+'</table></div></details>'+
-  '<p class="sub">※訪問者数はブラウザごとの匿名IDによる推定値です。Cookie・ブラウザ変更・履歴削除などで同じ人が複数として数えられる場合があります。IPアドレスや氏名は収集しません。</p>';
+  '<p class="sub">※会員名はログイン時のセッション情報に基づきます。ログアウト中のアクセスは匿名集計です。訪問者数はブラウザ単位の推定値で、同じ人が複数に数えられる場合があります。IPアドレスや端末情報は収集しません。</p>';
 }
 function adminAnalytics(){return `<h2>アクセス分析</h2><p class="sub">アプリがいつ・どのページをどれだけ利用されたかを確認できます。</p><div class="row"><button class="${analyticsDays===7?'':'g'}" onclick="loadAdminAnalytics(7)">7日</button><button class="${analyticsDays===30?'':'g'}" onclick="loadAdminAnalytics(30)">30日</button><button class="${analyticsDays===90?'':'g'}" onclick="loadAdminAnalytics(90)">90日</button><button class="g" onclick="loadAdminAnalytics(analyticsDays)">更新</button></div><div class="box" id="admin_analytics_body"><p class="sub">読み込み中…</p></div>`}
 function adminSettings(){return `<h2>管理者設定</h2><div class="box"><label>管理者パスワード変更</label><div class="row"><input id="new_pw" type="password" placeholder="新しいパスワード"><button onclick="changePw()">変更する</button></div></div><h2>レーティング</h2><div class="box"><p class="sub">計算パラメータ（rating_params）を変えたあとに、全試合を最初から再計算します。</p><button onclick="rmRecalc()">全試合を再計算する</button></div><h2>自動バックアップ</h2><p class="sub">アプリを開いた最初の日ごとに自動で保存されます(直近30日分)。間違えて消したときは、ここから戻せます。</p><div class="box" id="bk_list"><p class="sub">読み込み中…</p></div>`}
