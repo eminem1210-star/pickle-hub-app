@@ -1555,13 +1555,15 @@ async function loadAdminAnalytics(days=analyticsDays){
 function analyticsTrendChart(daily){
   const rows=(daily||[]).map(x=>({day:String(x.day||""),views:Math.max(0,Number(x.views)||0),visitors:Math.max(0,Number(x.visitors)||0)}));
   if(!rows.length)return '<p class="sub">日別データが集まると、ここに推移グラフが表示されます。</p>';
-  const W=720,H=230,L=42,R=14,T=18,B=38,innerW=W-L-R,innerH=H-T-B,max=Math.max(1,...rows.map(x=>x.views));
+  const W=760,H=270,L=54,R=18,T=22,B=48,innerW=W-L-R,innerH=H-T-B,max=Math.max(1,...rows.map(x=>x.views));
   const px=i=>L+(rows.length===1?innerW/2:i*innerW/(rows.length-1)),py=v=>T+innerH-(v/max)*innerH;
   const path=key=>rows.map((x,i)=>(i?"L":"M")+px(i).toFixed(1)+" "+py(x[key]).toFixed(1)).join(" ");
-  const dots=key=>rows.map((x,i)=>'<circle cx="'+px(i).toFixed(1)+'" cy="'+py(x[key]).toFixed(1)+'" r="3.5" fill="'+(key==="views"?"#2563eb":"#16a34a")+'"><title>'+esc(x.day)+' '+(key==="views"?"閲覧":"訪問者")+': '+x[key]+'</title></circle>').join("");
-  const ticks=[0,.5,1].map(v=>{const y=T+innerH-v*innerH;return '<line x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'" stroke="currentColor" opacity=".12"/><text x="'+(L-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="currentColor">'+Math.round(max*v)+'</text>'}).join("");
-  const labels=[0,Math.floor((rows.length-1)/2),rows.length-1].filter((v,i,a)=>a.indexOf(v)===i).map(i=>'<text x="'+px(i)+'" y="'+(H-10)+'" text-anchor="'+(i===0?"start":i===rows.length-1?"end":"middle")+'" font-size="11" fill="currentColor">'+esc(rows[i].day.slice(5))+'</text>').join("");
-  return '<div style="width:100%;overflow:hidden"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="日別アクセス推移" style="display:block;width:100%;height:auto">'+ticks+'<path d="'+path("views")+'" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="'+path("visitors")+'" fill="none" stroke="#16a34a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>'+dots("views")+dots("visitors")+labels+'</svg></div><div class="row" style="gap:16px;flex-wrap:wrap"><span style="font-size:12px"><b style="color:#2563eb">●</b> ページ閲覧数</span><span style="font-size:12px"><b style="color:#16a34a">●</b> 訪問者数</span></div>';
+  const dots=key=>rows.map((x,i)=>'<circle cx="'+px(i).toFixed(1)+'" cy="'+py(x[key]).toFixed(1)+'" r="4" fill="'+(key==="views"?"#2563eb":"#16a34a")+'"><title>'+esc(x.day)+' '+(key==="views"?"閲覧":"訪問者")+': '+x[key]+'</title></circle>').join("");
+  const ticks=[0,.5,1].map(v=>{const y=T+innerH-v*innerH;return '<line x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'" stroke="currentColor" opacity=".16"/><text x="'+(L-10)+'" y="'+(y+5)+'" text-anchor="end" font-size="14" font-weight="600" fill="currentColor">'+Math.round(max*v)+'</text>'}).join("");
+  // 日付ラベルは1日おきに表示し、最後の日付も必ず表示
+  const labelIndexes=rows.map((x,i)=>i).filter(i=>i%2===0||i===rows.length-1);
+  const labels=labelIndexes.map(i=>'<text x="'+px(i)+'" y="'+(H-12)+'" text-anchor="'+(i===0?"start":i===rows.length-1?"end":"middle")+'" font-size="14" font-weight="600" fill="currentColor">'+esc(rows[i].day.slice(5))+'</text>').join("");
+  return '<div style="width:100%;overflow:hidden"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="日別アクセス推移、日付は1日おきに表示" style="display:block;width:100%;height:auto">'+ticks+'<path d="'+path("views")+'" fill="none" stroke="#2563eb" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="'+path("visitors")+'" fill="none" stroke="#16a34a" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>'+dots("views")+dots("visitors")+labels+'</svg></div><div class="row" style="gap:18px;flex-wrap:wrap;margin-top:5px"><span style="font-size:14px"><b style="color:#2563eb">●</b> ページ閲覧数</span><span style="font-size:14px"><b style="color:#16a34a">●</b> 訪問者数</span></div>';
 }
 function analyticsBars(items,key,labelFn){
   const rows=(items||[]).filter(x=>Number(x[key])>0);
