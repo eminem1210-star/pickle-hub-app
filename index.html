@@ -1377,7 +1377,7 @@ async function openEventMatches(id){EVENT_MATCH_ACTIVE=id;try{EVENT_MATCHES[id]=
 function closeEventMatches(){EVENT_MATCH_ACTIVE="";draw()}
 async function addEventMatch(id){const vals=["em_a1","em_a2","em_b1","em_b2"].map(k=>$(k)?.value||"");if(vals.some(v=>!v)||new Set(vals).size!==4){alert("4人を重複しないように選択してください");return}try{await rpc("save_event_match",{p_event_id:id,p_id:null,p_court_number:Math.max(1,parseInt($("em_court").value,10)||1),p_team_a:vals.slice(0,2),p_team_b:vals.slice(2),p_score_a:null,p_score_b:null,p_status:"upcoming"})}catch(e){console.error(e);alert("対戦カードを保存できませんでした。入力内容は残しています");return}try{EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw();toast("対戦カードを追加しました")}catch(e){console.error(e);alert("対戦カードは保存済みですが、一覧の更新に失敗しました。再読み込みしてください")}}
 async function saveEventMatchScore(id,matchId,index){const a=$("em_sa_"+index)?.value.trim()??"",b=$("em_sb_"+index)?.value.trim()??"";if(a===""||b===""||!/^\d+$/.test(a)||!/^\d+$/.test(b)||+a===+b){alert("0以上の整数で、同点にならないスコアを入力してください");return}try{await rpc("save_event_match",{p_event_id:id,p_id:matchId,p_court_number:null,p_team_a:null,p_team_b:null,p_score_a:+a,p_score_b:+b,p_status:"completed"})}catch(e){console.error(e);alert("スコアを保存できませんでした。入力内容は残しています");return}try{EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw();toast("スコアを保存しました")}catch(e){console.error(e);alert("スコアは保存済みですが、一覧の更新に失敗しました。再読み込みしてください")}}
-async function setEventMatchLive(id,matchId,status){try{const m=(EVENT_MATCHES[id]||[]).find(x=>x.id===matchId);if(!m)return;await rpc("save_event_match",{p_event_id:id,p_id:matchId,p_court_number:m.court_number,p_team_a:m.team_a,p_team_b:m.team_b,p_score_a:m.score_a,p_score_b:m.score_b,p_status:status});EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw()}catch(e){alert("試合状態を更新できませんでした")}}
+async function setEventMatchLive(id,matchId,status){const m=(EVENT_MATCHES[id]||[]).find(x=>x.id===matchId);if(!m)return;try{await rpc("save_event_match",{p_event_id:id,p_id:matchId,p_court_number:m.court_number,p_team_a:m.team_a,p_team_b:m.team_b,p_score_a:m.score_a,p_score_b:m.score_b,p_status:status})}catch(e){console.error(e);alert("試合状態を保存できませんでした");return}try{EVENT_MATCHES[id]=await rpc("get_event_matches",{p_event_id:id})||[];draw()}catch(e){console.error(e);alert("試合状態は保存済みですが、画面更新に失敗しました。再読み込みしてください")}}
 function eventAdminCard(event,index){
 const counts=eventCounts(event);
 return `<div class="box"><div class="row" style="justify-content:space-between"><b>${esc(event.title)}</b><span class="sub">🌐 一般公開 ・ ${esc(event.date)} ${esc(evTime(event))}</span></div><div class="sub">開催場所: ${esc(event.place)}${event.capacity?` / 定員 ${event.capacity}人`:" / 定員なし"}</div>${event.details?`<p style="white-space:pre-wrap">${esc(event.details)}</p>`:""}<div class="row"><span>参加 <b>${counts.yes.length}</b>人</span><span>不参加 <b>${counts.no.length}</b>人</span><span>未回答 <b>${counts.unanswered.length}</b>人</span>${counts.wait.length?`<span>キャンセル待ち <b>${counts.wait.length}</b>人</span>`:""}${counts.remaining!=null?`<span>残り <b>${counts.remaining}</b>人</span>`:""}</div><div class="sub">参加予定: ${counts.yes.map(member=>`${memberIcon(member.n,24)} ${esc(member.n)}`).join("、")||"なし"}</div><div class="sub">不参加: ${counts.no.map(member=>esc(member.n)).join("、")||"なし"}</div>${counts.wait.length?`<div class="sub">キャンセル待ち: ${counts.wait.map(member=>esc(member.n)).join("、")}</div>`:""}<div class="sub">未回答: ${counts.unanswered.map(member=>esc(member.n)).join("、")||"なし"}</div><div class="event-paddle" data-mode="admin" data-event-id="${esc(event.id)}"><p class="sub">🏓 レンタル状況を確認中…</p></div><div class="row"><button onclick="openEventMatches(${jsArg(event.id)})">🏟️ 試合・スコア管理</button><button onclick="goDues(${jsArg(event.id)})">会費の回収</button><button class="g" onclick="editEvent(${index})">編集</button><button class="x" onclick="deleteEvent(${index})">イベント削除</button></div>${EVENT_MATCH_ACTIVE===event.id?eventMatchPanel(event):""}</div>`
@@ -1466,13 +1466,9 @@ async function eventPaddleRespond(eventId,choice){
 
 async function respondEvent(eventId,status){
 const event=(S.events||[]).find(i=>i.id===eventId);if(!event||!profileSessionName){alert("ログインし直してください");return}
-try{
-const r=await rpc("event_respond",{p_event:eventId,p_status:status});
-const st=(r&&r.status)||status;
+let st=status;try{const r=await rpc("event_respond",{p_event:eventId,p_status:status});st=(r&&r.status)||status}catch(e){console.error(e);alert("回答を保存できませんでした。通信状態を確認してください");return}
 logMemberUpdate(profileSessionName,(st==="yes"?"イベント参加回答: ":st==="wait"?"キャンセル待ち登録: ":"イベント不参加回答: ")+event.title);
-await reloadState();
-toast(st==="yes"?"参加で回答しました":st==="wait"?"満員のため、キャンセル待ちに登録しました。空きが出たら自動で繰り上がります":"不参加で回答しました");
-}catch(e){console.error(e);alert("回答できませんでした")}
+try{await reloadState();toast(st==="yes"?"参加で回答しました":st==="wait"?"満員のため、キャンセル待ちに登録しました。空きが出たら自動で繰り上がります":"不参加で回答しました")}catch(e){console.error(e);alert("回答は保存済みですが、画面更新に失敗しました。再読み込みしてください")}
 }
 function adminUpdates(){
 const audit=S.memberAudit||[];
@@ -1753,13 +1749,9 @@ async function sesScAgain(){
 }
 async function sesScApply(){const t=SCS&&SCS.sessionTarget;if(!t)return;const x=S.rounds[t.r]&&S.rounds[t.r].m[t.m];if(!x)return;
  const a=Number(SCS.sc[0]),b=Number(SCS.sc[1]);
- try{
-   await rpc("session_match_result",{p_round:t.r,p_match:t.m,p_score_a:a,p_score_b:b});
-   x.sa=a;x.sb=b;x.st=a===b?"in_progress":"completed";
-   if(a!==b)maybeRecord(x);
-   await reloadState(false);
-   sesCloseRally();draw();toast(a===b?"同点の途中経過を保存しました":"ラリーのスコアを対戦結果に保存しました！");
- }catch(e){console.error("PICKLE HUB rally score save:",e);alert("スコアを保存できませんでした。もう一度お試しください。");}
+ try{await rpc("session_match_result",{p_round:t.r,p_match:t.m,p_score_a:a,p_score_b:b})}catch(e){console.error("PICKLE HUB rally score save:",e);alert("スコアを保存できませんでした。入力内容は残しています");return}
+ x.sa=a;x.sb=b;x.st=a===b?"in_progress":"completed";if(a!==b)maybeRecord(x);
+ try{await reloadState(false);sesCloseRally();draw();toast(a===b?"同点の途中経過を保存しました":"ラリーのスコアを対戦結果に保存しました！")}catch(e){console.error(e);alert("スコアは保存済みですが、画面更新に失敗しました。再読み込みしてください")}
 }
 /* 3. 結果入力・集計 */
 function sesRank(){const t=table().filter(r=>r.g>0).map(r=>({...r,n:S.players[r.i],rate:r.w/r.g}));return t.sort((a,b)=>b.rate-a.rate||b.w-a.w||b.d-a.d)}
@@ -1832,7 +1824,7 @@ const topExtras=()=>`<div class="topx">${topInner()}</div>`;
 const STATS={},LB={v:null,t:0},GEAR={},EPADDLE={};let GRIMG="";
 const stOf=x=>isDone(x)?"completed":x.st==="in_progress"?"in_progress":"upcoming";
 const stkOf=x=>{const s=stOf(x);return s==="completed"?'<span class="stk">FINISHED 🏁</span>':s==="in_progress"?'<span class="stk r">LIVE 🔴</span>':'<span class="stk r">NEXT ⏳</span>'};
-async function sesStart(r,m){const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;const status=x.st==="in_progress"?"upcoming":"in_progress";try{await rpc("session_match_status",{p_round:r,p_match:m,p_status:status});await reloadState(false);draw();toast(status==="in_progress"?"試合を開始しました":"待機状態に戻しました")}catch(e){console.error("session match status failed",e);alert(String(e.message||"").includes("forbidden")?"自分が参加する対戦のみ状態を変更できます。":"試合状態を保存できませんでした。");try{await reloadState(false);draw()}catch(x){}}}
+async function sesStart(r,m){const x=S.rounds[r]&&S.rounds[r].m[m];if(!x)return;const status=x.st==="in_progress"?"upcoming":"in_progress";try{await rpc("session_match_status",{p_round:r,p_match:m,p_status:status})}catch(e){console.error("session match status failed",e);alert(String(e.message||"").includes("forbidden")?"自分が参加する対戦のみ状態を変更できませんでした。":"試合状態を保存できませんでした");return}try{await reloadState(false);draw();toast(status==="in_progress"?"試合を開始しました":"待機状態に戻しました")}catch(e){console.error(e);alert("試合状態は保存済みですが、画面更新に失敗しました。再読み込みしてください")}}
 function courtBoard(){const list=matchList();if(!list.length)return"";const n=Math.max(1,S.courts||1);
 return `<h2>🏟️ コートボード</h2><div class="scgrid">${Array.from({length:n},(_,i)=>{const c=i+1,on=list.filter(o=>(o.x.court||o.m+1)===c&&!isDone(o.x)),live=on.find(o=>o.x.st==="in_progress"),nx=on.find(o=>o.x.st!=="in_progress");
 return `<div class="box scard" style="margin:12px 0 4px"><span class="stk ${live?"r":""}">COURT ${c}</span>${live?`<div style="font-size:12px"><b>🔴 LIVE</b><br>${teamPop(live.x.a)}<br><b>vs</b><br>${teamPop(live.x.b)}</div>`:`<div class="sub" style="margin:0">🟢 空きコート</div>`}${nx?`<div class="sub" style="margin:6px 0 0">次: ${esc(nx.x.a.map(i=>S.players[i]).join("・"))} vs ${esc(nx.x.b.map(i=>S.players[i]).join("・"))}</div>`:""}</div>`}).join("")}</div>`}
