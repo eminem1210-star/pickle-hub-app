@@ -507,7 +507,8 @@ const save=()=>{SAVE_DIRTY=true;SAVE_REV++;pending++;saveQ=saveQ.then(flushSave)
 window.addEventListener("beforeunload",e=>{if(pending>0||SAVE_DIRTY||RALLY_DIRTY){e.preventDefault();e.returnValue=""}});
 async function saveOrRestore(message){
   if(await save())return true;
-  try{await reloadState(false)}catch(e){console.error(e)}
+  const failedRev=SAVE_REV;
+  try{await reloadState(false);if(failedRev===SAVE_REV)SAVE_DIRTY=false}catch(e){console.error(e)}
   draw();
   if(message)alert(message);
   return false
