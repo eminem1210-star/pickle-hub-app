@@ -1378,9 +1378,9 @@ return `あなたは地域のピックルボールクラブの広報担当です
 }
 async function copyEventPrompt(){
 const p=buildEventPrompt();
-try{await navigator.clipboard.writeText(p);toast("AIへの依頼文をコピーしました")}catch(e){const d=document.createElement("textarea");d.value=p;document.body.appendChild(d);d.select();toast("依頼文を選択しました。コピーしてください");d.remove()}
+try{await navigator.clipboard.writeText(p);toast("AIへの依頼文をコピーしました")}catch(e){showCopy(p)}
 }
-async function askEventAI(){const p=buildEventPrompt();window.open("https://gemini.google.com/app","_blank","noopener");try{await navigator.clipboard.writeText(p);toast("Geminiに依頼文を貼り付け、紹介文を下の欄に戻してください")}catch(e){toast("依頼文をコピーしてGeminiに貼り付けてください")}}
+async function askEventAI(){const p=buildEventPrompt();window.open("https://gemini.google.com/app","_blank","noopener");try{await navigator.clipboard.writeText(p);toast("Geminiに依頼文を貼り付け、紹介文を下の欄に戻してください")}catch(e){showCopy(p)}}
 function eventTimeOptions(selected=""){
 const options=Array.from({length:96},(_,index)=>`${String(Math.floor(index/4)).padStart(2,"0")}:${String(index%4*15).padStart(2,"0")}`);
 if(selected&&!options.includes(selected))options.unshift(selected);
