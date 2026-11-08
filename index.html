@@ -477,7 +477,7 @@ let tab="hm",S={players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:
 
 // データの保存（Supabaseに書き込み ＆ localStorageにも一時保存）
 const defaultS=()=>({players:[],courts:2,rounds:[],posts:[],members:[],news:[],queue:[],rentals:[]});
-let loaded=false,saveQ=Promise.resolve(),pending=0,RALLY_DIRTY=false,TOKEN=localStorage.getItem("ph_tok")||"",ROLE="",ME="",bdRows=[],dmRows=[],PINST={},pollKey="",pollTimer=null;
+let loaded=false,saveQ=Promise.resolve(),pending=0,SAVE_DIRTY=false,SAVE_REV=0,RALLY_DIRTY=false,TOKEN=localStorage.getItem("ph_tok")||"",ROLE="",ME="",bdRows=[],dmRows=[],PINST={},pollKey="",pollTimer=null;
 const LOCAL_KEYS=["profileMember","levelMember","radarCompareIndex","rentalMember","adminSheet","adminEventEdit","duesEvent"];
 function relogin(msg){TOKEN="";ROLE="";ME="";loaded=false;try{localStorage.removeItem("ph_tok")}catch(e){}showLogin(msg)}
 let syncCh=null;
@@ -489,11 +489,12 @@ async function rpc(fn,args={}){const track=!READ_RE.test(fn);if(track)pending++;
 async function rpc0(fn,args){const track=!RPC0_READ_RE.test(fn);if(track)pending++;try{const{data,error}=await supabaseClient.rpc(fn,args);if(error)throw error;return data}finally{if(track)pending--}}
 async function reloadState(redraw=true,notify=false){const st=await rpc("get_state"),keep={};LOCAL_KEYS.forEach(k=>{if(S[k]!==undefined)keep[k]=S[k]});const old=S;S=Object.assign(defaultS(),st,keep);if(notify){try{notifyDiff(old,S)}catch(e){}}if(redraw)draw()}
 async function flushSave(){
+  const saveRev=SAVE_REV;
   if(!loaded||!TOKEN)return false;
   const out={...S};LOCAL_KEYS.forEach(k=>delete out[k]);
   try{
     const r=await rpc("save_state",{p_data:out,p_expected:+S._v||0});
-    if(r&&r.ok){S._v=r.v;return true}
+    if(r&&r.ok){S._v=r.v;if(saveRev===SAVE_REV)SAVE_DIRTY=false;return true}
     if(r&&r.conflict){await reloadState();toast("他の人が先に更新したため、最新の内容に更新しました。もう一度操作してください");return false}
   }catch(e){
     console.error(e);
@@ -501,9 +502,9 @@ async function flushSave(){
     else if(!String(e.message||"").includes("unauthorized"))toast("保存できませんでした。通信状況を確認してください");
   }
   return false}
-const save=()=>{pending++;saveQ=saveQ.then(flushSave).catch(e=>{console.error(e);return false}).finally(()=>{pending--});return saveQ};
+const save=()=>{SAVE_DIRTY=true;SAVE_REV++;pending++;saveQ=saveQ.then(flushSave).catch(e=>{console.error(e);return false}).finally(()=>{pending--});return saveQ};
 // 保存処理中の再読み込み・ページ離脱による未保存を防ぐ
-window.addEventListener("beforeunload",e=>{if(pending>0||RALLY_DIRTY){e.preventDefault();e.returnValue=""}});
+window.addEventListener("beforeunload",e=>{if(pending>0||SAVE_DIRTY||RALLY_DIRTY){e.preventDefault();e.returnValue=""}});
 async function saveOrRestore(message){
   if(await save())return true;
   try{await reloadState(false)}catch(e){console.error(e)}
