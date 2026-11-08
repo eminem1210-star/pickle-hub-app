@@ -1739,10 +1739,9 @@ function sesCloseRally(){const d=document.getElementById("ses-rally");if(d)d.rem
 async function sesScAgain(){
  const t=SCS&&SCS.sessionTarget;
  if(t){
-   try{
-     await rpc("session_match_result",{p_round:t.r,p_match:t.m,p_score_a:0,p_score_b:0});
-     await reloadState(false);
-   }catch(e){console.error("PICKLE HUB session score reset:",e);toast("対戦カードへのリセット保存に失敗しました");return;}
+   const before=S.rounds[t.r]&&S.rounds[t.r].m[t.m],oldKey=before&&before.k;
+   try{await rpc("session_match_result",{p_round:t.r,p_match:t.m,p_score_a:0,p_score_b:0});await reloadState(false)}catch(e){console.error("PICKLE HUB session score reset:",e);toast("対戦カードへのリセット保存に失敗しました");return}
+   if(oldKey)await voidRemovedRatings([{k:oldKey}]);
  }
  scReset();
  if(t)draw();
@@ -1842,9 +1841,9 @@ const rmErr=e=>{const m=String((e&&e.message)||""),h=RMERR.find(([k])=>m.include
 function clearRM(){Object.keys(STATS).forEach(k=>delete STATS[k]);LB.v=null;PEND.t=0}
 /* 試合結果を送信（サーバーが検証・承認管理・再計算する。同じ内容の再送は二重反映されない） */
 async function maybeRecord(x){if(!isDone(x))return false;const A=x.a.map(i=>S.players[i]),B=x.b.map(i=>S.players[i]);if(A.concat(B).some(n=>!n))return false;
-const sig=x.sa+"-"+x.sb+"|"+A.join(",")+"|"+B.join(",");if(x.rk===sig)return true;x.k=x.k||(uid()+uid());x.rk=sig;x.pa=x.pa||new Date().toISOString();
-if(!await save()){x.rk="";toast("レーティング登録用の記録キーを保存できませんでした。スコアは保存済みです。再度スコアを保存してください");return false}
-try{const r=await rpc("submit_match",{p_key:x.k,p_team_a:A,p_team_b:B,p_games:[[x.sa,x.sb]],p_rules:{target:(typeof SCS!=="undefined"&&SCS.t)||11,win_by:(typeof SCS!=="undefined"&&SCS.w2===false)?1:2},p_played_at:x.pa,p_outcome:"completed"});clearRM();if(r&&r.status==="pending")toast("結果を登録しました。出場者全員の承認後に、レーティングへ反映されます（メニュー → 試合の承認）");return true}catch(e){console.error(e);x.rk="";try{await save()}catch(saveError){console.error(saveError)}toast(rmErr(e));return false}}
+const sig=x.sa+"-"+x.sb+"|"+A.join(",")+"|"+B.join(",");x.k=x.k||(uid()+uid());x.rk=sig;x.pa=x.pa||new Date().toISOString();
+if(!await save()){toast("レーティング登録用の記録キーを保存できませんでした。スコアは保存済みです。再度スコアを保存してください");return false}
+try{let r;try{r=await rpc("submit_match",{p_key:x.k,p_team_a:A,p_team_b:B,p_games:[[x.sa,x.sb]],p_rules:{target:(typeof SCS!=="undefined"&&SCS.t)||11,win_by:(typeof SCS!=="undefined"&&SCS.w2===false)?1:2},p_played_at:x.pa,p_outcome:"completed"})}catch(first){if(!String(first.message||"").includes("match is void"))throw first;x.k=uid()+uid();x.rk=sig;if(!await save())throw first;r=await rpc("submit_match",{p_key:x.k,p_team_a:A,p_team_b:B,p_games:[[x.sa,x.sb]],p_rules:{target:(typeof SCS!=="undefined"&&SCS.t)||11,win_by:(typeof SCS!=="undefined"&&SCS.w2===false)?1:2},p_played_at:x.pa,p_outcome:"completed"})}clearRM();if(r&&r.status==="pending")toast("結果を登録しました。出場者全員の承認後に、レーティングへ反映されます（メニュー → 試合の承認）");return true}catch(e){console.error(e);x.rk="";try{await save()}catch(saveError){console.error(saveError)}toast(rmErr(e));return false}}
 async function cardFor(n){const c=STATS[n];if(c&&Date.now()-c.t<30000)return c.v;const[card,ms]=await Promise.all([rpc("get_rating_card",{p_name:n}),rpc("get_matches",{p_name:n,p_limit:10})]);STATS[n]={t:Date.now(),v:{card,ms:ms||[]}};return STATS[n].v}
 function chart(h){if(!h||h.length<2)return '<p class="sub">評価対象の試合が2件以上になると、推移のグラフが出ます。</p>';
 const v=h.map(x=>+x.after),mn=Math.min(...v)-.05,mx=Math.max(...v)+.05,W=300,H=110,P=14,pts=v.map((x,i)=>[P+i*(W-2*P)/(v.length-1),H-P-((x-mn)/(mx-mn))*(H-2*P)]);
