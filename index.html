@@ -1081,7 +1081,7 @@ if(changed&&Number.isFinite(Number(oldR))){S.levelHistory=S.levelHistory||{};con
 S.rt=S.rt||{};S.rt[name]=v;delete lvBase[name];
 const ok=await save();if(ok){logMemberUpdate(name,"レベル自己評価更新");toast("レベルを保存しました");draw()}}
 function renameSelf(){const nn=$("profile_newname").value.trim();if(!nn||nn===ME){alert("新しい名前を入力してください");return}
-ask(`名前を「${nn}」に変更します。よろしいですか？`,async()=>{try{await save();const r=await rpc("member_rename",{p_new:nn});ME=r.name;profileSessionName=ME;profileUnlockedName=ME;await reloadState(false);await refreshRows(false);draw();toast("名前を変更しました")}catch(e){alert(String(e.message||"").includes("exists")?"その名前はすでに使われています":"変更できませんでした")}})}
+ask(`名前を「${nn}」に変更します。よろしいですか？`,async()=>{try{if(!await save()){await reloadState(false);draw();alert("先に変更内容を保存できませんでした。名前変更は行っていません");return}const r=await rpc("member_rename",{p_new:nn});ME=r.name;profileSessionName=ME;profileUnlockedName=ME;await reloadState(false);await refreshRows(false);draw();toast("名前を変更しました")}catch(e){alert(String(e.message||"").includes("exists")?"その名前はすでに使われています":"変更できませんでした")}})}
 async function changeMyPin(){const a=$("profile_new_pin").value,b=$("profile_new_pin_confirm").value;if(!/^\d{4}$/.test(a)||a!==b){alert("4桁のPINを2回同じように入力してください");return}
 try{await rpc("member_change_pin",{p_pin:a});$("profile_new_pin").value="";$("profile_new_pin_confirm").value="";logMemberUpdate(ME,"PIN変更");toast("PINを変更しました")}catch(e){alert("変更できませんでした")}}
 function profileGate(){return ""}
