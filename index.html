@@ -1083,7 +1083,7 @@ if(changed&&Number.isFinite(Number(oldR))){S.levelHistory=S.levelHistory||{};con
 S.rt=S.rt||{};S.rt[name]=v;delete lvBase[name];
 const ok=await save();if(ok){logMemberUpdate(name,"レベル自己評価更新");toast("レベルを保存しました");draw()}else{try{await reloadState(false)}catch(e){console.error(e)}delete lvBase[name];toast("レベル評価を保存できませんでした。最新データに戻しました");draw()}}
 function renameSelf(){const nn=$("profile_newname").value.trim();if(!nn||nn===ME){alert("新しい名前を入力してください");return}
-ask(`名前を「${nn}」に変更します。よろしいですか？`,async()=>{try{if(!await save()){await reloadState(false);draw();alert("先に変更内容を保存できませんでした。名前変更は行っていません");return}const r=await rpc("member_rename",{p_new:nn});ME=r.name;profileSessionName=ME;profileUnlockedName=ME;await reloadState(false);await refreshRows(false);draw();toast("名前を変更しました")}catch(e){alert(String(e.message||"").includes("exists")?"その名前はすでに使われています":"変更できませんでした")}})}
+ask(`名前を「${nn}」に変更します。よろしいですか？`,async()=>{try{if(!await save()){await reloadState(false);draw();alert("先に変更内容を保存できませんでした。名前変更は行っていません");return}}catch(e){alert("変更前の保存を確認できませんでした。名前変更は行っていません");return}let r;try{r=await rpc("member_rename",{p_new:nn})}catch(e){alert(String(e.message||"").includes("exists")?"その名前はすでに使われています":"変更できませんでした");return}ME=r.name;profileSessionName=ME;profileUnlockedName=ME;try{await reloadState(false);await refreshRows(false);draw();toast("名前を変更しました")}catch(e){console.error(e);alert("名前変更は完了しましたが、画面更新に失敗しました。再読み込みしてください")}})}
 async function changeMyPin(){const a=$("profile_new_pin").value,b=$("profile_new_pin_confirm").value;if(!/^\d{4}$/.test(a)||a!==b){alert("4桁のPINを2回同じように入力してください");return}
 try{await rpc("member_change_pin",{p_pin:a});$("profile_new_pin").value="";$("profile_new_pin_confirm").value="";logMemberUpdate(ME,"PIN変更");toast("PINを変更しました")}catch(e){alert("変更できませんでした")}}
 function profileGate(){return ""}
@@ -1481,8 +1481,8 @@ return `<h2>招待リンク・PINの再設定</h2><p class="sub">メンバーご
 const inviteText=()=>{const d=adminSetupCodeDisplay;return d?`【PICKLE HUB 招待】\n${d.name}さん\n下のリンクを開いて、これから使う4桁のPINを決めてください。\n${inviteLink(d.code)}\n\n会員番号: ${d.no}（次回からは、会員番号とPINでログインできます）`:""};
 const shareInvite=()=>shareTxt(inviteText());
 async function issueProfileSetupCode(name){
-try{const r=await rpc("admin_issue_code",{p_name:name});adminSetupCodeDisplay={name,code:r.code,no:r.no};logMemberUpdate(name,"招待リンク発行");await loadPinStatus();draw()}
-catch(e){alert("発行できませんでした")}
+let r;try{r=await rpc("admin_issue_code",{p_name:name})}catch(e){console.error(e);alert("招待リンクを発行できませんでした");return}
+adminSetupCodeDisplay={name,code:r.code,no:r.no};logMemberUpdate(name,"招待リンク発行");await loadPinStatus();draw();toast("招待リンクを発行しました。この画面でコピーしてください")
 }
 let analyticsCache=null,analyticsDays=30,analyticsRequestId=0;
 async function loadAdminAnalytics(days=analyticsDays){
