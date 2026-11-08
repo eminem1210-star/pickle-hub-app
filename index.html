@@ -1404,7 +1404,7 @@ const places=S.adminSuggestions.place||[];
 S.adminSuggestions.place=[place,...places.filter(value=>value!==place)].slice(0,20);
 if(!await saveOrRestore("イベントを保存できませんでした。最新状態に戻しました"))return;
 S.adminEventEdit="";clearEventDraft();
-if(!await save()){try{await reloadState(false)}catch(e){console.error(e)}toast("イベントは保存されました。入力欄の初期化は次回更新時に反映されます")}
+if(!await save()){try{await reloadState(false)}catch(e){console.error(e)}draw();toast("イベントは保存済みですが、入力欄の初期化は保存できませんでした。再読み込みしてください");return}
 draw();toast("イベントを保存しました（一般公開）")
 }
 function editEvent(index){const event=S.events[index];if(!event)return;S.adminEventEdit=event.id;draw()}
