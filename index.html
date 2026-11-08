@@ -798,6 +798,7 @@ if(lastTab!=tab){window.scrollTo(0,0);lastTab=tab}}
 
 function shareTxt(t){ga("share",{method:navigator.share?"web_share":"line",content_type:"text"});if(navigator.share){navigator.share({text:t}).catch(e=>{if(e&&e.name!=="AbortError")showCopy(t)})}else{const w=window.open("https://line.me/R/share?text="+encodeURIComponent(t),"_blank");if(!w)showCopy(t)}}
 async function modSc(ri,mi,k,d){if(ROLE!=="admin"){alert("スコアの編集は管理者のみです");return}const m=S.rounds[ri].m[mi],c=m[k]===""?0:m[k];m[k]=Math.max(0,c+d);if(!await saveOrRestore("スコアを保存できませんでした。最新データに戻しました"))return;await maybeRecord(m);draw()}
+async function voidRemovedRatings(matches){const keys=[...new Set((matches||[]).map(match=>match&&match.k).filter(key=>typeof key==="string"&&key.length>=8))];const failed=[];for(const key of keys){try{await rpc("void_match",{p_key:key})}catch(e){console.error("rating match void failed",key,e);failed.push(key)}}if(keys.length)clearRM();if(failed.length){alert(`${failed.length}件のレーティング記録を取り消せませんでした。対戦カードの削除・変更は保存済みです。管理者は試合の承認画面を確認してください`);return false}return true}
 async function addRental(){const item=$("ri").value.trim(),member=$("rh").value;if(!item||!member){alert("用具名とメンバーを選択してください");return}S.rentals=S.rentals||[];S.rentals.push({item,holder:member});if(!await saveOrRestore("貸出記録を保存できませんでした。最新データに戻しました"))return;draw()}
 
 /* ---------- 大会 ---------- */
@@ -816,16 +817,16 @@ ${S.rounds.slice().reverse().map((r,ri)=>round(r,S.rounds.length-1-ri)).join("")
 ${S.rounds.length?`<h2>順位表</h2>${stand()}`:""}
 ${(S.hist||[]).length?`<h2>過去の履歴</h2>${S.hist.map((h,i)=>`<div class="box"><b>${esc(h.d)}</b> (${h.p.length}人・${h.r.length}R)${admin?`<div class="row"><button class="g" onclick="loadH(${i})">読み込む</button><button class="x" onclick="deleteH(${i})">履歴削除</button></div>`:""}</div>`).join("")}`:""}`}
 async function addP(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}const raw=$("pn").value.trim();if(!raw)return;S.rt=S.rt||{};raw.split(/[,、\n]+/).map(s=>s.trim()).filter(Boolean).forEach(s=>{const m=s.match(/^(.+?)\s+(\d(?:\.\d+)?)$/),n=m?m[1]:s;if(m)S.rt[n]=+m[2];if(!S.players.includes(n))S.players.push(n)});if(!await saveOrRestore("参加者の追加を保存できませんでした。最新データに戻しました"))return;draw();$("pn")?.focus()}
-function delP(i){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}const f=async()=>{S.players.splice(i,1);S.rounds=[];S.tournamentTeams=[];if(!await saveOrRestore("参加者の削除を保存できませんでした。最新データに戻しました"))return;draw()};S.rounds.length?ask("ラウンド記録が消えます。削除しますか？",f):f()}
+function delP(i){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}const f=async()=>{const removed=S.rounds.flatMap(round=>round.m||[]);S.players.splice(i,1);S.rounds=[];S.tournamentTeams=[];if(!await saveOrRestore("参加者の削除を保存できませんでした。最新データに戻しました"))return;await voidRemovedRatings(removed);draw()};S.rounds.length?ask("ラウンド記録が消え、関連するレーティング試合も取り消されます。削除しますか？",f):f()}
 function setTournamentFormat(format){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}
 if(format===S.tournamentFormat)return;
-const apply=async()=>{S.tournamentFormat=format;S.rounds=[];S.tournamentTeams=[];if(!await saveOrRestore("大会形式の変更を保存できませんでした。最新データに戻しました"))return;draw()};
+const apply=async()=>{const removed=S.rounds.flatMap(round=>round.m||[]);S.tournamentFormat=format;S.rounds=[];S.tournamentTeams=[];if(!await saveOrRestore("大会形式の変更を保存できませんでした。最新データに戻しました"))return;await voidRemovedRatings(removed);draw()};
 if(S.rounds.length){ask("大会形式を変更すると進行中のラウンドとスコアが消えます。変更しますか？",apply);const dialog=$("dg"),cancel=dialog&&dialog.querySelector("#n");if(cancel)cancel.onclick=()=>{dialog.remove();draw()}}
 else{S.tournamentFormat=format;S.tournamentTeams=[];apply()}
 }
 async function setCourtCount(value){const n=Math.max(1,Math.min(6,parseInt(value,10)||1));S.courts=n;if(!await saveOrRestore("コート数を保存できませんでした。最新データに戻しました"))return;draw()}
 function tournamentPlayers(){return S.players.map((_,index)=>index)}
-function resetEv(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("ラウンドを全て消しますか？",async()=>{S.rounds=[];S.tournamentTeams=[];if(!await syncClubPlayers()){try{await reloadState(false)}catch(e){console.error(e)}draw();alert("ラウンドのリセットを保存できませんでした。最新データに戻しました");return}draw()})}
+function resetEv(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}ask("ラウンドを全て消し、関連するレーティング試合も取り消しますか？",async()=>{const removed=S.rounds.flatMap(round=>round.m||[]);S.rounds=[];S.tournamentTeams=[];if(!await syncClubPlayers(true)){try{await reloadState(false)}catch(e){console.error(e)}draw();alert("ラウンドのリセットを保存できませんでした。最新データに戻しました");return}await voidRemovedRatings(removed);draw()})}
 function syncClubPlayers(removeAbsent=false){
 S.clubPlayerNames=Array.isArray(S.clubPlayerNames)?S.clubPlayerNames:[];
 const attended=[...new Set(S.members.filter(member=>member.at).map(member=>member.n))];
@@ -950,7 +951,7 @@ m[k]=score;S._v=result.v;await maybeRecord(m);draw()
 }
 function setSc(ri,mi,k,v){writeTournamentScore(ri,mi,k,v)}
 function modSc(ri,mi,k,d){const m=S.rounds[ri]&&S.rounds[ri].m[mi];if(!m)return;const current=m[k]===""?0:+m[k];writeTournamentScore(ri,mi,k,Math.max(0,current+d))}
-function undoR(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}if(S.rounds.length)ask("最新のラウンドを取り消しますか？",async()=>{S.rounds.pop();if(!await saveOrRestore("ラウンドの取消を保存できませんでした。最新データに戻しました"))return;draw()})}
+function undoR(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}if(S.rounds.length)ask("最新のラウンドを取り消しますか？",async()=>{const removed=S.rounds[S.rounds.length-1];S.rounds.pop();if(!await saveOrRestore("ラウンドの取消を保存できませんでした。最新データに戻しました"))return;await voidRemovedRatings(removed&&removed.m||[]);draw()})}
 function shareR(){shareTxt("【PICKLE HUB 試合結果】\n"+table().map((r,k)=>(k+1)+". "+S.players[r.i]+" "+r.w+"勝"+r.l+"敗 ("+(r.d>0?"+":"")+r.d+")").join("\n"))}
 function big(){const r=S.rounds[S.rounds.length-1];if(!r){alert("先にラウンドを組んでください");return}const d=document.createElement("div");d.id="bg";d.onclick=()=>d.remove();d.innerHTML="<h1 style='color:var(--ac)'>ラウンド "+S.rounds.length+"</h1>"+r.m.map((m,i)=>'<div class="court"><div class="t">コート '+(i+1)+'</div><div class="m"><div style="font-size:18px">'+teamLabel(m.a)+'</div><div style="font-size:22px;font-weight:900">VS</div><div style="font-size:18px">'+teamLabel(m.b)+'</div></div></div>').join("")+(r.bye.length?'<p class="bye">お休み: '+r.bye.map(P).join("、")+'</p>':"")+'<p class="sub" style="text-align:center;margin-top:20px">タップして閉じる</p>';document.body.appendChild(d)}
 function table(){
@@ -1175,7 +1176,7 @@ ${cl?"":`<div class="row"><button onclick="join(${i})" ${!ME||m.includes(ME)||wl
 function formatEventDate(value){const [year,month,day]=value.split("-");return `${year}年${Number(month)}月${Number(day)}日`}
 function cpP(i){const p=S.posts[i],m=p.m||[],t="【ピックルボール募集】\n"+p.w+(p.eventDate?"\n開催日: "+formatEventDate(p.eventDate):"")+(p.eventTime?" "+p.eventTime:"")+(p.eventPlace?"\n場所: "+p.eventPlace:"")+"\n"+p.l+" / "+(p.r>0?"あと"+p.r+"人":"満員")+(p.dl?"\n締切 "+p.dl.replace("T"," "):"")+(m.length?"\n参加: "+m.join("、"):"");shareTxt(t)}
 async function dupP(i){const p=S.posts[i];if(!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ複製できます");return}let dl="";if(p.dl){const t=new Date(p.dl),z=n=>String(n).padStart(2,"0");t.setDate(t.getDate()+7);dl=t.getFullYear()+"-"+z(t.getMonth()+1)+"-"+z(t.getDate())+"T"+z(t.getHours())+":"+z(t.getMinutes())}const c=p.c||(p.r||0)+(p.m||[]).length||4;S.posts.unshift({w:p.w,l:p.l,r:c,c,m:[],wl:[],dl,by:ME});if(!await saveOrRestore("募集の複製を保存できませんでした。最新データに戻しました"))return;draw()}
-function toEv2(i){const p=S.posts[i],f=async()=>{S.players=p.m.slice();S.rounds=[];if(!await saveOrRestore("大会参加者への反映を保存できませんでした。最新データに戻しました"))return;go("ev")};S.players.length?ask("大会参加者をこのメンバーに置き換えますか？",f):f()}
+function toEv2(i){const p=S.posts[i],f=async()=>{const removed=S.rounds.flatMap(round=>round.m||[]);S.players=p.m.slice();S.rounds=[];if(!await saveOrRestore("大会参加者への反映を保存できませんでした。最新データに戻しました"))return;await voidRemovedRatings(removed);go("ev")};S.players.length?ask(S.rounds.length?"大会参加者をこのメンバーに置き換え、現在のラウンドと関連レーティング試合を取り消しますか？":"大会参加者をこのメンバーに置き換えますか？",f):f()}
 async function join(i){const p=S.posts[i],nm=ME;if(!nm){alert("ログインしてください");return}p.m=p.m||[];p.wl=p.wl||[];if(p.m.includes(nm)||p.wl.includes(nm)){alert("すでに参加登録されています");return}if(p.r>0){p.m.push(nm);p.r--}else{p.wl.push(nm)}if(!await saveOrRestore("参加登録を保存できませんでした。最新データに戻しました"))return;draw()}
 async function leave(i,k){const p=S.posts[i],nm=p.m&&p.m[k];if(ROLE!=="admin"&&nm!==ME){alert("自分の参加登録だけ取り消せます");return}p.m.splice(k,1);p.r++;if(p.wl&&p.wl.length){p.m.push(p.wl.shift());p.r--}if(!await saveOrRestore("参加取消を保存できませんでした。最新データに戻しました"))return;draw()}
 async function deleteOwnPost(i){const p=S.posts[i];if(!p||!(ROLE==="admin"||p.by===ME)){alert("自分が作成した募集だけ削除できます");return}S.posts.splice(i,1);if(!await saveOrRestore("募集の削除を保存できませんでした。最新データに戻しました"))return;draw()}
@@ -1690,9 +1691,10 @@ if(f)f.value="";draw();const next=$("ses_name");if(next)next.focus()}
 async function sesLv(i){if(ROLE!=="admin"){alert("参加者のレベル変更は管理者のみ行えます");return}const n=S.players[i];if(isMember(n)){alert("メンバーのレベルは、プロフィールの自己評価が使われます");return}const o=["b","i","a"],k=o[(o.indexOf(lvOf(n))+1)%3];S.rt=S.rt||{};S.rt[n]=LVN[k];if(!await save()){await reloadState(false);alert("レベルを保存できませんでした")}draw()}
 function sesDel(i){if(ROLE!=="admin"){alert("参加者の削除は管理者のみ行えます");return}const n=S.players[i];if(n==null)return;ask(`${n}さんを外します。この人の試合も削除されます。よろしいですか？`,async()=>{
 const f=j=>j>i?j-1:j;
+const removed=S.rounds.flatMap(round=>(round.m||[]).filter(match=>[...(match.a||[]),...(match.b||[])].includes(i)));
 S.rounds=S.rounds.map(r=>({...r,m:r.m.filter(x=>![...x.a,...x.b].includes(i)).map(x=>({...x,a:x.a.map(f),b:x.b.map(f)})),bye:(r.bye||[]).filter(j=>j!==i).map(f)})).filter(r=>r.m.length);
 S.players.splice(i,1);S.tournamentTeams=[];if(!isMember(n)&&S.rt)delete S.rt[n];SES.a=[null,null];SES.b=[null,null];
-if(!await save()){await reloadState(false);draw();alert("削除を保存できませんでした。最新状態に戻しました");return}draw()})}
+if(!await save()){await reloadState(false);draw();alert("削除を保存できませんでした。最新状態に戻しました");return}await voidRemovedRatings(removed);draw()})}
 /* 2. 対戦ペア作成 */
 function sesSlots(){return SES.size===2?[["a",0],["a",1],["b",0],["b",1]]:[["a",0],["b",0]]}
 function sesPick(i){const e=sesSlots().find(([t,k])=>SES[t][k]==null);if(!e){alert("枠がいっぱいです。「この対戦を追加」を押すか、枠をタップして外してください");return}SES[e[0]][e[1]]=i;draw()}
