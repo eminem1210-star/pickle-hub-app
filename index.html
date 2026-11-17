@@ -997,8 +997,7 @@ function deleteH(i){if(ROLE!=="admin"){alert("大会の編集は管理者のみ�
 const DR=[["ディンク練習",300,"キッチンライン越しに相手と柔らかく打ち合う。30球続けば合格。"],["サード・ドロップ",420,"ベースラインからキッチンへ落とす。10本中7本が目標。"],["サーブ精度",300,"ターゲットを決めて深さを狙う。10本中8本が目標。"],["ボレー連打",180,"ノンボレーゾーン手前で速い打ち合い。ラケット面を安定させる。"],["ステップ&フットワーク",240,"サイドステップでライン間を往復。膝を曲げたまま。"]];
 let T={left:0,id:null,name:""};
 function pr(){
-const L=table().filter(r=>r.g);
-return `<span class="badge">TRAINING</span><h1>スキル練習</h1><p class="sub">ドリルを選んでタイマーをスタート！</p>
+const L=table().filter(r=>r.g);return `<span class="badge">TRAINING</span><h1>スキル練習</h1><p class="sub">ドリルを選んでタイマーをスタート！</p>
 <div class="box" style="text-align:center;padding:24px;"><div class="big" id="tm">${fmt(T.left)}</div><div id="tn" class="sub" style="margin:8px 0 16px">${esc(T.name)||"ドリルを選択してください"}</div>
 <div class="row" style="justify-content:center"><button class="g" onclick="stopT()">タイマー停止</button></div></div>
 ${DR.map((d,i)=>`<div class="box"><b>${d[0]}</b> <span class="sub" style="float:right">${d[1]/60}分</span><div class="sub" style="margin:4px 0 10px">${d[2]}</div><button onclick="startT(${i})">開始する</button></div>`).join("")}
@@ -1997,8 +1996,7 @@ return `<div class="box scard"><span class="stk r">承認待ち</span><div class
 <div style="margin:8px 0">${esc(m.team_a.join("・"))} <b style="font-size:18px">${m.games.map(g=>g.join("-")).join(" / ")}</b> ${esc(m.team_b.join("・"))}</div>
 <p class="sub" style="margin:0 0 6px">登録: ${esc(m.recorded_by)}　／　承認: ${all.map(p=>`${esc(p)} ${dec(p)}`).join("　")}</p>${m.non_rated_reason?`<p class="sub" style="margin:0 0 6px">${esc(m.non_rated_reason)}</p>`:""}
 <div class="row">${mine&&!done?`<button onclick="rmApprove(${k},'approved')">✅ 承認する</button><button class="g" onclick="rmApprove(${k},'rejected')">❌ 却下</button>`:""}${ROLE==="admin"?`<button onclick="rmConfirm(${k})">🛡 運営者として確認</button>`:""}${ROLE==="admin"||m.recorded_by===ME?`<button class="x" onclick="rmVoid(${k})">取消</button>`:""}</div></div>`}
-const apHtml=l=>!l||!l.length?'<p class="sub">承認待ちの試合はありません。</p>':l.map(apCard).join("");
-function ap(){return `<span class="badge">APPROVAL</span><h1>試合の承認</h1><p class="sub">試合に出た全員が「承認」すると、結果がアプリ内レーティングに反映されます。運営者は、確認だけで反映できます（重みが大きくなります）。内容に誤りがあれば「却下」してください。</p><div class="apx">${PEND.t?apHtml(myPendAll()):'<p class="sub">読み込み中…</p>'}</div>`}
+const apHtml=l=>!l||!l.length?'<p class="sub">承認待ちの試合はありません。</p>':l.map(apCard).join("");function ap(){return `<span class="badge">APPROVAL</span><h1>試合の承認</h1><p class="sub">試合に出た全員が「承認」すると、結果がアプリ内レーティングに反映されます。運営者は、確認だけで反映できます（重みが大きくなります）。内容に誤りがあれば「却下」してください。</p><div class="apx">${PEND.t?apHtml(myPendAll()):'<p class="sub">読み込み中…</p>'}</div>`}
 const myPendAll=()=>PEND.v;
 async function rmAct(fn,args,msg){try{await rpc(fn,args)}catch(e){alert(rmErr(e));return}clearRM();try{await getPend(true);PEND.n=myPend(PEND.v).length;draw();toast(msg)}catch(e){console.error(e);toast("操作は保存済みですが、一覧の更新に失敗しました。再読み込みしてください")}}
 const rmApprove=(k,d)=>rmAct("approve_match",{p_key:k,p_decision:d},d==="approved"?"承認しました":"却下しました");
