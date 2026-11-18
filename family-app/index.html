@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>家族共有アプリ｜どこだっけ・冷蔵庫・気分天気</title>
+<meta name="theme-color" content="#2f9e44">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --ink:#22301f; --bg:#f4f8f0; --card:#ffffff; --ac:#2f9e44; --ac2:#ffd43b;
+  --dg:#e03131; --warn:#f08c00; --sub:#6b7a67; --line:#dce5d8; --radius:14px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.55}
+button{font:inherit;font-weight:700;border:2px solid var(--ink);background:var(--ac);color:#fff;border-radius:12px;padding:11px 16px;cursor:pointer;min-height:48px}
+button.g{background:#fff;color:var(--ink)}
+button.warn{background:var(--warn)}
+button.danger{background:#fff;color:var(--dg);border-color:var(--dg)}
+button:disabled{opacity:.45;cursor:default}
+input,select,textarea{font:inherit;width:100%;padding:11px 12px;border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ac)}
+label{display:block;font-weight:700;font-size:.86rem;margin:12px 0 4px}
+.sub{color:var(--sub);font-size:.86rem}
+.box{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin:12px 0}
+.badge{display:inline-block;background:var(--ink);color:#fff;font-size:.72rem;font-weight:800;border-radius:999px;padding:2px 10px;letter-spacing:.06em}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:4px;border:2px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;font-weight:700;font-size:.88rem;cursor:pointer;min-height:40px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+header.app{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:2px solid var(--line);padding:10px 14px}
+header.app h1{font-size:1.05rem;margin:0}
+main{max-width:640px;margin:0 auto;padding:6px 14px 110px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:2px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;background:none;border:none;color:var(--sub);border-radius:0;font-size:.78rem;padding:8px 2px 10px;min-height:58px}
+nav.tabs button .ni{display:block;font-size:1.35rem;line-height:1.2}
+nav.tabs button.on{color:var(--ac)}
+.card{border:2px solid var(--line);border-radius:var(--radius);background:#fff;padding:12px 14px;margin:10px 0}
+.card.hot{border-color:var(--warn);background:#fff8ec}
+.card.over{border-color:var(--dg);background:#fff1f1}
+.big{font-size:1.12rem;font-weight:800}
+.moodbtn{font-size:1.7rem;background:#fff;border:2px solid var(--line);border-radius:14px;padding:8px 4px;flex:1;min-height:64px;color:var(--ink)}
+.moodbtn.on{border-color:var(--ac);background:#e7f6ea}
+.moodbtn small{display:block;font-size:.7rem;font-weight:700}
+table.week{width:100%;border-collapse:collapse;font-size:1.05rem}
+table.week th,table.week td{border:1px solid var(--line);padding:6px 2px;text-align:center;background:#fff}
+table.week th{background:#eef4ea;font-size:.75rem}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:999px;font-weight:700;opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:92vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.hero{background:linear-gradient(135deg,#2f9e44,#66bb6a);color:#fff;border-radius:18px;padding:20px 18px;margin:14px 0 4px}
+.hero h1{margin:4px 0;font-size:1.5rem}
+details.more{margin:12px 0}
+details.more summary{font-weight:800;cursor:pointer;padding:8px 0}
+.kbd{background:#eef4ea;border-radius:6px;padding:1px 8px;font-weight:800}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.wordcard{border:2px solid var(--line);border-radius:var(--radius);background:#fff;padding:12px;text-align:center}
+.wordcard.learned{border-color:var(--ac);background:#e7f6ea}
+.letterbtn{font-size:1.3rem;font-weight:900;background:#fff;color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:12px 4px;min-height:56px}
+</style>
+</head>
+<body>
+
+<!-- ===================== ログイン / 登録 ===================== -->
+<div id="authView">
+  <main>
+    <div class="hero">
+      <span class="badge" style="background:#fff;color:#2f9e44">FAMILY SHARE</span>
+      <h1>🏠 家族共有アプリ</h1>
+      <p style="margin:6px 0 0">どこだっけメモ・冷蔵庫つかいきりタイマー・家族の気分天気を、家族みんなで同じデータで使えます。</p>
+    </div>
+    <p class="sub" id="authMsg" style="min-height:1.2em"></p>
+
+    <div class="box">
+      <b>🔑 ログイン</b>
+      <label>家族の招待コード</label>
+      <input id="li_code" autocapitalize="characters" placeholder="例: A2B3C4">
+      <label>あなたの名前</label>
+      <input id="li_name" autocomplete="username" placeholder="登録した名前">
+      <label>PIN（4桁）</label>
+      <input id="li_pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+      <div class="row" style="margin-top:14px"><button onclick="doLogin()" style="flex:1">ログイン</button></div>
+    </div>
+
+    <div class="box">
+      <b>✏️ メンバー登録（招待コードをお持ちの方）</b>
+      <label>家族の招待コード</label>
+      <input id="rg_code" autocapitalize="characters" placeholder="家族から教えてもらったコード">
+      <label>あなたの名前</label>
+      <input id="rg_name" placeholder="例: パパ / ママ / さき">
+      <label>これから使うPIN（4桁の数字）</label>
+      <input id="rg_pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+      <div class="row" style="margin-top:14px"><button class="g" onclick="doRegister()" style="flex:1">登録してログイン</button></div>
+    </div>
+
+    <details class="more">
+      <summary>🏠 新しく家族を作る（最初の一人だけ）</summary>
+      <div class="box">
+        <label>家族の名前</label>
+        <input id="nw_family" placeholder="例: 深水家">
+        <label>あなたの名前</label>
+        <input id="nw_name" placeholder="例: パパ">
+        <label>これから使うPIN（4桁の数字）</label>
+        <input id="nw_pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+        <div class="row" style="margin-top:14px"><button class="g" onclick="doCreateFamily()" style="flex:1">家族を作ってログイン</button></div>
+        <p class="sub">家族を作ると「招待コード」が発行されます。家族にはそのコードを伝えて、上の「メンバー登録」から入ってもらってください。</p>
+      </div>
+    </details>
+  </main>
+</div>
+
+<!-- ===================== アプリ本体 ===================== -->
+<div id="appView" style="display:none">
+  <header class="app">
+    <div class="row" style="justify-content:space-between;flex-wrap:nowrap">
+      <h1 id="hdrFamily">🏠 家族</h1>
+      <button class="g" style="min-height:38px;padding:6px 12px" onclick="doLogout()">ログアウト</button>
+    </div>
+    <div class="sub" id="hdrMeta"></div>
+  </header>
+  <main id="viewRoot"></main>
+  <nav class="tabs" id="tabBar"></nav>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// 設定（PICKLE HUB と同じ Supabase プロジェクトを使用）
+// ============================================================
+const SUPABASE_URL = 'https://slhfhxwddtxhqarkyldk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6ai48uMR372DwW-K6Looxw_MIWT91mp';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ============================================================
+// 定数
+// ============================================================
+const TABS = [
+  ['board','🏠','ボード'],
+  ['items','🔍','さがす'],
+  ['foods','🧊','冷蔵庫'],
+  ['moods','🌤️','気分'],
+  ['more','☰','もっと'],
+];
+const MORE_TILES = [
+  ['brush','🪥','歯磨き記録','カメラガイド付き・朝と夜の記録'],
+  ['migraine','🌦️','偏頭痛チェック','気圧と体調でリスク判定'],
+  ['english','🔤','英語学習','ABCと単語・クイズの進み具合'],
+  ['items','🔍','どこだっけメモ','物の置き場所を検索'],
+  ['foods','🧊','冷蔵庫つかいきり','賞味期限が近い順に表示'],
+  ['moods','🌤️','家族の気分天気','今日の気分を天気で共有'],
+];
+const ITEM_CATS = ['書類・お金','衣類','キッチン','洗面・お風呂','子ども用品','薬・衛生','文具・工具','電気・ケーブル','季節もの','その他'];
+const FOOD_CATS = ['野菜・果物','肉・魚','乳製品・卵','パン・麺・ごはん','惣菜・加工品','飲み物','調味料・その他'];
+const FOOD_IDEAS = {
+  '野菜・果物':'野菜炒め・スープ・サラダで一気に使い切り',
+  '肉・魚':'焼く・煮るが基本。そぼろや唐揚げにすると家族みんなで消費できます',
+  '乳製品・卵':'オムレツ・グラタン・フレンチトーストがおすすめ',
+  'パン・麺・ごはん':'サンドイッチ・チャーハン・焼きそばでアレンジ',
+  '惣菜・加工品':'温め直して今日の一品に。そのまま食卓へ',
+  '飲み物':'冷やしてそのまま。ゼリーなどのデザートにも',
+  '調味料・その他':'炒め物や煮物の味付けの主役にして使い切り',
+};
+const MOODS = [
+  {k:'great', e:'🌞', l:'快晴'},
+  {k:'good',  e:'☀️', l:'晴れ'},
+  {k:'ok',    e:'☁️', l:'曇り'},
+  {k:'bad',   e:'🌧️', l:'雨'},
+  {k:'awful', e:'⛈️', l:'雷雨'},
+];
+const moodOf = k => MOODS.find(m=>m.k===k) || MOODS[2];
+
+// ============================================================
+// 状態
+// ============================================================
+let tab = 'board';
+let HID = '', MID = '', MNAME = '', HOUSE = null; // HOUSE={id,name,invite_code}
+let MEMBERS = [], ITEMS = [], FOODS = [], MOODROWS = [];
+let BRUSH = [], MIGLOGS = [], ENGPROG = [];
+let itemQuery = '', itemCat = 'すべて';
+let editItemId = null, editFoodId = null;
+let moodSel = {}; // member_id -> {mood, note} 編集中の下書き
+let brushMember = '', migMember = '', engMember = '', engMode = 'cards', engCat = 'どうぶつ', quizNow = null;
+let brushSession = null; // {memberId, slot, zone, left, timer, stream, paused}
+let MIGWX = null; // Open-Meteo の取得結果キャッシュ
+
+// ============================================================
+// 小物ユーティリティ
+// ============================================================
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('show'),2600); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function dstr(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function todayStr(){ return dstr(new Date()); }
+function addDays(base, n){ const d=new Date(base.getFullYear(),base.getMonth(),base.getDate()+n); return d; }
+function daysUntil(dateStr){ const a=new Date(todayStr()+'T00:00:00'), b=new Date(dateStr+'T00:00:00'); return Math.round((b-a)/86400000); }
+function fmtDate(dateStr){ if(!dateStr) return ''; const d=new Date(dateStr+'T00:00:00'); return (d.getMonth()+1)+'/'+d.getDate()+'('+['日','月','火','水','木','金','土'][d.getDay()]+')'; }
+function genCode(){ const cs='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=cs[Math.floor(Math.random()*cs.length)]; return s; }
+function validPin(p){ return /^[0-9]{4}$/.test(p); }
+
+// ============================================================
+// 認証（招待コード + 名前 + 4桁PIN / PICKLE HUB と同じ考え方）
+// ============================================================
+function authMsg(m){ $('authMsg').textContent = m || ''; }
+async function findHousehold(code){
+  const {data,error} = await sb.from('fam_households').select('*').eq('invite_code', code.toUpperCase()).maybeSingle();
+  if(error) throw error;
+  return data;
+}
+async function findMember(householdId, name){
+  const {data,error} = await sb.from('fam_members').select('*').eq('household_id', householdId).eq('name', name).maybeSingle();
+  if(error) throw error;
+  return data;
+}
+function saveSession(){ try{ localStorage.setItem('fam_auth', JSON.stringify({hid:HID, mid:MID})); }catch(e){} }
+function clearSession(){ try{ localStorage.removeItem('fam_auth'); }catch(e){} }
+async function enterApp(){
+  const {data,error} = await sb.from('fam_households').select('*').eq('id', HID).maybeSingle();
+  if(error || !data){ clearSession(); showAuth('家族の情報が見つかりませんでした。もう一度ログインしてください。'); return; }
+  HOUSE = data;
+  $('authView').style.display='none';
+  $('appView').style.display='block';
+  $('hdrFamily').textContent = '🏠 ' + HOUSE.name;
+  $('hdrMeta').innerHTML = esc(MNAME) + ' さんでログイン中 ／ 招待コード <span class="kbd">' + esc(HOUSE.invite_code) + '</span>（家族に共有）';
+  renderTabs();
+  await loadAll();
+}
+function showAuth(msg){
+  $('appView').style.display='none';
+  $('authView').style.display='block';
+  authMsg(msg||'');
+}
+function doLogout(){ HID=''; MID=''; MNAME=''; HOUSE=null; clearSession(); showAuth('ログアウトしました。'); }
+
+async function doLogin(){
+  const code=$('li_code').value.trim(), name=$('li_name').value.trim(), pin=$('li_pin').value.trim();
+  if(!code || !name || !validPin(pin)){ authMsg('招待コード・名前・4桁PINを入力してください。'); return; }
+  authMsg('確認中…');
+  try{
+    const house = await findHousehold(code);
+    if(!house){ authMsg('招待コードが見つかりませんでした。'); return; }
+    const mem = await findMember(house.id, name);
+    if(!mem){ authMsg('その名前はこの家族に登録されていません。先に「メンバー登録」をしてください。'); return; }
+    if(mem.pin !== pin){ authMsg('PINが違います。'); return; }
+    HID=house.id; MID=mem.id; MNAME=mem.name; saveSession(); authMsg('');
+    await enterApp(); toast('ログインしました');
+  }catch(e){ console.error(e); authMsg('通信エラーが発生しました。電波の良い場所で再読み込みしてください。'); }
+}
+async function doRegister(){
+  const code=$('rg_code').value.trim(), name=$('rg_name').value.trim(), pin=$('rg_pin').value.trim();
+  if(!code || !name || !validPin(pin)){ authMsg('招待コード・名前・4桁PIN（数字4桁）を入力してください。'); return; }
+  authMsg('登録中…');
+  try{
+    const house = await findHousehold(code);
+    if(!house){ authMsg('招待コードが見つかりませんでした。家族に確認してください。'); return; }
+    const exist = await findMember(house.id, name);
+    if(exist){ authMsg('その名前はすでに登録されています。「ログイン」から入ってください。'); return; }
+    const {data,error} = await sb.from('fam_members').insert({household_id:house.id, name, pin}).select().single();
+    if(error) throw error;
+    HID=house.id; MID=data.id; MNAME=data.name; saveSession(); authMsg('');
+    await enterApp(); toast('登録しました。ようこそ！');
+  }catch(e){ console.error(e); authMsg('通信エラーが発生しました。再読み込みしてください。'); }
+}
+async function doCreateFamily(){
+  const fam=$('nw_family').value.trim(), name=$('nw_name').value.trim(), pin=$('nw_pin').value.trim();
+  if(!fam || !name || !validPin(pin)){ authMsg('家族の名前・あなたの名前・4桁PIN（数字4桁）を入力してください。'); return; }
+  authMsg('家族を作成中…');
+  try{
+    let code='', house=null;
+    for(let i=0;i<5 && !house;i++){
+      code = genCode();
+      const r = await sb.from('fam_households').insert({name:fam, invite_code:code}).select().single();
+      if(!r.error) house = r.data;
+    }
+    if(!house) throw new Error('household create failed');
+    const {data,error} = await sb.from('fam_members').insert({household_id:house.id, name, pin}).select().single();
+    if(error) throw error;
+    HID=house.id; MID=data.id; MNAME=data.name; saveSession(); authMsg('');
+    await enterApp(); toast('家族を作りました。招待コードは ' + house.invite_code + ' です');
+  }catch(e){ console.error(e); authMsg('通信エラーが発生しました。再読み込みしてください。'); }
+}
+
+// ============================================================
+// データ読み込み（すべて household_id で絞り込み）
+// ============================================================
+async function loadAll(){
+  const since7 = dstr(addDays(new Date(), -6));
+  const since31 = dstr(addDays(new Date(), -30));
+  const [m,i,f,mo,b,mg,en] = await Promise.all([
+    sb.from('fam_members').select('*').eq('household_id', HID).order('created_at'),
+    sb.from('fam_items').select('*').eq('household_id', HID).order('updated_at', {ascending:false}),
+    sb.from('fam_foods').select('*').eq('household_id', HID).order('expiry_on'),
+    sb.from('fam_moods').select('*').eq('household_id', HID).gte('mood_date', since7).order('mood_date'),
+    sb.from('fam_brushing').select('*').eq('household_id', HID).gte('brush_date', since31).order('brush_date'),
+    sb.from('fam_migraine_logs').select('*').eq('household_id', HID).gte('log_date', since31).order('log_date'),
+    sb.from('fam_english_progress').select('*').eq('household_id', HID),
+  ]);
+  const err = m.error||i.error||f.error||mo.error||b.error||mg.error||en.error;
+  if(err){ console.error(err); toast('読み込みに失敗しました'); return; }
+  MEMBERS=m.data||[]; ITEMS=i.data||[]; FOODS=f.data||[]; MOODROWS=mo.data||[];
+  BRUSH=b.data||[]; MIGLOGS=mg.data||[]; ENGPROG=en.data||[];
+  if(!brushMember && MEMBERS.length) brushMember = MEMBERS[0].id;
+  if(!migMember) migMember = MID;
+  if(!engMember && MEMBERS.length) engMember = MEMBERS[0].id;
+  draw();
+}
+
+// ============================================================
+// 描画の枠組み
+// ============================================================
+function renderTabs(){
+  const active = ['brush','migraine','english'].includes(tab) ? 'more' : tab;
+  $('tabBar').innerHTML = TABS.map(([k,e,l]) =>
+    '<button class="'+(active===k?'on':'')+'" onclick="goTab(\''+k+'\')"><span class="ni">'+e+'</span>'+l+'</button>'
+  ).join('');
+}
+function goTab(k){ stopBrushSession(false); tab=k; moodSel={}; renderTabs(); draw(); window.scrollTo(0,0); }
+function draw(){
+  const root=$('viewRoot');
+  if(tab==='board') root.innerHTML = viewBoard();
+  else if(tab==='items') root.innerHTML = viewItems();
+  else if(tab==='foods') root.innerHTML = viewFoods();
+  else if(tab==='moods') root.innerHTML = viewMoods();
+  else if(tab==='more') root.innerHTML = viewMore();
+  else if(tab==='brush') root.innerHTML = viewBrush();
+  else if(tab==='migraine'){ root.innerHTML = viewMigraine(); loadMigraineWeather(); }
+  else if(tab==='english') root.innerHTML = viewEnglish();
+}
+function memberName(id){ const m=MEMBERS.find(x=>x.id===id); return m?m.name:'?'; }
+function memberOptions(sel){ return MEMBERS.map(m=>'<option value="'+m.id+'"'+(m.id===sel?' selected':'')+'>'+esc(m.name)+'</option>').join(''); }
+
+// ============================================================
+// 今日のボード（全モジュールの集約）
+// ============================================================
+function brushDone(memberId, dateStr, slot){
+  return BRUSH.some(b=>b.member_id===memberId && b.brush_date===dateStr && b.slot===slot && b.done);
+}
+function brushStats(memberId){
+  let stars=0; BRUSH.forEach(b=>{ if(b.member_id===memberId && b.done) stars++; });
+  let streak=0; const start = brushDone(memberId, todayStr(), 'morning') || brushDone(memberId, todayStr(), 'night') ? 0 : 1;
+  for(let n=start; n<365; n++){
+    const d = dstr(addDays(new Date(), -n));
+    if(brushDone(memberId, d, 'morning') && brushDone(memberId, d, 'night')) streak++;
+    else break;
+  }
+  return {stars, streak};
+}
+function viewBoard(){
+  const t = todayStr();
+  const hotFoods = FOODS.filter(f=>f.status==='active' && daysUntil(f.expiry_on)<=2);
+  const todayMoods = MEMBERS.map(m=>{
+    const mo = MOODROWS.find(x=>x.member_id===m.id && x.mood_date===t);
+    return {m, mo};
+  });
+  const todayMig = MIGLOGS.filter(x=>x.log_date===t);
+  let h = '<h2 style="margin:10px 0 2px">📋 今日のボード</h2><p class="sub">'+fmtDate(t)+' ／ '+esc(HOUSE.name)+'</p>';
+
+  h += '<div class="box"><b>🧊 今日これ使って！（賞味期限2日以内）</b>';
+  if(hotFoods.length){
+    h += hotFoods.map(f=>foodCard(f, true)).join('');
+  } else h += '<p class="sub">期限が近い食材はありません 👍</p>';
+  h += '</div>';
+
+  h += '<div class="box"><b>🌤️ 今日の家族の気分</b>';
+  h += todayMoods.map(({m,mo})=>'<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:7px 0">'
+    +'<span><b>'+esc(m.name)+'</b></span>'
+    +(mo?'<span style="font-size:1.3rem">'+moodOf(mo.mood).e+'</span><span>'+moodOf(mo.mood).l+(mo.note?' <span class="sub">'+esc(mo.note)+'</span>':'')+'</span>'
+       :'<span class="sub">まだ未入力</span>')
+    +'</div>').join('');
+  h += '<div class="row" style="margin-top:8px"><button class="g" onclick="goTab(\'moods\')">気分を入力する</button></div></div>';
+
+  h += '<div class="box"><b>🪥 今日の歯磨き</b>';
+  if(MEMBERS.length){
+    h += MEMBERS.map(m=>{
+      const st = brushStats(m.id);
+      return '<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:7px 0"><span><b>'+esc(m.name)+'</b></span>'
+        +'<span>🌅朝 '+(brushDone(m.id,t,'morning')?'✅':'⬜')+'　🌙夜 '+(brushDone(m.id,t,'night')?'✅':'⬜')
+        +'　<span class="sub">⭐'+st.stars+' 🔥'+st.streak+'日</span></span></div>';
+    }).join('');
+  } else h += '<p class="sub">メンバーがいません</p>';
+  h += '<div class="row" style="margin-top:8px"><button class="g" onclick="goTab(\'brush\')">歯磨きをはじめる</button></div></div>';
+
+  h += '<div class="box"><b>🌦️ 今日の偏頭痛リスク</b>';
+  if(todayMig.length){
+    h += todayMig.map(x=>'<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:7px 0"><span><b>'+esc(memberName(x.member_id))+'</b></span><span>リスク <b>'+esc(x.risk_level)+'</b>（'+x.risk_score+'点）'+(x.headache?' <span style="color:var(--dg)">頭痛あり</span>':'')+'</span></div>').join('');
+  } else h += '<p class="sub">今日のチェックはまだありません</p>';
+  h += '<div class="row" style="margin-top:8px"><button class="g" onclick="goTab(\'migraine\')">今日のチェックをする</button></div></div>';
+
+  const engSummary = MEMBERS.map(m=>{
+    const p = ENGPROG.find(x=>x.member_id===m.id);
+    return p && (p.learned||[]).length ? '<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:7px 0"><span><b>'+esc(m.name)+'</b></span><span>おぼえた '+(p.learned||[]).length+'語　⭐'+(p.stars||0)+'</span></div>' : '';
+  }).join('');
+  if(engSummary) h += '<div class="box"><b>🔤 英語学習の進み具合</b>'+engSummary+'</div>';
+
+  return h;
+}
+
+// ============================================================
+// もっと（モジュール一覧）
+// ============================================================
+function viewMore(){
+  return '<h2 style="margin:10px 0 2px">☰ もっと</h2><p class="sub">家族みんなで使える機能一覧</p>'
+    + MORE_TILES.map(([k,e,t,d])=>'<div class="card" style="cursor:pointer" onclick="goTab(\''+k+'\')"><div class="row" style="flex-wrap:nowrap"><span style="font-size:1.8rem">'+e+'</span><span><b>'+t+'</b><br><span class="sub">'+d+'</span></span></div></div>').join('')
+    + '<div class="box"><b>👨‍👩‍👧 家族メンバー</b><p class="sub">招待コード <span class="kbd">'+esc(HOUSE.invite_code)+'</span> を家族に伝えて、ログイン画面の「メンバー登録」から入ってもらってください。</p>'
+    + MEMBERS.map(m=>'<div style="border-top:1px solid var(--line);padding:6px 0">・'+esc(m.name)+(m.id===MID?'（あなた）':'')+'</div>').join('')+'</div>';
+}
+
+// ============================================================
+// 1) どこだっけメモ（さがす）
+// ============================================================
+function viewItems(){
+  const cats = ['すべて', ...ITEM_CATS];
+  const list = ITEMS.filter(it=>{
+    if(itemCat!=='すべて' && it.category!==itemCat) return false;
+    if(itemQuery){ const q=itemQuery.toLowerCase(); const hay=(it.name+' '+it.place+' '+it.memo+' '+it.category).toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+  let h = '<h2 style="margin:10px 0 2px">🔍 どこだっけメモ</h2><p class="sub">物の置き場所を家族で共有。探すときは検索！</p>';
+  h += '<input id="iq" type="search" placeholder="🔎 名前・場所・メモで検索" value="'+esc(itemQuery)+'" oninput="itemQuery=this.value;refreshItemList()">';
+  h += '<div class="row" style="margin:10px 0 2px">' + cats.map(c=>'<span class="chip'+(itemCat===c?' on':'')+'" onclick="itemCat=\''+c+'\';draw()">'+esc(c)+'</span>').join('') + '</div>';
+  h += '<div id="itemList">' + itemListHtml(list) + '</div>';
+  h += itemFormHtml();
+  return h;
+}
+function itemListHtml(list){
+  if(!list.length) return '<p class="sub" style="margin:14px 0">該当するものがありません。</p>';
+  return list.map(it=>'<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="big">'+esc(it.name)+'</span><span class="badge">'+esc(it.category)+'</span></div>'
+    +'<div>📍 <b>'+esc(it.place||'場所未登録')+'</b></div>'
+    +(it.memo?'<div class="sub">📝 '+esc(it.memo)+'</div>':'')
+    +'<div class="sub">'+(it.created_by?'登録: '+esc(it.created_by)+' ／ ':'')+'</div>'
+    +'<div class="row" style="margin-top:8px"><button class="g" onclick="editItem(\''+it.id+'\')">編集</button><button class="danger" onclick="delItem(\''+it.id+'\')">削除</button></div></div>').join('');
+}
+function refreshItemList(){
+  const list = ITEMS.filter(it=>{
+    if(itemCat!=='すべて' && it.category!==itemCat) return false;
+    if(itemQuery){ const q=itemQuery.toLowerCase(); if(!(it.name+' '+it.place+' '+it.memo+' '+it.category).toLowerCase().includes(q)) return false; }
+    return true;
+  });
+  $('itemList').innerHTML = itemListHtml(list);
+}
+function itemFormHtml(){
+  const it = editItemId ? ITEMS.find(x=>x.id===editItemId) : null;
+  return '<div class="box"><b>'+(it?'✏️ 編集する':'➕ 新しく登録')+'</b>'
+    +'<label>ものの名前</label><input id="it_name" value="'+esc(it?it.name:'')+'" placeholder="例: 体温計 / パスポート">'
+    +'<label>置き場所</label><input id="it_place" value="'+esc(it?it.place:'')+'" placeholder="例: 洗面所の引き出し">'
+    +'<label>分類</label><select id="it_cat">'+ITEM_CATS.map(c=>'<option'+(it&&it.category===c?' selected':'')+'>'+c+'</option>').join('')+'</select>'
+    +'<label>一言メモ（任意）</label><input id="it_memo" value="'+esc(it?it.memo:'')+'" placeholder="例: 電池は単4">'
+    +'<div class="row" style="margin-top:12px"><button onclick="saveItem()" style="flex:1">'+(it?'保存する':'登録する')+'</button>'
+    +(it?'<button class="g" onclick="editItemId=null;draw()">キャンセル</button>':'')+'</div></div>';
+}
+function editItem(id){ editItemId=id; draw(); window.scrollTo(0, document.body.scrollHeight); }
+async function saveItem(){
+  const name=$('it_name').value.trim(); if(!name){ toast('名前を入力してください'); return; }
+  const row = { household_id:HID, name, place:$('it_place').value.trim(), category:$('it_cat').value, memo:$('it_memo').value.trim(), created_by:MNAME, updated_at:new Date().toISOString() };
+  let r;
+  if(editItemId) r = await sb.from('fam_items').update(row).eq('id', editItemId).eq('household_id', HID);
+  else r = await sb.from('fam_items').insert(row);
+  if(r.error){ console.error(r.error); toast('保存に失敗しました'); return; }
+  editItemId=null; toast('保存しました'); await loadAll();
+}
+async function delItem(id){
+  if(!confirm('このメモを削除しますか？')) return;
+  const r = await sb.from('fam_items').delete().eq('id', id).eq('household_id', HID);
+  if(r.error){ toast('削除に失敗しました'); return; }
+  if(editItemId===id) editItemId=null;
+  toast('削除しました'); await loadAll();
+}
+
+// ============================================================
+// 2) 冷蔵庫つかいきりタイマー
+// ============================================================
+function expiryBadge(f){
+  const d = daysUntil(f.expiry_on);
+  if(d < 0) return '<span style="color:var(--dg);font-weight:800">⚠️ 期限切れ（'+(-d)+'日過ぎ）</span>';
+  if(d === 0) return '<span style="color:var(--dg);font-weight:800">🔥 今日まで！</span>';
+  if(d === 1) return '<span style="color:var(--warn);font-weight:800">⏰ 明日まで</span>';
+  if(d === 2) return '<span style="color:var(--warn);font-weight:800">あと2日</span>';
+  return '<span class="sub">あと'+d+'日（'+fmtDate(f.expiry_on)+'）</span>';
+}
+function foodCard(f, compact){
+  const d = daysUntil(f.expiry_on);
+  const cls = f.status==='active' ? (d<0?'card over':(d<=2?'card hot':'card')) : 'card';
+  let h = '<div class="'+cls+'"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="big">'+esc(f.name)+'</span><span class="badge">'+esc(f.category)+'</span></div>';
+  if(f.status==='active'){
+    h += '<div>'+expiryBadge(f)+'</div>'
+      +'<div class="sub">賞味期限: '+fmtDate(f.expiry_on)+(f.bought_on?' ／ 購入: '+fmtDate(f.bought_on):'')+'</div>'
+      +'<div class="sub">💡 '+(FOOD_IDEAS[f.category]||'今日の献立の主役にして使い切りましょう')+'</div>'
+      +(f.memo?'<div class="sub">📝 '+esc(f.memo)+'</div>':'')
+      +'<div class="row" style="margin-top:8px"><button onclick="finishFood(\''+f.id+'\',\'used\')">✅ 使い切った</button><button class="g" onclick="editFood(\''+f.id+'\')">編集</button><button class="danger" onclick="finishFood(\''+f.id+'\',\'discarded\')">捨てた</button></div>';
+  } else {
+    h += '<div class="sub">'+(f.status==='used'?'✅ 使い切り済み':'🗑️ 廃棄済み')+(f.finished_at?' ／ '+fmtDate(String(f.finished_at).slice(0,10)):'')+'</div>'
+      +'<div class="row" style="margin-top:8px"><button class="g" onclick="restoreFood(\''+f.id+'\')">もどす</button></div>';
+  }
+  return h + '</div>';
+}
+function viewFoods(){
+  const active = FOODS.filter(f=>f.status==='active');
+  const hot = active.filter(f=>daysUntil(f.expiry_on)<=2);
+  const rest = active.filter(f=>daysUntil(f.expiry_on)>2);
+  const done = FOODS.filter(f=>f.status!=='active').slice(-10).reverse();
+  let h = '<h2 style="margin:10px 0 2px">🧊 冷蔵庫つかいきりタイマー</h2><p class="sub">賞味期限の近い順。期限2日以内は「今日これ使って！」</p>';
+  h += '<div class="box"><b>🔥 今日これ使って！</b>' + (hot.length? hot.map(f=>foodCard(f)).join('') : '<p class="sub">期限が近い食材はありません 👍</p>') + '</div>';
+  if(rest.length) h += '<div class="box"><b>🧊 冷蔵庫の中身</b>' + rest.map(f=>foodCard(f)).join('') + '</div>';
+  h += foodFormHtml();
+  if(done.length) h += '<details class="more"><summary>記録（使い切った・捨てた）</summary>' + done.map(f=>foodCard(f)).join('') + '</details>';
+  return h;
+}
+function foodFormHtml(){
+  const f = editFoodId ? FOODS.find(x=>x.id===editFoodId) : null;
+  return '<div class="box"><b>'+(f?'✏️ 編集する':'➕ 食材を登録')+'</b>'
+    +'<label>食材名</label><input id="fd_name" value="'+esc(f?f.name:'')+'" placeholder="例: 牛乳 / ほうれん草">'
+    +'<label>カテゴリ</label><select id="fd_cat">'+FOOD_CATS.map(c=>'<option'+(f&&f.category===c?' selected':'')+'>'+c+'</option>').join('')+'</select>'
+    +'<label>買った日</label><input id="fd_bought" type="date" value="'+(f?(f.bought_on||'') : todayStr())+'">'
+    +'<label>賞味期限</label><input id="fd_expiry" type="date" value="'+(f?f.expiry_on:'')+'">'
+    +'<div class="row" style="margin:6px 0 0"><span class="chip" onclick="setExpiryDays(0)">今日まで</span><span class="chip" onclick="setExpiryDays(3)">3日後</span><span class="chip" onclick="setExpiryDays(7)">1週間後</span></div>'
+    +'<label>メモ（任意）</label><input id="fd_memo" value="'+esc(f?f.memo:'')+'" placeholder="例: 開封済み">'
+    +'<div class="row" style="margin-top:12px"><button onclick="saveFood()" style="flex:1">'+(f?'保存する':'登録する')+'</button>'
+    +(f?'<button class="g" onclick="editFoodId=null;draw()">キャンセル</button>':'')+'</div></div>';
+}
+function setExpiryDays(n){ $('fd_expiry').value = dstr(addDays(new Date(), n)); }
+function editFood(id){ editFoodId=id; draw(); window.scrollTo(0, document.body.scrollHeight); }
+async function saveFood(){
+  const name=$('fd_name').value.trim(), expiry=$('fd_expiry').value;
+  if(!name || !expiry){ toast('食材名と賞味期限を入力してください'); return; }
+  const row = { household_id:HID, name, category:$('fd_cat').value, bought_on:$('fd_bought').value||null, expiry_on:expiry, memo:$('fd_memo').value.trim(), created_by:MNAME };
+  let r;
+  if(editFoodId) r = await sb.from('fam_foods').update(row).eq('id', editFoodId).eq('household_id', HID);
+  else r = await sb.from('fam_foods').insert(row);
+  if(r.error){ console.error(r.error); toast('保存に失敗しました'); return; }
+  editFoodId=null; toast('保存しました'); await loadAll();
+}
+async function finishFood(id, status){
+  const r = await sb.from('fam_foods').update({status, finished_at:new Date().toISOString()}).eq('id', id).eq('household_id', HID);
+  if(r.error){ toast('更新に失敗しました'); return; }
+  toast(status==='used'?'使い切りました 🎉':'記録しました'); await loadAll();
+}
+async function restoreFood(id){
+  const r = await sb.from('fam_foods').update({status:'active', finished_at:null}).eq('id', id).eq('household_id', HID);
+  if(r.error){ toast('更新に失敗しました'); return; }
+  await loadAll();
+}
+
+// ============================================================
+// 3) 家族の気分天気
+// ============================================================
+function moodToday(memberId){ return MOODROWS.find(x=>x.member_id===memberId && x.mood_date===todayStr()) || null; }
+function viewMoods(){
+  const t = todayStr();
+  let h = '<h2 style="margin:10px 0 2px">🌤️ 家族の気分天気</h2><p class="sub">今日の気分を天気でタップ。言葉にしにくい日も伝わります。</p>';
+  h += MEMBERS.map(m=>{
+    const cur = moodToday(m.id);
+    const sel = moodSel[m.id] || (cur ? {mood:cur.mood, note:cur.note||''} : {mood:'', note:''});
+    return '<div class="box"><b>'+esc(m.name)+'</b>'+(cur?'<span class="sub">　今日は '+moodOf(cur.mood).e+moodOf(cur.mood).l+'</span>':'<span class="sub">　まだ未入力</span>')
+      +'<div class="row" style="margin-top:8px;flex-wrap:nowrap">'+MOODS.map(md=>'<button class="moodbtn'+(sel.mood===md.k?' on':'')+'" onclick="pickMood(\''+m.id+'\',\''+md.k+'\')">'+md.e+'<small>'+md.l+'</small></button>').join('')+'</div>'
+      +'<label>ひとこと（任意）</label><input id="mn_'+m.id+'" value="'+esc(sel.note)+'" placeholder="例: そっとしておいて / 話を聞いてほしい" oninput="noteMood(\''+m.id+'\',this.value)">'
+      +'<div class="row" style="margin-top:10px"><button onclick="saveMood(\''+m.id+'\')" style="flex:1">この気分で保存</button></div></div>';
+  }).join('');
+  // 7日間ビュー
+  const days = []; for(let n=6;n>=0;n--) days.push(dstr(addDays(new Date(), -n)));
+  h += '<div class="box"><b>📅 最近7日間の空模様</b><div style="overflow-x:auto"><table class="week"><tr><th></th>'+days.map(d=>'<th>'+fmtDate(d)+'</th>').join('')+'</tr>'
+    + MEMBERS.map(m=>'<tr><th style="white-space:nowrap">'+esc(m.name)+'</th>'+days.map(d=>{ const mo=MOODROWS.find(x=>x.member_id===m.id&&x.mood_date===d); return '<td>'+(mo?moodOf(mo.mood).e:'・')+'</td>'; }).join('')+'</tr>').join('')
+    + '</table></div></div>';
+  return h;
+}
+function pickMood(memberId, k){ const cur = moodSel[memberId] || {}; moodSel[memberId] = {mood:k, note:cur.note ?? (($('mn_'+memberId)||{}).value || '')}; draw(); }
+function noteMood(memberId, v){ const cur = moodSel[memberId] || {}; moodSel[memberId] = {mood:cur.mood||'', note:v}; }
+async function saveMood(memberId){
+  const sel = moodSel[memberId];
+  const note = (($('mn_'+memberId)||{}).value || '').trim();
+  if(!sel || !sel.mood){ toast('天気を選んでください'); return; }
+  const row = { household_id:HID, member_id:memberId, mood_date:todayStr(), mood:sel.mood, note, updated_at:new Date().toISOString() };
+  const r = await sb.from('fam_moods').upsert(row, {onConflict:'member_id,mood_date'});
+  if(r.error){ console.error(r.error); toast('保存に失敗しました'); return; }
+  delete moodSel[memberId]; toast('気分を保存しました'); await loadAll();
+}
+
+// ============================================================
+// 4) 歯磨き記録（カメラは端末内だけ・記録のみ共有）
+// ============================================================
+const BRUSH_ZONES = [
+  {n:'うえ・みぎの おくば', s:'そとがわ'},
+  {n:'うえ・まえば', s:'そとがわ'},
+  {n:'うえ・ひだりの おくば', s:'そとがわ'},
+  {n:'した・ひだりの おくば', s:'そとがわ'},
+  {n:'した・まえば', s:'そとがわ'},
+  {n:'した・みぎの おくば', s:'そとがわ'},
+  {n:'おくばの かむところ', s:'かむめん'},
+  {n:'うえの おくば', s:'うちがわ'},
+  {n:'したの おくば', s:'うちがわ'},
+  {n:'まえばの うらがわ', s:'うらがわ'},
+];
+const ZONE_SECONDS = 15;
+function autoSlot(){ return new Date().getHours() < 15 ? 'morning' : 'night'; }
+function viewBrush(){
+  const mid = brushMember || (MEMBERS[0] && MEMBERS[0].id) || '';
+  const t = todayStr();
+  const st = mid ? brushStats(mid) : {stars:0, streak:0};
+  let h = '<h2 style="margin:10px 0 2px">🪥 歯磨き記録</h2><p class="sub">カメラは鏡として端末の中だけで使います（映像は保存・送信されません）。共有されるのは「できた」記録だけです。</p>';
+  h += '<div class="box"><label style="margin-top:0">だれの記録？</label><select onchange="brushMember=this.value;draw()">'+memberOptions(mid)+'</select>'
+    + '<p style="margin:10px 0 0">⭐ スター '+st.stars+'　🔥 連続 '+st.streak+'日（朝・夜そろった日）</p>'
+    + '<p class="sub">今日: 🌅朝 '+(mid&&brushDone(mid,t,'morning')?'✅':'⬜')+'　🌙夜 '+(mid&&brushDone(mid,t,'night')?'✅':'⬜')+'</p></div>';
+
+  if(brushSession){
+    h += '<div class="box" style="text-align:center"><b>🦷 みがき中…</b>'
+      + '<div style="margin:10px auto;max-width:340px"><video id="brushVideo" autoplay playsinline muted style="width:100%;border-radius:14px;transform:scaleX(-1);background:#111;aspect-ratio:3/4;object-fit:cover"></video></div>'
+      + '<div class="big" id="bzName"></div><div class="sub" id="bzFace"></div>'
+      + '<div style="font-size:2.6rem;font-weight:900" id="bzCount"></div>'
+      + '<div class="sub" id="bzProg"></div>'
+      + '<div style="height:12px;background:var(--line);border-radius:99px;overflow:hidden;margin:10px 0"><div id="bzBar" style="height:100%;background:var(--ac);width:0%"></div></div>'
+      + '<div class="row" style="justify-content:center"><button class="g" id="bzPause" onclick="toggleBrushPause()">⏸ 一時停止</button><button class="danger" onclick="endBrushSession(true)">やめる</button></div>'
+      + '<p class="sub">ゾーンが変わるとバイブで合図します</p></div>';
+  } else {
+    h += '<div class="box"><b>📷 ガイド付き歯磨き（2分30秒）</b>'
+      + '<p class="sub">10か所 × 15秒。奥歯から順に、内側・裏側までガイドします。今は'+(autoSlot()==='morning'?'🌅朝':'🌙夜')+'の回として記録されます。</p>'
+      + '<div class="row">'+BRUSH_ZONES.map((z,i)=>'<span class="chip" style="cursor:default">'+(i+1)+'. '+esc(z.n)+'（'+esc(z.s)+'）</span>').join('')+'</div>'
+      + '<div class="row" style="margin-top:12px"><button onclick="startBrushSession()" style="flex:1">▶ スタート</button></div></div>';
+  }
+
+  h += '<div class="box"><b>✋ 手動チェック（今日）</b><p class="sub">アプリを使わず磨いた日はこちらで記録できます。</p>'
+    + MEMBERS.map(m=>'<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:7px 0"><span><b>'+esc(m.name)+'</b></span><span>'
+      +'<button class="g" style="min-height:40px" onclick="toggleBrushManual(\''+m.id+'\',\'morning\')">🌅朝 '+(brushDone(m.id,t,'morning')?'✅':'⬜')+'</button> '
+      +'<button class="g" style="min-height:40px" onclick="toggleBrushManual(\''+m.id+'\',\'night\')">🌙夜 '+(brushDone(m.id,t,'night')?'✅':'⬜')+'</button>'
+      +'</span></div>').join('') + '</div>';
+  return h;
+}
+async function toggleBrushManual(memberId, slot){
+  const now = brushDone(memberId, todayStr(), slot);
+  const row = { household_id:HID, member_id:memberId, brush_date:todayStr(), slot, done:!now, zones_done: !now?10:0, source:'manual' };
+  const r = await sb.from('fam_brushing').upsert(row, {onConflict:'member_id,brush_date,slot'});
+  if(r.error){ console.error(r.error); toast('保存に失敗しました'); return; }
+  await loadAll();
+}
+async function startBrushSession(){
+  if(!brushMember){ toast('メンバーを選んでください'); return; }
+  let stream = null;
+  try{ stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false}); }
+  catch(e){ console.warn('camera unavailable', e); toast('カメラが使えないので、タイマーだけで進めます'); }
+  brushSession = { memberId: brushMember, slot: autoSlot(), zone: 0, left: ZONE_SECONDS, timer: null, stream, paused: false };
+  draw();
+  const v = $('brushVideo');
+  if(v && stream){ v.srcObject = stream; }
+  else if(v){ v.style.display='none'; }
+  updateBrushHud();
+  brushSession.timer = setInterval(brushTick, 1000);
+}
+function brushTick(){
+  if(!brushSession || brushSession.paused) return;
+  brushSession.left--;
+  if(brushSession.left <= 0){
+    brushSession.zone++;
+    if(navigator.vibrate) navigator.vibrate(120);
+    if(brushSession.zone >= BRUSH_ZONES.length){ finishBrushSession(); return; }
+    brushSession.left = ZONE_SECONDS;
+  }
+  updateBrushHud();
+}
+function updateBrushHud(){
+  if(!brushSession) return;
+  const z = BRUSH_ZONES[Math.min(brushSession.zone, BRUSH_ZONES.length-1)];
+  if($('bzName')) $('bzName').textContent = z.n;
+  if($('bzFace')) $('bzFace').textContent = z.s + 'を みがこう';
+  if($('bzCount')) $('bzCount').textContent = brushSession.left;
+  if($('bzProg')) $('bzProg').textContent = (brushSession.zone+1) + ' / ' + BRUSH_ZONES.length + ' か所';
+  if($('bzBar')) $('bzBar').style.width = ((brushSession.zone * ZONE_SECONDS + (ZONE_SECONDS - brushSession.left)) / (BRUSH_ZONES.length * ZONE_SECONDS) * 100) + '%';
+}
+function toggleBrushPause(){
+  if(!brushSession) return;
+  brushSession.paused = !brushSession.paused;
+  if($('bzPause')) $('bzPause').textContent = brushSession.paused ? '▶ 再開' : '⏸ 一時停止';
+}
+function stopBrushSession(){
+  if(!brushSession) return;
+  if(brushSession.timer) clearInterval(brushSession.timer);
+  if(brushSession.stream) brushSession.stream.getTracks().forEach(t=>t.stop());
+  brushSession = null;
+}
+async function endBrushSession(manual){
+  if(!brushSession) return;
+  const zones = brushSession.zone;
+  const s = brushSession;
+  stopBrushSession();
+  if(manual && zones > 0){
+    await saveBrushRecord(s.memberId, s.slot, false, zones, 'session');
+    toast(zones + 'か所まで記録しました');
+  }
+  draw();
+}
+async function finishBrushSession(){
+  const s = brushSession; stopBrushSession();
+  await saveBrushRecord(s.memberId, s.slot, true, BRUSH_ZONES.length, 'session');
+  toast('🎉 2分30秒 かんぺき！記録しました');
+  await loadAll();
+}
+async function saveBrushRecord(memberId, slot, done, zones, source){
+  const row = { household_id:HID, member_id:memberId, brush_date:todayStr(), slot, done, zones_done:zones, source };
+  const r = await sb.from('fam_brushing').upsert(row, {onConflict:'member_id,brush_date,slot'});
+  if(r.error) console.error(r.error);
+}
+
+// ============================================================
+// 5) 偏頭痛チェック（Open-Meteo: 東海市周辺・キー不要）
+// ============================================================
+const TOKAI = { lat: 35.02, lon: 136.88 };
+async function fetchPressure(){
+  if(MIGWX) return MIGWX;
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude='+TOKAI.lat+'&longitude='+TOKAI.lon
+    + '&current=pressure_msl,temperature_2m,weather_code&hourly=pressure_msl&timezone=Asia%2FTokyo&forecast_days=3&past_days=1';
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('weather fetch failed');
+  const j = await res.json();
+  const times = j.hourly.time, ps = j.hourly.pressure_msl;
+  const nowMs = Date.now();
+  let idx = 0, best = Infinity;
+  times.forEach((t,i)=>{ const d = Math.abs(new Date(t).getTime() - nowMs); if(d<best){ best=d; idx=i; } });
+  const at = n => ps[Math.max(0, Math.min(ps.length-1, idx+n))];
+  const cur = j.current.pressure_msl;
+  const drop3 = Math.max(0, at(-3) - cur);
+  const drop6 = Math.max(0, at(-6) - cur);
+  const past24 = Math.max(0, at(-24) - cur);
+  let futureMin = cur; for(let n=0;n<=24;n++) futureMin = Math.min(futureMin, at(n));
+  const future24 = Math.max(0, cur - futureMin);
+  const drop24 = Math.max(past24, future24);
+  MIGWX = { pressure: cur, temp: j.current.temperature_2m, drop3, drop6, drop24, futureMin };
+  return MIGWX;
+}
+function migWeatherScore(wx){
+  let s = Math.min(48, wx.drop24 * 7);
+  if(wx.pressure < 1010) s += Math.min(12, (1010 - wx.pressure) * 1.2);
+  return Math.round(Math.min(60, s));
+}
+function migLevel(score){
+  if(score < 20) return '低い';
+  if(score < 40) return 'やや低い';
+  if(score < 60) return 'ふつう';
+  if(score < 80) return 'やや高い';
+  return '高い';
+}
+async function loadMigraineWeather(){
+  const el = $('migWx'); if(!el) return;
+  try{
+    const wx = await fetchPressure();
+    el.innerHTML = '🌡️ 現在の気圧 <b>'+wx.pressure.toFixed(1)+' hPa</b>（東海市周辺）<br>'
+      + '<span class="sub">気圧の低下: 3時間 '+wx.drop3.toFixed(1)+' hPa ／ 6時間 '+wx.drop6.toFixed(1)+' hPa ／ 24時間最大 '+wx.drop24.toFixed(1)+' hPa'
+      + '<br>天気分のスコア（60点中）: <b>'+migWeatherScore(wx)+'点</b></span>';
+  }catch(e){ console.error(e); el.textContent = '天気データを取得できませんでした（通信状態を確認してください）。体調チェックだけでも保存できます。'; }
+}
+function viewMigraine(){
+  const mid = migMember || MID;
+  const t = todayStr();
+  const mine = MIGLOGS.filter(x=>x.member_id===mid).slice(-14).reverse();
+  const todayLog = MIGLOGS.find(x=>x.member_id===mid && x.log_date===t);
+  let h = '<h2 style="margin:10px 0 2px">🌦️ 偏頭痛チェック</h2><p class="sub">東海市周辺の気圧（Open-Meteo）と体調チェックからリスクを推定します。医療診断ではありません。</p>';
+  h += '<div class="box"><label style="margin-top:0">だれの記録？</label><select onchange="migMember=this.value;draw()">'+memberOptions(mid)+'</select>'
+    + '<p id="migWx" style="margin:10px 0 0">🌡️ 気圧データを取得中…</p></div>';
+  h += '<div class="box"><b>📝 今日の体調チェック</b>'
+    + '<label>睡眠</label><select id="mg_sleep"><option value="good">よく寝た</option><option value="ok">ふつう</option><option value="bad">睡眠不足</option></select>'
+    + '<label>ストレス</label><select id="mg_stress"><option value="none">なし</option><option value="some">少しある</option><option value="high">強い</option></select>'
+    + '<label>肩こり・首こり</label><select id="mg_stiff"><option value="none">なし</option><option value="some">ある</option><option value="high">強い</option></select>'
+    + '<label style="font-weight:400"><input type="checkbox" id="mg_head" style="width:auto" '+(todayLog&&todayLog.headache?'checked':'')+'> 今日、頭痛が起きた</label>'
+    + '<div class="row" style="margin-top:10px"><button onclick="saveMigraine()" style="flex:1">判定して保存</button></div>'
+    + (todayLog?'<p class="sub">今日の結果: リスク <b>'+esc(todayLog.risk_level)+'</b>（'+todayLog.risk_score+'点）</p>':'')
+    + '</div>';
+  if(mine.length){
+    h += '<div class="box"><b>📖 履歴（'+esc(memberName(mid))+'）</b>'
+      + mine.map(x=>'<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:7px 0"><span>'+fmtDate(x.log_date)+'</span><span><b>'+esc(x.risk_level)+'</b> '+x.risk_score+'点'+(x.pressure?' <span class="sub">'+Number(x.pressure).toFixed(0)+'hPa</span>':'')+'</span><span>'+(x.headache?'<span style="color:var(--dg)">頭痛あり</span>':'<span class="sub">頭痛なし</span>')+'</span></div>').join('') + '</div>';
+  }
+  return h;
+}
+async function saveMigraine(){
+  const mid = migMember || MID;
+  let wx = null, wScore = 0;
+  try{ wx = await fetchPressure(); wScore = migWeatherScore(wx); }catch(e){ console.warn(e); }
+  const sleep = $('mg_sleep').value, stress = $('mg_stress').value, stiff = $('mg_stiff').value;
+  let cScore = 0;
+  cScore += sleep==='ok'?8 : sleep==='bad'?16 : 0;
+  cScore += stress==='some'?6 : stress==='high'?12 : 0;
+  cScore += stiff==='some'?6 : stiff==='high'?12 : 0;
+  const score = Math.min(100, wScore + cScore);
+  const row = { household_id:HID, member_id:mid, log_date:todayStr(), risk_score:score, risk_level:migLevel(score),
+    pressure: wx?wx.pressure:null, drop24: wx?wx.drop24:null, sleep, stress, stiffness:stiff,
+    headache: $('mg_head').checked, updated_at:new Date().toISOString() };
+  const r = await sb.from('fam_migraine_logs').upsert(row, {onConflict:'member_id,log_date'});
+  if(r.error){ console.error(r.error); toast('保存に失敗しました'); return; }
+  toast('今日のリスクは「'+migLevel(score)+'」（'+score+'点）でした'); await loadAll();
+}
+
+// ============================================================
+// 6) 英語学習（音声は端末の読み上げ機能を使用）
+// ============================================================
+const WORDS = [
+  // どうぶつ
+  ['dog','いぬ','どうぶつ'],['cat','ねこ','どうぶつ'],['bird','とり','どうぶつ'],['fish','さかな','どうぶつ'],['rabbit','うさぎ','どうぶつ'],['lion','ライオン','どうぶつ'],['elephant','ぞう','どうぶつ'],['monkey','さる','どうぶつ'],['bear','くま','どうぶつ'],['pig','ぶた','どうぶつ'],
+  // いろ
+  ['red','あか','いろ'],['blue','あお','いろ'],['yellow','きいろ','いろ'],['green','みどり','いろ'],['orange','オレンジ','いろ'],['pink','ピンク','いろ'],['black','くろ','いろ'],['white','しろ','いろ'],
+  // かず
+  ['one','1','かず'],['two','2','かず'],['three','3','かず'],['four','4','かず'],['five','5','かず'],['six','6','かず'],['seven','7','かず'],['eight','8','かず'],['nine','9','かず'],['ten','10','かず'],
+  // たべもの
+  ['apple','りんご','たべもの'],['banana','バナナ','たべもの'],['bread','パン','たべもの'],['milk','ぎゅうにゅう','たべもの'],['egg','たまご','たべもの'],['rice','ごはん','たべもの'],['cake','ケーキ','たべもの'],['water','みず','たべもの'],['juice','ジュース','たべもの'],['strawberry','いちご','たべもの'],
+  // がっこう
+  ['book','ほん','がっこう'],['pencil','えんぴつ','がっこう'],['desk','つくえ','がっこう'],['chair','いす','がっこう'],['bag','かばん','がっこう'],['teacher','せんせい','がっこう'],['school','がっこう','がっこう'],['friend','ともだち','がっこう'],
+  // からだ
+  ['eye','め','からだ'],['ear','みみ','からだ'],['hand','て','からだ'],['head','あたま','からだ'],['mouth','くち','からだ'],['nose','はな','からだ'],
+  // うごき
+  ['run','はしる','うごき'],['swim','およぐ','うごき'],['sing','うたう','うごき'],['read','よむ','うごき'],['write','かく','うごき'],['play','あそぶ','うごき'],['eat','たべる','うごき'],['sleep','ねむる','うごき'],
+].map(([en,ja,cat],i)=>({id:'w'+i, en, ja, cat}));
+const PHRASES = [
+  {id:'p1', en:'Hello!', ja:'こんにちは！'},
+  {id:'p2', en:'Good morning.', ja:'おはよう。'},
+  {id:'p3', en:'Thank you.', ja:'ありがとう。'},
+  {id:'p4', en:"What's your name?", ja:'お名前は？'},
+  {id:'p5', en:"I'm fine.", ja:'元気です。'},
+  {id:'p6', en:'See you!', ja:'またね！'},
+];
+const ABC_EXAMPLE = {A:'apple',B:'bird',C:'cat',D:'dog',E:'egg',F:'fish',G:'green',H:'hand',I:'ink',J:'juice',K:'king',L:'lion',M:'milk',N:'nose',O:'orange',P:'pig',Q:'queen',R:'red',S:'school',T:'teacher',U:'umbrella',V:'violin',W:'water',X:'box',Y:'yellow',Z:'zoo'};
+const ENG_CATS = [...new Set(WORDS.map(w=>w.cat))];
+function speakEn(text){
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=0.9;
+    speechSynthesis.speak(u);
+  }catch(e){ console.warn(e); }
+}
+function engProg(memberId){
+  const p = ENGPROG.find(x=>x.member_id===memberId);
+  return { learned: p&&Array.isArray(p.learned)?p.learned:[], stars: p?p.stars||0:0, stamps: p&&Array.isArray(p.stamps)?p.stamps:[] };
+}
+async function saveEngProg(memberId, prog){
+  const row = { household_id:HID, member_id:memberId, learned:prog.learned, stars:prog.stars, stamps:prog.stamps, updated_at:new Date().toISOString() };
+  const r = await sb.from('fam_english_progress').upsert(row, {onConflict:'member_id'});
+  if(r.error){ console.error(r.error); toast('進み具合の保存に失敗しました'); return false; }
+  const idx = ENGPROG.findIndex(x=>x.member_id===memberId);
+  if(idx>=0) ENGPROG[idx] = {...ENGPROG[idx], ...row}; else ENGPROG.push(row);
+  return true;
+}
+function engStampToday(prog){ if(!prog.stamps.includes(todayStr())) prog.stamps.push(todayStr()); }
+function viewEnglish(){
+  const mid = engMember || (MEMBERS[0] && MEMBERS[0].id) || '';
+  const prog = engProg(mid);
+  const total = WORDS.length + PHRASES.length;
+  const badges = [
+    {n:'🌟 はじめの一歩', ok:prog.learned.length>=1},
+    {n:'📚 たんご10こ', ok:prog.learned.length>=10},
+    {n:'🎓 たんご30こ', ok:prog.learned.length>=30},
+    {n:'🏆 ぜんぶマスター', ok:prog.learned.length>=total},
+    {n:'⭐ スター20こ', ok:prog.stars>=20},
+    {n:'📅 3日れんぞく', ok:prog.stamps.length>=3},
+  ];
+  let h = '<h2 style="margin:10px 0 2px">🔤 英語学習</h2><p class="sub">音声は端末の読み上げ機能を使います。進み具合は家族みんなのスマホから見られます。</p>';
+  h += '<div class="box"><label style="margin-top:0">だれの進み具合？</label><select onchange="engMember=this.value;quizNow=null;draw()">'+memberOptions(mid)+'</select>'
+    + '<p style="margin:10px 0 0">おぼえた <b>'+prog.learned.length+' / '+total+'</b>　⭐ スター '+prog.stars+'　📅 スタンプ '+prog.stamps.length+'日分</p>'
+    + '<div class="row" style="margin-top:6px">'+badges.map(b=>'<span class="chip" style="cursor:default;'+(b.ok?'':'opacity:.35')+'">'+b.n+'</span>').join('')+'</div></div>';
+  h += '<div class="row"><span class="chip'+(engMode==='cards'?' on':'')+'" onclick="engMode=\'cards\';draw()">📖 カード</span>'
+    + '<span class="chip'+(engMode==='abc'?' on':'')+'" onclick="engMode=\'abc\';draw()">🔤 ABC</span>'
+    + '<span class="chip'+(engMode==='quiz'?' on':'')+'" onclick="engMode=\'quiz\';draw()">🎧 クイズ</span></div>';
+
+  if(engMode==='cards'){
+    h += '<div class="row" style="margin-top:10px">' + ENG_CATS.map(c=>'<span class="chip'+(engCat===c?' on':'')+'" onclick="engCat=\''+c+'\';draw()">'+c+'</span>').join('') + '<span class="chip'+(engCat==='フレーズ'?' on':'')+'" onclick="engCat=\'フレーズ\';draw()">フレーズ</span></div>';
+    if(engCat==='フレーズ'){
+      h += '<div class="grid2" style="margin-top:10px">' + PHRASES.map(p=>{
+        const learned = prog.learned.includes(p.id);
+        return '<div class="wordcard'+(learned?' learned':'')+'"><div class="big">'+esc(p.en)+'</div><div class="sub">'+esc(p.ja)+'</div>'
+          +'<div class="row" style="justify-content:center;margin-top:8px"><button class="g" onclick="speakEn(\''+esc(p.en.replace(/'/g,"\\'"))+'\')">🔊 きく</button><button onclick="toggleLearned(\''+p.id+'\')">'+(learned?'✓ おぼえた':'おぼえた！')+'</button></div></div>';
+      }).join('') + '</div>';
+    } else {
+      h += '<div class="grid2" style="margin-top:10px">' + WORDS.filter(w=>w.cat===engCat).map(w=>{
+        const learned = prog.learned.includes(w.id);
+        return '<div class="wordcard'+(learned?' learned':'')+'"><div class="big">'+esc(w.en)+'</div><div class="sub">'+esc(w.ja)+'</div>'
+          +'<div class="row" style="justify-content:center;margin-top:8px"><button class="g" onclick="speakEn(\''+w.en+'\')">🔊 きく</button><button onclick="toggleLearned(\''+w.id+'\')">'+(learned?'✓ おぼえた':'おぼえた！')+'</button></div></div>';
+      }).join('') + '</div>';
+    }
+  }
+  else if(engMode==='abc'){
+    h += '<p class="sub" style="margin-top:10px">文字をタップすると、発音と その文字で始まる単語を読み上げます。</p><div class="grid3">'
+      + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(L=>'<button class="letterbtn" onclick="speakEn(\''+L+'. '+ABC_EXAMPLE[L]+'\')">'+L+'<small style="display:block;font-size:.68rem;font-weight:700">'+ABC_EXAMPLE[L]+'</small></button>').join('') + '</div>';
+  }
+  else { // quiz
+    if(!quizNow) startQuiz();
+    const q = quizNow;
+    h += '<div class="box" style="text-align:center"><b>🎧 きいて えらぼう</b>'
+      + '<p class="sub">音を聞いて、正しい意味を選んでね</p>'
+      + '<button onclick="speakEn(\''+q.word.en+'\')" style="font-size:1.2rem">🔊 もう一度きく</button>'
+      + '<div class="grid2" style="margin-top:14px;text-align:stretch">'
+      + q.choices.map(c=>'<button class="'+(q.answered ? (c.id===q.word.id ? '' : 'g') : 'g')+'" '+(q.answered?'disabled':'')+' onclick="answerQuiz(\''+c.id+'\')">'+esc(c.ja)+'</button>').join('')
+      + '</div>'
+      + (q.answered ? '<p class="big" style="margin:12px 0 4px">'+(q.correct?'🎉 せいかい！ ⭐+1':'ざんねん… 正解は「'+esc(q.word.ja)+'」')+'</p><button onclick="startQuiz();draw()">つぎの問題 ▶</button>' : '')
+      + '</div>';
+  }
+  return h;
+}
+async function toggleLearned(id){
+  const mid = engMember; if(!mid) return;
+  const prog = engProg(mid);
+  const i = prog.learned.indexOf(id);
+  if(i>=0) prog.learned.splice(i,1); else { prog.learned.push(id); engStampToday(prog); }
+  if(await saveEngProg(mid, prog)) draw();
+}
+function startQuiz(){
+  const w = WORDS[Math.floor(Math.random()*WORDS.length)];
+  const others = WORDS.filter(x=>x.id!==w.id).sort(()=>Math.random()-0.5).slice(0,3);
+  quizNow = { word: w, choices: [w, ...others].sort(()=>Math.random()-0.5), answered:false, correct:false };
+  setTimeout(()=>speakEn(w.en), 150);
+}
+async function answerQuiz(choiceId){
+  if(!quizNow || quizNow.answered) return;
+  quizNow.answered = true;
+  quizNow.correct = choiceId === quizNow.word.id;
+  if(quizNow.correct){
+    const prog = engProg(engMember);
+    prog.stars += 1; engStampToday(prog);
+    if(!prog.learned.includes(quizNow.word.id)) prog.learned.push(quizNow.word.id);
+    await saveEngProg(engMember, prog);
+  }
+  draw();
+}
+
+// ============================================================
+// 起動（保存済みセッションの復元）
+// ============================================================
+(async function init(){
+  let saved = null;
+  try{ saved = JSON.parse(localStorage.getItem('fam_auth') || 'null'); }catch(e){}
+  if(saved && saved.hid && saved.mid){
+    try{
+      const {data,error} = await sb.from('fam_members').select('*').eq('id', saved.mid).eq('household_id', saved.hid).maybeSingle();
+      if(!error && data){ HID=saved.hid; MID=data.id; MNAME=data.name; await enterApp(); return; }
+    }catch(e){ console.error(e); }
+    clearSession();
+  }
+  showAuth('');
+})();
+</script>
+</body>
+</html>
