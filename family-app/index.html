@@ -179,8 +179,10 @@ let MEMBERS = [], ITEMS = [], FOODS = [], MOODROWS = [];
 let BRUSH = [], MIGLOGS = [], ENGPROG = [];
 let itemQuery = '', itemCat = 'すべて';
 let editItemId = null, editFoodId = null;
+let itemDraft = null, foodDraft = null; // 登録フォーム入力中の下書き（再描画で消えないよう保持）
 let moodSel = {}; // member_id -> {mood, note} 編集中の下書き
 let brushMember = '', migMember = '', engMember = '', engMode = 'cards', engCat = 'どうぶつ', quizNow = null;
+let migForm = null, migFormFor = ''; // 偏頭痛の体調チェック入力中の値（再描画で消えないようDOMの外で保持）
 let brushSession = null; // {memberId, slot, zone, left, timer, stream, paused}
 let MIGWX = null; // Open-Meteo の取得結果キャッシュ
 
@@ -296,10 +298,16 @@ async function loadAll(){
     sb.from('fam_migraine_logs').select('*').eq('household_id', HID).gte('log_date', since31).order('log_date'),
     sb.from('fam_english_progress').select('*').eq('household_id', HID),
   ]);
-  const err = m.error||i.error||f.error||mo.error||b.error||mg.error||en.error;
-  if(err){ console.error(err); toast('読み込みに失敗しました'); return; }
-  MEMBERS=m.data||[]; ITEMS=i.data||[]; FOODS=f.data||[]; MOODROWS=mo.data||[];
-  BRUSH=b.data||[]; MIGLOGS=mg.data||[]; ENGPROG=en.data||[];
+  // 1つのテーブルが読めなくても他の画面まで真っ白にしないよう、テーブルごとに取り込む
+  const failed = [];
+  if(!m.error) MEMBERS=m.data||[]; else { console.error(m.error); failed.push('メンバー'); }
+  if(!i.error) ITEMS=i.data||[]; else { console.error(i.error); failed.push('さがす'); }
+  if(!f.error) FOODS=f.data||[]; else { console.error(f.error); failed.push('冷蔵庫'); }
+  if(!mo.error) MOODROWS=mo.data||[]; else { console.error(mo.error); failed.push('気分'); }
+  if(!b.error) BRUSH=b.data||[]; else { console.error(b.error); failed.push('歯磨き'); }
+  if(!mg.error) MIGLOGS=mg.data||[]; else { console.error(mg.error); failed.push('偏頭痛'); }
+  if(!en.error) ENGPROG=en.data||[]; else { console.error(en.error); failed.push('英語'); }
+  if(failed.length) toast('一部の読み込みに失敗しました（'+failed.join('・')+'）。時間をおいて開き直してください');
   if(!brushMember && MEMBERS.length) brushMember = MEMBERS[0].id;
   if(!migMember) migMember = MID;
   if(!engMember && MEMBERS.length) engMember = MEMBERS[0].id;
@@ -329,6 +337,7 @@ function draw(){
 }
 function memberName(id){ const m=MEMBERS.find(x=>x.id===id); return m?m.name:'?'; }
 function memberOptions(sel){ return MEMBERS.map(m=>'<option value="'+m.id+'"'+(m.id===sel?' selected':'')+'>'+esc(m.name)+'</option>').join(''); }
+function opt(v, cur, t){ return '<option value="'+v+'"'+(cur===v?' selected':'')+'>'+t+'</option>'; }
 
 // ============================================================
 // 今日のボード（全モジュールの集約）
@@ -409,8 +418,17 @@ function viewMore(){
 // ============================================================
 // 1) どこだっけメモ（さがす）
 // ============================================================
-function viewItems(){
+function itemChipsHtml(){
   const cats = ['すべて', ...ITEM_CATS];
+  return cats.map(c=>'<span class="chip'+(itemCat===c?' on':'')+'" onclick="pickItemCat(\''+c+'\')">'+esc(c)+'</span>').join('');
+}
+function pickItemCat(c){
+  itemCat = c;
+  // 全体を再描画すると下の登録フォームに入力中の内容が消えるので、チップと一覧だけ更新する
+  const el = $('itemChips'); if(el) el.innerHTML = itemChipsHtml();
+  refreshItemList();
+}
+function viewItems(){
   const list = ITEMS.filter(it=>{
     if(itemCat!=='すべて' && it.category!==itemCat) return false;
     if(itemQuery){ const q=itemQuery.toLowerCase(); const hay=(it.name+' '+it.place+' '+it.memo+' '+it.category).toLowerCase(); if(!hay.includes(q)) return false; }
@@ -418,7 +436,7 @@ function viewItems(){
   });
   let h = '<h2 style="margin:10px 0 2px">🔍 どこだっけメモ</h2><p class="sub">物の置き場所を家族で共有。探すときは検索！</p>';
   h += '<input id="iq" type="search" placeholder="🔎 名前・場所・メモで検索" value="'+esc(itemQuery)+'" oninput="itemQuery=this.value;refreshItemList()">';
-  h += '<div class="row" style="margin:10px 0 2px">' + cats.map(c=>'<span class="chip'+(itemCat===c?' on':'')+'" onclick="itemCat=\''+c+'\';draw()">'+esc(c)+'</span>').join('') + '</div>';
+  h += '<div class="row" id="itemChips" style="margin:10px 0 2px">' + itemChipsHtml() + '</div>';
   h += '<div id="itemList">' + itemListHtml(list) + '</div>';
   h += itemFormHtml();
   return h;
@@ -439,13 +457,15 @@ function refreshItemList(){
   });
   $('itemList').innerHTML = itemListHtml(list);
 }
+function capItemDraft(){ if(editItemId) return; itemDraft = { name:$('it_name').value, place:$('it_place').value, cat:$('it_cat').value, memo:$('it_memo').value }; }
 function itemFormHtml(){
   const it = editItemId ? ITEMS.find(x=>x.id===editItemId) : null;
+  const d = it ? {name:it.name, place:it.place||'', cat:it.category, memo:it.memo||''} : (itemDraft || {name:'', place:'', cat:ITEM_CATS[0], memo:''});
   return '<div class="box"><b>'+(it?'✏️ 編集する':'➕ 新しく登録')+'</b>'
-    +'<label>ものの名前</label><input id="it_name" value="'+esc(it?it.name:'')+'" placeholder="例: 体温計 / パスポート">'
-    +'<label>置き場所</label><input id="it_place" value="'+esc(it?it.place:'')+'" placeholder="例: 洗面所の引き出し">'
-    +'<label>分類</label><select id="it_cat">'+ITEM_CATS.map(c=>'<option'+(it&&it.category===c?' selected':'')+'>'+c+'</option>').join('')+'</select>'
-    +'<label>一言メモ（任意）</label><input id="it_memo" value="'+esc(it?it.memo:'')+'" placeholder="例: 電池は単4">'
+    +'<label>ものの名前</label><input id="it_name" value="'+esc(d.name)+'" placeholder="例: 体温計 / パスポート" oninput="capItemDraft()">'
+    +'<label>置き場所</label><input id="it_place" value="'+esc(d.place)+'" placeholder="例: 洗面所の引き出し" oninput="capItemDraft()">'
+    +'<label>分類</label><select id="it_cat" onchange="capItemDraft()">'+ITEM_CATS.map(c=>'<option'+(d.cat===c?' selected':'')+'>'+c+'</option>').join('')+'</select>'
+    +'<label>一言メモ（任意）</label><input id="it_memo" value="'+esc(d.memo)+'" placeholder="例: 電池は単4" oninput="capItemDraft()">'
     +'<div class="row" style="margin-top:12px"><button onclick="saveItem()" style="flex:1">'+(it?'保存する':'登録する')+'</button>'
     +(it?'<button class="g" onclick="editItemId=null;draw()">キャンセル</button>':'')+'</div></div>';
 }
@@ -457,7 +477,7 @@ async function saveItem(){
   if(editItemId) r = await sb.from('fam_items').update(row).eq('id', editItemId).eq('household_id', HID);
   else r = await sb.from('fam_items').insert(row);
   if(r.error){ console.error(r.error); toast('保存に失敗しました'); return; }
-  editItemId=null; toast('保存しました'); await loadAll();
+  editItemId=null; itemDraft=null; toast('保存しました'); await loadAll();
 }
 async function delItem(id){
   if(!confirm('このメモを削除しますか？')) return;
@@ -506,19 +526,21 @@ function viewFoods(){
   if(done.length) h += '<details class="more"><summary>記録（使い切った・捨てた）</summary>' + done.map(f=>foodCard(f)).join('') + '</details>';
   return h;
 }
+function capFoodDraft(){ if(editFoodId) return; foodDraft = { name:$('fd_name').value, cat:$('fd_cat').value, bought:$('fd_bought').value, expiry:$('fd_expiry').value, memo:$('fd_memo').value }; }
 function foodFormHtml(){
   const f = editFoodId ? FOODS.find(x=>x.id===editFoodId) : null;
+  const d = f ? {name:f.name, cat:f.category, bought:f.bought_on||'', expiry:f.expiry_on, memo:f.memo||''} : (foodDraft || {name:'', cat:FOOD_CATS[0], bought:todayStr(), expiry:'', memo:''});
   return '<div class="box"><b>'+(f?'✏️ 編集する':'➕ 食材を登録')+'</b>'
-    +'<label>食材名</label><input id="fd_name" value="'+esc(f?f.name:'')+'" placeholder="例: 牛乳 / ほうれん草">'
-    +'<label>カテゴリ</label><select id="fd_cat">'+FOOD_CATS.map(c=>'<option'+(f&&f.category===c?' selected':'')+'>'+c+'</option>').join('')+'</select>'
-    +'<label>買った日</label><input id="fd_bought" type="date" value="'+(f?(f.bought_on||'') : todayStr())+'">'
-    +'<label>賞味期限</label><input id="fd_expiry" type="date" value="'+(f?f.expiry_on:'')+'">'
+    +'<label>食材名</label><input id="fd_name" value="'+esc(d.name)+'" placeholder="例: 牛乳 / ほうれん草" oninput="capFoodDraft()">'
+    +'<label>カテゴリ</label><select id="fd_cat" onchange="capFoodDraft()">'+FOOD_CATS.map(c=>'<option'+(d.cat===c?' selected':'')+'>'+c+'</option>').join('')+'</select>'
+    +'<label>買った日</label><input id="fd_bought" type="date" value="'+d.bought+'" onchange="capFoodDraft()">'
+    +'<label>賞味期限</label><input id="fd_expiry" type="date" value="'+d.expiry+'" onchange="capFoodDraft()">'
     +'<div class="row" style="margin:6px 0 0"><span class="chip" onclick="setExpiryDays(0)">今日まで</span><span class="chip" onclick="setExpiryDays(3)">3日後</span><span class="chip" onclick="setExpiryDays(7)">1週間後</span></div>'
-    +'<label>メモ（任意）</label><input id="fd_memo" value="'+esc(f?f.memo:'')+'" placeholder="例: 開封済み">'
+    +'<label>メモ（任意）</label><input id="fd_memo" value="'+esc(d.memo)+'" placeholder="例: 開封済み" oninput="capFoodDraft()">'
     +'<div class="row" style="margin-top:12px"><button onclick="saveFood()" style="flex:1">'+(f?'保存する':'登録する')+'</button>'
     +(f?'<button class="g" onclick="editFoodId=null;draw()">キャンセル</button>':'')+'</div></div>';
 }
-function setExpiryDays(n){ $('fd_expiry').value = dstr(addDays(new Date(), n)); }
+function setExpiryDays(n){ $('fd_expiry').value = dstr(addDays(new Date(), n)); capFoodDraft(); }
 function editFood(id){ editFoodId=id; draw(); window.scrollTo(0, document.body.scrollHeight); }
 async function saveFood(){
   const name=$('fd_name').value.trim(), expiry=$('fd_expiry').value;
@@ -528,7 +550,7 @@ async function saveFood(){
   if(editFoodId) r = await sb.from('fam_foods').update(row).eq('id', editFoodId).eq('household_id', HID);
   else r = await sb.from('fam_foods').insert(row);
   if(r.error){ console.error(r.error); toast('保存に失敗しました'); return; }
-  editFoodId=null; toast('保存しました'); await loadAll();
+  editFoodId=null; foodDraft=null; toast('保存しました'); await loadAll();
 }
 async function finishFood(id, status){
   const r = await sb.from('fam_foods').update({status, finished_at:new Date().toISOString()}).eq('id', id).eq('household_id', HID);
@@ -563,7 +585,16 @@ function viewMoods(){
     + '</table></div></div>';
   return h;
 }
-function pickMood(memberId, k){ const cur = moodSel[memberId] || {}; moodSel[memberId] = {mood:k, note:cur.note ?? (($('mn_'+memberId)||{}).value || '')}; draw(); }
+function pickMood(memberId, k){
+  const noteEl = $('mn_'+memberId);
+  const cur = moodSel[memberId] || {};
+  moodSel[memberId] = {mood:k, note:cur.note ?? (noteEl ? noteEl.value : '')};
+  // 全体を再描画するとメモ入力やスクロールが飛ぶので、ボタンの見た目だけその場で切り替える
+  const box = noteEl ? noteEl.closest('.box') : null;
+  if(box){
+    box.querySelectorAll('.moodbtn').forEach((b,idx)=>b.classList.toggle('on', MOODS[idx] && MOODS[idx].k===k));
+  } else draw();
+}
 function noteMood(memberId, v){ const cur = moodSel[memberId] || {}; moodSel[memberId] = {mood:cur.mood||'', note:v}; }
 async function saveMood(memberId){
   const sel = moodSel[memberId];
@@ -597,7 +628,10 @@ function viewBrush(){
   const t = todayStr();
   const st = mid ? brushStats(mid) : {stars:0, streak:0};
   let h = '<h2 style="margin:10px 0 2px">🪥 歯磨き記録</h2><p class="sub">カメラは鏡として端末の中だけで使います（映像は保存・送信されません）。共有されるのは「できた」記録だけです。</p>';
-  h += '<div class="box"><label style="margin-top:0">だれの記録？</label><select onchange="brushMember=this.value;draw()">'+memberOptions(mid)+'</select>'
+  h += '<div class="box"><label style="margin-top:0">だれの記録？</label>'
+    + (brushSession
+      ? '<p style="margin:0"><b>'+esc(memberName(brushSession.memberId))+'</b> <span class="sub">（みがき中は変更できません）</span></p>'
+      : '<select onchange="brushMember=this.value;draw()">'+memberOptions(mid)+'</select>')
     + '<p style="margin:10px 0 0">⭐ スター '+st.stars+'　🔥 連続 '+st.streak+'日（朝・夜そろった日）</p>'
     + '<p class="sub">今日: 🌅朝 '+(mid&&brushDone(mid,t,'morning')?'✅':'⬜')+'　🌙夜 '+(mid&&brushDone(mid,t,'night')?'✅':'⬜')+'</p></div>';
 
@@ -750,14 +784,20 @@ function viewMigraine(){
   const t = todayStr();
   const mine = MIGLOGS.filter(x=>x.member_id===mid).slice(-14).reverse();
   const todayLog = MIGLOGS.find(x=>x.member_id===mid && x.log_date===t);
+  // 入力中の体調チェックは再描画で消えないよう保持する。メンバーを切り替えたら、その人の今日の記録から初期化する
+  if(!migForm || migFormFor !== mid){
+    migForm = { sleep:'good', stress:'none', stiff:'none', head: !!(todayLog && todayLog.headache) };
+    migFormFor = mid;
+  }
+  const f = migForm;
   let h = '<h2 style="margin:10px 0 2px">🌦️ 偏頭痛チェック</h2><p class="sub">東海市周辺の気圧（Open-Meteo）と体調チェックからリスクを推定します。医療診断ではありません。</p>';
   h += '<div class="box"><label style="margin-top:0">だれの記録？</label><select onchange="migMember=this.value;draw()">'+memberOptions(mid)+'</select>'
     + '<p id="migWx" style="margin:10px 0 0">🌡️ 気圧データを取得中…</p></div>';
   h += '<div class="box"><b>📝 今日の体調チェック</b>'
-    + '<label>睡眠</label><select id="mg_sleep"><option value="good">よく寝た</option><option value="ok">ふつう</option><option value="bad">睡眠不足</option></select>'
-    + '<label>ストレス</label><select id="mg_stress"><option value="none">なし</option><option value="some">少しある</option><option value="high">強い</option></select>'
-    + '<label>肩こり・首こり</label><select id="mg_stiff"><option value="none">なし</option><option value="some">ある</option><option value="high">強い</option></select>'
-    + '<label style="font-weight:400"><input type="checkbox" id="mg_head" style="width:auto" '+(todayLog&&todayLog.headache?'checked':'')+'> 今日、頭痛が起きた</label>'
+    + '<label>睡眠</label><select id="mg_sleep" onchange="migForm.sleep=this.value">'+opt('good',f.sleep,'よく寝た')+opt('ok',f.sleep,'ふつう')+opt('bad',f.sleep,'睡眠不足')+'</select>'
+    + '<label>ストレス</label><select id="mg_stress" onchange="migForm.stress=this.value">'+opt('none',f.stress,'なし')+opt('some',f.stress,'少しある')+opt('high',f.stress,'強い')+'</select>'
+    + '<label>肩こり・首こり</label><select id="mg_stiff" onchange="migForm.stiff=this.value">'+opt('none',f.stiff,'なし')+opt('some',f.stiff,'ある')+opt('high',f.stiff,'強い')+'</select>'
+    + '<label style="font-weight:400"><input type="checkbox" id="mg_head" style="width:auto" onchange="migForm.head=this.checked" '+(f.head?'checked':'')+'> 今日、頭痛が起きた</label>'
     + '<div class="row" style="margin-top:10px"><button onclick="saveMigraine()" style="flex:1">判定して保存</button></div>'
     + (todayLog?'<p class="sub">今日の結果: リスク <b>'+esc(todayLog.risk_level)+'</b>（'+todayLog.risk_score+'点）</p>':'')
     + '</div>';
@@ -771,7 +811,12 @@ async function saveMigraine(){
   const mid = migMember || MID;
   let wx = null, wScore = 0;
   try{ wx = await fetchPressure(); wScore = migWeatherScore(wx); }catch(e){ console.warn(e); }
-  const sleep = $('mg_sleep').value, stress = $('mg_stress').value, stiff = $('mg_stiff').value;
+  // 保存時は画面に表示されている値を正とする（migFormは再描画で消えないための控え）
+  const mf = migForm || {};
+  const sleep = $('mg_sleep') ? $('mg_sleep').value : mf.sleep;
+  const stress = $('mg_stress') ? $('mg_stress').value : mf.stress;
+  const stiff = $('mg_stiff') ? $('mg_stiff').value : mf.stiff;
+  const head = $('mg_head') ? $('mg_head').checked : mf.head;
   let cScore = 0;
   cScore += sleep==='ok'?8 : sleep==='bad'?16 : 0;
   cScore += stress==='some'?6 : stress==='high'?12 : 0;
@@ -779,7 +824,7 @@ async function saveMigraine(){
   const score = Math.min(100, wScore + cScore);
   const row = { household_id:HID, member_id:mid, log_date:todayStr(), risk_score:score, risk_level:migLevel(score),
     pressure: wx?wx.pressure:null, drop24: wx?wx.drop24:null, sleep, stress, stiffness:stiff,
-    headache: $('mg_head').checked, updated_at:new Date().toISOString() };
+    headache: head, updated_at:new Date().toISOString() };
   const r = await sb.from('fam_migraine_logs').upsert(row, {onConflict:'member_id,log_date'});
   if(r.error){ console.error(r.error); toast('保存に失敗しました'); return; }
   toast('今日のリスクは「'+migLevel(score)+'」（'+score+'点）でした'); await loadAll();
