@@ -1243,18 +1243,126 @@ S.adminSheet=S.adminSheet||"menu";
 const groups=[
 {title:"① 日々の運営",desc:"イベントや参加者への対応、連絡・お知らせ",items:[["events","イベント募集・参加者","日程登録／イベント参加者・キャンセル待ち"],["posts","仲間・募集","練習仲間・交流募集の投稿と参加者管理"],["feedbacks","メンバーからの連絡","メンバーから届いた相談・質問への返信"],["notify","全員への通知","メンバー全員へ連絡を送信"]]},
 {title:"② 会員管理",desc:"会員の登録、ログイン、プロフィールを管理",items:[["members","会員一覧・追加・削除","会員の追加・招待／退会・削除／招待リンク・PIN再発行"]]},
-{title:"③ クラブ運営",desc:"会費や大会のお金、アプリの利用状況を確認",items:[["dues","会費の回収状況","イベント会費・クラブ会費の入金確認"],["finance","大会収支","大会の参加費・協賛金・支出を集計"],["analytics","アクセス分析","利用者数や閲覧状況を確認"]]},
+{title:"③ クラブ運営",desc:"会費や大会のお金、アプリの利用状況を確認",items:[["dues","会費の回収状況","イベント会費・クラブ会費の入金確認"],["finance","大会収支","大会の参加費・協賛金・支出を集計"],["sim","起業シミュレータ","常設コート・レンタル開催の収支を試算"],["analytics","アクセス分析","利用者数や閲覧状況を確認"]]},
 {title:"④ 詳細・管理",desc:"アプリの保守や重要な設定",items:[["updates","更新履歴","メンバーによるプロフィール等の更新記録"],["settings","バックアップ・復元／設定","データ復元、管理者パスワード、レーティング設定"]]}
 ];
-const labels={events:"イベント募集・参加者",feedbacks:"メンバーからの連絡",posts:"仲間・募集",notify:"全員への通知",members:"会員一覧・追加・削除",profiles:"招待・PIN再発行",dues:"会費の回収状況",finance:"大会収支",analytics:"アクセス分析",updates:"更新履歴",settings:"バックアップ・復元／設定"};
+const labels={events:"イベント募集・参加者",feedbacks:"メンバーからの連絡",posts:"仲間・募集",notify:"全員への通知",members:"会員一覧・追加・削除",profiles:"招待・PIN再発行",dues:"会費の回収状況",finance:"大会収支",sim:"起業シミュレータ",analytics:"アクセス分析",updates:"更新履歴",settings:"バックアップ・復元／設定"};
 if(S.adminSheet==="menu"){
 const nav=groups.map(g=>`<section style="margin:14px 0"><h2 style="margin:0 0 4px">${g.title}</h2><p class="sub" style="margin:0 0 8px">${g.desc}</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px">${g.items.map(([key,label,help])=>`<button class="g" style="text-align:left;min-height:58px;white-space:normal" onclick="setAdminSheet('${key}')"><span style="font-weight:800">${label}${adminSheetUnread(key)?' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;margin-left:4px" aria-label="未確認"></span>':""}</span><small style="display:block;font-weight:400;opacity:.75;margin-top:4px">${help}</small></button>`).join("")}</div></section>`).join("");
 return `<span class="badge" style="background:var(--warn)">ADMIN</span><h1>管理者メニュー</h1><p class="sub">目的に合った項目を選んでください。</p>${nav}`
 }
-const view=S.adminSheet==="members"?adminMembers()+"<hr>"+adminProfiles():({finance:adminFinance,feedbacks:adminFeedbacks,notify:adminNotify,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,analytics:adminAnalytics,settings:adminSettings})[S.adminSheet]();
+const view=S.adminSheet==="members"?adminMembers()+"<hr>"+adminProfiles():({finance:adminFinance,sim:adminSim,feedbacks:adminFeedbacks,notify:adminNotify,dues:adminDues,events:adminEvents,posts:adminPosts,updates:adminUpdates,profiles:adminProfiles,analytics:adminAnalytics,settings:adminSettings})[S.adminSheet]();
 return `<div class="row" style="justify-content:space-between;align-items:center"><button class="g" onclick="setAdminSheet('menu')">← 管理者メニューに戻る</button><span class="badge" style="background:var(--warn)">ADMIN</span></div><h1>${labels[S.adminSheet]||"管理者"}</h1>${view}`
 }
 function setAdminSheet(sheet){captureAdminForm();if(sheet!=="profiles")adminSetupCodeDisplay=null;if(sheet==="updates")markSeen("admin_updates");if(sheet==="feedbacks")markSeen("admin_feedbacks");S.adminSheet=sheet;draw();if(sheet==="settings")loadBackups();if(sheet==="profiles")loadPinStatus();if(sheet==="analytics"&&!analyticsCache)loadAdminAnalytics()}
+
+/* ---------- 起業シミュレータ（管理者専用・端末内保存） ---------- */
+/* 会場プリセット：VENUESの料金から代表値を抜き出したもの。vi=VENUESの番号、price=都度は1回料金／常設は月額 */
+const SIMPRESETS=[
+{vi:0,mode:"rental",price:1570,feeNote:"午後（13-17時）料金"},
+{vi:1,mode:"rental",price:3600,feeNote:"サブアリーナ全面・午後料金"},
+{vi:2,mode:"rental",price:1540,feeNote:"半面2時間（450円+電灯320円）×2"},
+{vi:3,mode:"rental",price:2370,feeNote:"メイン1/3面・午後料金"},
+{vi:4,mode:"rental",price:0,feeNote:"料金は要確認（会場費は手入力）"},
+{vi:5,mode:"rental",price:9900,feeNote:"屋外コート1時間料金"},
+{vi:6,mode:"rental",price:2200,feeNote:"ビジター屋外1時間料金"},
+{vi:7,mode:"perm",price:495000,feeNote:"月額賃料",def:{courts:2,cap:8,slots:1,days:30,fee:1000,occ:60,variable:100,fixed:80000,initial:17000000}},
+{vi:8,mode:"perm",price:450000,feeNote:"月額賃料"},
+{vi:9,mode:"perm",price:748000,feeNote:"月額賃料"}
+];
+const SIMDEF={mode:"rental",venueFee:1570,courts:1,cap:8,slots:1,days:8,fee:600,occ:70,variable:100,fixed:0,initial:0};
+let SIM={...SIMDEF};
+const simNum=(v,d=0)=>{const n=parseFloat(v);return Number.isFinite(n)?n:d};
+const simYen=n=>`${Math.round(n).toLocaleString("ja-JP")}円`;
+function simCompute(x){
+const capMonth=Math.max(0,x.cap)*Math.max(0,x.courts)*Math.max(0,x.slots)*Math.max(0,x.days);
+const occ=Math.min(100,Math.max(0,x.occ))/100;
+const visitors=capMonth*occ;
+const revenue=x.fee*visitors;
+const varCost=x.variable*visitors;
+const venueCost=x.mode==="perm"?x.venueFee:x.venueFee*Math.max(0,x.slots)*Math.max(0,x.days);
+const fixedCost=venueCost+Math.max(0,x.fixed);
+const cost=fixedCost+varCost;
+const profit=revenue-cost;
+const margin=(x.fee-x.variable)*capMonth;
+const be=margin>0?fixedCost/margin:null;
+const bePeople=be!=null?be*x.cap*x.courts:null;
+const payback=profit>0&&x.initial>0?x.initial/profit:(x.initial>0?null:0);
+return{capMonth,visitors,revenue,varCost,venueCost,fixedCost,cost,profit,be,bePeople,payback}
+}
+function simSweep(x){
+const rows=[];let max=1;
+for(let o=10;o<=100;o+=10){const r=simCompute({...x,occ:o});rows.push({o,profit:r.profit});max=Math.max(max,Math.abs(r.profit))}
+return `<h3 style="font-size:14px;margin:16px 0 6px">稼働率を振った場合の月間利益</h3>${rows.map(({o,profit})=>{const w=Math.round(Math.abs(profit)/max*100),neg=profit<0;return `<div class="row" style="justify-content:space-between;margin:3px 0;gap:8px"><span style="width:44px">${o}%</span><span style="flex:1;background:var(--sf2);border-radius:4px;height:14px;overflow:hidden"><span style="display:block;height:100%;width:${w}%;background:${neg?"var(--dg)":"var(--ac2)"}"></span></span><b style="width:110px;text-align:right;color:${neg?"var(--dg)":"inherit"}">${simYen(profit)}</b></div>`}).join("")}`
+}
+function simResultHtml(){
+const r=simCompute(SIM);
+const beTxt=r.be==null?"算出不可（参加費が変動費以下）":`${(r.be*100).toFixed(1)}%`;
+const bePeopleTxt=r.bePeople==null?"算出不可":`約${Math.ceil(r.bePeople)}人／枠`;
+const paybackTxt=SIM.initial<=0?"初期費用なし":(r.payback==null?"回収不可（月間利益がマイナス）":`${r.payback.toFixed(1)}か月`);
+return `<div class="row" style="justify-content:space-between"><span>月間売上</span><b>${simYen(r.revenue)}</b></div>
+<div class="row" style="justify-content:space-between"><span>月間コスト</span><b>${simYen(r.cost)}</b></div>
+<div class="sub" style="margin:0 0 6px">内訳：${SIM.mode==="perm"?"月額家賃":"会場費"} ${simYen(r.venueCost)} ／ その他固定費 ${simYen(SIM.fixed)} ／ 変動費 ${simYen(r.varCost)}（来場 約${Math.round(r.visitors).toLocaleString("ja-JP")}人）</div>
+<div class="row" style="justify-content:space-between"><span>月間利益</span><b class="big" style="font-size:26px;color:${r.profit<0?"var(--dg)":"var(--ac2)"}">${simYen(r.profit)}</b></div>
+<div class="row" style="justify-content:space-between"><span>損益分岐の稼働率</span><b>${beTxt}</b></div>
+<div class="row" style="justify-content:space-between"><span>損益分岐の人数</span><b>${bePeopleTxt}</b></div>
+<div class="row" style="justify-content:space-between"><span>初期費用の回収期間</span><b>${paybackTxt}</b></div>
+${simSweep(SIM)}`
+}
+function simCalc(){const o=$("sim_out");if(o)o.innerHTML=simResultHtml();const l=$("sim_list");if(l)l.innerHTML=simScenarioListHtml()}
+function simSet(key,val){SIM[key]=key==="mode"?val:simNum(val);simCalc()}
+function simMode(m){SIM.mode=m;draw()}
+function simPreset(idx){
+if(idx===""||idx==null)return;
+const p=SIMPRESETS[Number(idx)];if(!p)return;
+SIM.mode=p.mode;SIM.venueFee=p.price;
+if(p.def)Object.assign(SIM,p.def);
+draw();
+toast(`${VENUES[p.vi].name} を読み込みました（${p.feeNote}）`)
+}
+function simScenarios(){try{return JSON.parse(localStorage.getItem("ph_sim_scenarios")||"[]")}catch(e){return[]}}
+function simScenarioListHtml(){
+const list=simScenarios();
+if(!list.length)return '<p class="sub">保存したシナリオはまだありません。</p>';
+return list.map((s,i)=>{const r=simCompute(s.inputs);return `<div class="box"><div class="row" style="justify-content:space-between;margin:0"><b>${esc(s.name)}</b><b style="color:${r.profit<0?"var(--dg)":"var(--ac2)"}">${simYen(r.profit)}／月</b></div><div class="sub" style="margin:4px 0">${s.inputs.mode==="perm"?"常設":"都度レンタル"} ／ 参加費 ${simYen(s.inputs.fee)} ／ 稼働率 ${s.inputs.occ}% ／ 分岐 ${r.be==null?"算出不可":(r.be*100).toFixed(1)+"%"}</div><div class="row" style="margin:0"><button class="g" onclick="simLoadScenario(${i})" style="font-size:12px;padding:6px 10px">読み込む</button><button class="x" onclick="simDelScenario(${i})">削除</button></div></div>`}).join("")
+}
+function simSaveScenario(){
+const f=$("sim_name"),name=f&&f.value.trim();
+if(!name){alert("シナリオ名を入力してください");return}
+const list=simScenarios();
+list.unshift({name,ts:Date.now(),inputs:{...SIM}});
+try{localStorage.setItem("ph_sim_scenarios",JSON.stringify(list))}catch(e){alert("保存できませんでした");return}
+if(f)f.value="";
+simCalc();toast("シナリオを保存しました")
+}
+function simLoadScenario(i){const s=simScenarios()[i];if(!s)return;SIM={...SIMDEF,...s.inputs};draw();toast(`「${s.name}」を読み込みました`)}
+function simDelScenario(i){ask("このシナリオを削除しますか？",()=>{const list=simScenarios();list.splice(i,1);try{localStorage.setItem("ph_sim_scenarios",JSON.stringify(list))}catch(e){}simCalc()})}
+function adminSim(){
+const isPerm=SIM.mode==="perm";
+const field=(label,key,step)=>`<label>${label}</label><input type="number" min="0" ${step?`step="${step}"`:""} value="${SIM[key]}" oninput="simSet('${key}',this.value)" style="width:100%">`;
+return `<h2>起業シミュレータ</h2><p class="sub">ピックルボール施設（常設コート／都度レンタル）の収支を試算します。会場カタログの料金をプリセットとして読み込めます。試算はこの端末内にだけ保存されます。</p>
+<div class="box">
+<label>会場プリセット（会場カタログから）</label>
+<select onchange="simPreset(this.value)" style="width:100%"><option value="">選択すると料金などが自動入力されます</option>${SIMPRESETS.map((p,i)=>`<option value="${i}">${esc(VENUES[p.vi].name)}（${p.mode==="perm"?"常設":"都度"}・${esc(p.feeNote)}）</option>`).join("")}</select>
+<label>モード</label>
+<div class="row"><button class="${isPerm?"g":""}" onclick="simMode('rental')">都度レンタル</button><button class="${isPerm?"":"g"}" onclick="simMode('perm')">常設</button></div>
+${field(isPerm?"月額家賃（円）":"会場費（1回あたり・円）","venueFee")}
+${field("コート面数","courts")}
+${field("定員（1面・1枠あたり・人）","cap")}
+${field("開催枠数（1日あたり）","slots")}
+${field("営業日数（月あたり）","days")}
+${field("参加費（1人・円）","fee")}
+${field("想定稼働率（%）","occ")}
+${field("変動費（1人あたり・円）","variable")}
+${field("その他固定費（月額・円）","fixed")}
+${field("初期費用（円）","initial")}
+<h3 style="font-size:14px;margin:18px 0 6px">試算結果</h3>
+<div id="sim_out">${simResultHtml()}</div>
+</div>
+<div class="box"><h3 style="font-size:14px;margin-top:0">シナリオ保存</h3>
+<div class="row"><input id="sim_name" placeholder="シナリオ名（例: 高横須賀・参加費2500）" style="flex:1"><button onclick="simSaveScenario()">保存</button></div>
+<div id="sim_list">${simScenarioListHtml()}</div></div>`
+}
 
 /* ---------- 管理者への連絡(DM)・掲示板 ---------- */
 let adminSession=false,bch="notice";
