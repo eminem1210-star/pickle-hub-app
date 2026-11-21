@@ -33,7 +33,7 @@
   gtag('config', 'G-XYRGB8F6NW', { send_page_view: false });
   gtag('event', 'page_view', { page_location: window.__gaLoc, page_title: document.title });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js" integrity="sha256-iBavBNmRXbuhiC1vhPC0AtxAJoBjpj2cZtJPUvNxwmM=" crossorigin="anonymous"></script>
 <style>
 :root{
   --bg: #171D19;
@@ -460,12 +460,30 @@ body.pop .big{color:#000}
     }catch(ignore){}
   }
   window.__phShowBootError=showBootError;
+  // 起動完了の判定：静的起動画面（#ph_static_boot）が残っている間と、起動エラー表示中は「起動前」として扱う。
+  // 本体が表示された後は、ログイン画面（#login）の表示か __phBootStage の完了ステージで判定する。
+  function bootFinished(){
+    if(document.getElementById("ph_boot_error"))return false;
+    if(document.getElementById("ph_static_boot"))return false;
+    if(document.getElementById("login"))return true;
+    return window.__phBootStage==="ホーム画面表示完了";
+  }
+  // 起動後のエラーで画面全体を消さない：コンソール記録＋トースト通知だけに留める。
+  // 全画面の起動エラー表示は、起動前（ブート失敗時）だけに限定する。
+  function handleError(title,detail){
+    if(bootFinished()){
+      try{console.error("[PICKLE HUB] "+title,detail);}catch(ignore){}
+      try{if(typeof window.toast==="function")window.toast("一時的なエラーが発生しました。操作をやり直してください");}catch(ignore){}
+      return;
+    }
+    showBootError(title,detail);
+  }
   window.addEventListener("error",function(e){
-    if(e&&e.error)showBootError("JavaScriptの実行エラー",String(e.message||e.error)+(e.filename?"\n"+e.filename+":"+e.lineno+":"+e.colno:""));
+    if(e&&e.error)handleError("JavaScriptの実行エラー",String(e.message||e.error)+(e.filename?"\n"+e.filename+":"+e.lineno+":"+e.colno:""));
   });
   window.addEventListener("unhandledrejection",function(e){
     var r=e&&e.reason;
-    showBootError("非同期処理のエラー",r&&r.stack?String(r.stack):String(r&&r.message||r||"詳細なし"));
+    handleError("非同期処理のエラー",r&&r.stack?String(r.stack):String(r&&r.message||r||"詳細なし"));
   });
   window.setTimeout(function(){
     var waiting=document.getElementById("ph_static_boot");
@@ -693,7 +711,7 @@ const doAdminLogin=()=>doLogin("admin_login",{p_pw:$("lg_apw").value});
 async function doLogout(){try{await rpc("logout")}catch(e){}try{localStorage.removeItem("ph_tok")}catch(e){}try{if("scrollRestoration" in history)history.scrollRestoration="manual";window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0}catch(e){}location.reload()}
 
 const $ = id => document.getElementById(id);
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const jsArg=s=>JSON.stringify(String(s)).replace(/</g,"\\u003c").replace(/>/g,"\\u003e").replace(/&/g,"\\u0026").replace(/"/g,"&quot;");
 const P=i=>`<span style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle">${memberIcon(S.players[i]||"?",24)}<span>${esc(S.players[i]||"?")}</span></span>`;
 let lastTab="",profileUnlockedName="",profileSessionName="",profilePhotoDraft="",levelDraft=null,profileAnswersEditedName="",profileBaseline=null,adminSetupCodeDisplay=null;
@@ -810,7 +828,6 @@ if(lastTab!=tab){window.scrollTo(0,0);lastTab=tab}}
 
 
 function shareTxt(t){ga("share",{method:navigator.share?"web_share":"line",content_type:"text"});if(navigator.share){navigator.share({text:t}).catch(e=>{if(e&&e.name!=="AbortError")showCopy(t)})}else{const w=window.open("https://line.me/R/share?text="+encodeURIComponent(t),"_blank");if(!w)showCopy(t)}}
-async function modSc(ri,mi,k,d){if(ROLE!=="admin"){alert("スコアの編集は管理者のみです");return}const m=S.rounds[ri].m[mi],c=m[k]===""?0:m[k];m[k]=Math.max(0,c+d);if(!await saveOrRestore("スコアを保存できませんでした。最新データに戻しました"))return;await maybeRecord(m);draw()}
 async function voidRemovedRatings(matches){const keys=[...new Set((matches||[]).map(match=>match&&match.k).filter(key=>typeof key==="string"&&key.length>=8))];const failed=[];for(const key of keys){try{await rpc("void_match",{p_key:key})}catch(e){console.error("rating match void failed",key,e);failed.push(key)}}if(keys.length)clearRM();if(failed.length){alert(`${failed.length}件のレーティング記録を取り消せませんでした。対戦カードの削除・変更は保存済みです。管理者は試合の承認画面を確認してください`);return false}return true}
 async function addRental(){const item=$("ri").value.trim(),member=$("rh").value;if(!item||!member){alert("用具名とメンバーを選択してください");return}S.rentals=S.rentals||[];S.rentals.push({item,holder:member});if(!await saveOrRestore("貸出記録を保存できませんでした。最新データに戻しました"))return;draw()}
 
@@ -963,6 +980,7 @@ m[k]=score;S._v=result.v;await maybeRecord(m);draw()
 }catch(e){console.error(e);toast("スコアを保存できませんでした。再読み込みして確認してください");try{await reloadState()}catch(x){}}
 }
 function setSc(ri,mi,k,v){writeTournamentScore(ri,mi,k,v)}
+// modSc の唯一の実装（旧・管理者全体保存方式の同名定義は重複のため削除済み。実体は writeTournamentScore への委譲）
 function modSc(ri,mi,k,d){const m=S.rounds[ri]&&S.rounds[ri].m[mi];if(!m)return;const current=m[k]===""?0:+m[k];writeTournamentScore(ri,mi,k,Math.max(0,current+d))}
 function undoR(){if(ROLE!=="admin"){alert("大会の編集は管理者のみです");return}if(S.rounds.length)ask("最新のラウンドを取り消しますか？",async()=>{const removed=S.rounds[S.rounds.length-1];S.rounds.pop();if(!await saveOrRestore("ラウンドの取消を保存できませんでした。最新データに戻しました"))return;await voidRemovedRatings(removed&&removed.m||[]);draw()})}
 function shareR(){shareTxt("【PICKLE HUB 試合結果】\n"+table().map((r,k)=>(k+1)+". "+S.players[r.i]+" "+r.w+"勝"+r.l+"敗 ("+(r.d>0?"+":"")+r.d+")").join("\n"))}
