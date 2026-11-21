@@ -1309,7 +1309,32 @@ return `<div class="row" style="justify-content:space-between"><span>月間売�
 <div class="row" style="justify-content:space-between"><span>初期費用の回収期間</span><b>${paybackTxt}</b></div>
 ${simSweep(SIM)}`
 }
-function simCalc(){const o=$("sim_out");if(o)o.innerHTML=simResultHtml();const l=$("sim_list");if(l)l.innerHTML=simScenarioListHtml()}
+/* ---------- 競合シナリオ比較（PIVOT PARK開業想定・追加機能） ---------- */
+let SIMCOMP=20;
+function simCompSet(v){SIMCOMP=Math.min(50,Math.max(0,simNum(v)));const c=$("sim_comp");if(c)c.innerHTML=simCompHtml()}
+function simCompHtml(){
+const drop=SIMCOMP,occA=Math.max(0,SIM.occ),occB=Math.max(0,SIM.occ-drop);
+const a=simCompute(SIM),b=simCompute({...SIM,occ:occB});
+const beT=r=>r.be==null?"算出不可":`${(r.be*100).toFixed(1)}%`;
+const pbT=r=>SIM.initial<=0?"初期費用なし":(r.payback==null?"回収不可":`${r.payback.toFixed(1)}か月`);
+const gapT=(r,o)=>r.be==null?"算出不可":(r.be*100-o<=0?"到達しています":`あと${(r.be*100-o).toFixed(1)}ポイント`);
+const row=(label,va,vb,bold)=>`<div class="row" style="justify-content:space-between;margin:2px 0"><span>${label}</span><span>${bold?`<b>${va}</b> ／ <b>${vb}</b>`:`${va} ／ ${vb}`}</span></div>`;
+return `<div class="sub" style="margin:0 0 8px">前提：2026年11月5日、株式会社Acalie（本社：愛知県名古屋市西区）がピックルボール総合ブランド「PIVOT PARK」を発表し、愛知県内に「東海最大級」のピックルボール専用施設の建設を予定していると公表しました（出典：同社プレスリリース）。ただし発表時点では、専用施設の開業時期・具体的な所在地・コート面数・利用料金は公表されていません。そのためこのシナリオでは施設の詳細は作らず、「県内に大規模な専用施設が開業し、利用者の一部が流れる」影響だけを、稼働率の下げ幅として仮置きします。下げ幅は仮定であり、結果はすべて試算です（収益を保証するものではありません）。</div>
+<label>競合による稼働率の下げ幅（ポイント）</label>
+<input type="range" min="0" max="50" step="5" value="${drop}" onchange="simCompSet(this.value)" style="width:100%">
+<div class="row">${[0,10,20,30,40].map(v=>`<button class="${v===drop?"":"g"}" onclick="simCompSet(${v})" style="font-size:12px;padding:6px 10px">−${v}</button>`).join("")}</div>
+<div class="sub" style="margin:4px 0 8px">現在の設定：稼働率 ${occA}%（競合なし）→ ${occB}%（競合あり）</div>
+<div class="sub" style="margin:0 0 4px">以下は「競合なし ／ 競合あり」の順に表示しています。</div>
+${row("想定稼働率",`${occA}%`,`${occB}%`)}
+${row("月間売上",simYen(a.revenue),simYen(b.revenue))}
+${row("月間コスト",simYen(a.cost),simYen(b.cost))}
+${row("月間利益",simYen(a.profit),simYen(b.profit),true)}
+${row("損益分岐の稼働率",beT(a),beT(b))}
+${row("損益分岐まで",gapT(a,occA),gapT(b,occB))}
+${row("初期費用の回収期間",pbT(a),pbT(b))}
+<div class="sub" style="margin:6px 0 0">※損益分岐の稼働率はコスト構造で決まるため競合の仮定では変わりません。変わるのは想定稼働率と利益です。</div>`
+}
+function simCalc(){const o=$("sim_out");if(o)o.innerHTML=simResultHtml();const l=$("sim_list");if(l)l.innerHTML=simScenarioListHtml();const c=$("sim_comp");if(c)c.innerHTML=simCompHtml()}
 function simSet(key,val){SIM[key]=key==="mode"?val:simNum(val);simCalc()}
 function simMode(m){SIM.mode=m;draw()}
 function simPreset(idx){
@@ -1359,6 +1384,8 @@ ${field("初期費用（円）","initial")}
 <h3 style="font-size:14px;margin:18px 0 6px">試算結果</h3>
 <div id="sim_out">${simResultHtml()}</div>
 </div>
+<div class="box"><h3 style="font-size:14px;margin-top:0">競合シナリオ比較（PIVOT PARK開業を想定）</h3>
+<div id="sim_comp">${simCompHtml()}</div></div>
 <div class="box"><h3 style="font-size:14px;margin-top:0">シナリオ保存</h3>
 <div class="row"><input id="sim_name" placeholder="シナリオ名（例: 高横須賀・参加費2500）" style="flex:1"><button onclick="simSaveScenario()">保存</button></div>
 <div id="sim_list">${simScenarioListHtml()}</div></div>`
